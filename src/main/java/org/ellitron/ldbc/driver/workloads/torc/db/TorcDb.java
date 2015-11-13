@@ -24,9 +24,15 @@ import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
@@ -102,11 +108,35 @@ public class TorcDb extends Db {
             props.forEachRemaining((prop) -> {
                 propertyMap.put(prop.key(), prop.value());
             });
+            
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            Calendar calendar = new GregorianCalendar();
+            
+            try {
+                calendar.setTime(dateFormat.parse(propertyMap.get("birthday")));
+            } catch (ParseException ex) {
+                java.util.logging.Logger.getLogger(TorcDb.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            long birthday = calendar.getTimeInMillis();
+            
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            
+            try {
+                calendar.setTime(dateFormat.parse(propertyMap.get("creationDate")));
+            } catch (ParseException ex) {
+                java.util.logging.Logger.getLogger(TorcDb.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+            long creationDate = calendar.getTimeInMillis();
+
             LdbcShortQuery1PersonProfileResult res = new LdbcShortQuery1PersonProfileResult(
                     propertyMap.get("firstName"), propertyMap.get("lastName"),
-                    0, propertyMap.get("locationIP"),
+                    birthday, propertyMap.get("locationIP"),
                     propertyMap.get("browserUsed"), 0, propertyMap.get("gender"),
-                    0);
+                    creationDate);
             resultReporter.report(0, res, operation);
         }
 
