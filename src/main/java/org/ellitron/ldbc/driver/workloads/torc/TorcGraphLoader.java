@@ -162,25 +162,14 @@ public class TorcGraphLoader {
         config.setProperty(TorcGraph.CONFIG_NUM_MASTER_SERVERS, numMasters);
 
         TorcGraph graph = TorcGraph.open(config);
-
-        Map<String, Long> idPrefixMap = new HashMap<String, Long>() {{
-                this.put("comment", 1l);
-                this.put("forum", 2l);
-                this.put("organisation", 3l);
-                this.put("person", 4l);
-                this.put("place", 5l);
-                this.put("post", 6l);
-                this.put("tag", 7l);
-                this.put("tagclass", 8l);
-            }};
         
         try {
-            for (Map.Entry<String, Long> entry : idPrefixMap.entrySet()) {
-                String vertexType = entry.getKey();
-                Long idPrefix = entry.getValue();
-                String fileName = vertexType + "_0_0.csv";
+            for (Entity entity : Entity.values()) {
+                String fileName = entity.getName() + "_0_0.csv";
                 System.out.print("Loading " + fileName + " ");
-                loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), idPrefix, true);
+                
+                loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), entity.getNumber(), true);
+                
                 System.out.println("Finished");
             }
         } catch (Exception e) {

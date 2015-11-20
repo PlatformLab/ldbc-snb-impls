@@ -41,6 +41,7 @@ import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
@@ -109,9 +110,7 @@ public class TorcDb extends Db {
             long person_id = operation.personId();
             TorcGraph client = dbConnectionState.client();
 
-            // TODO: need to have a centralized place for id prefixes for the 
-            // different entities.
-            TorcVertex root = (TorcVertex) client.vertices(TorcHelper.makeVertexId(4l, person_id)).next();
+            TorcVertex root = (TorcVertex) client.vertices(TorcHelper.makeVertexId(Entity.PERSON.getNumber(), person_id)).next();
             Iterator<VertexProperty<String>> props = root.properties();
             Map<String, String> propertyMap = new HashMap<>();
             props.forEachRemaining((prop) -> {
@@ -165,9 +164,7 @@ public class TorcDb extends Db {
             creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
             
             Map<Object, Object> props = new HashMap<>();
-            // TODO: need to have a centralized place for id prefixes for the 
-            // different entities.
-            props.put(T.id, TorcHelper.makeVertexId(4l, operation.personId()));
+            props.put(T.id, TorcHelper.makeVertexId(Entity.PERSON.getNumber(), operation.personId()));
             props.put(T.label, "person");
             props.put("firstName", operation.personFirstName());
             props.put("lastName", operation.personLastName());
