@@ -25,6 +25,13 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate2AddPostLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate3AddCommentLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate4AddForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate5AddForumMembership;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -185,6 +192,90 @@ public class TorcDb extends Db {
             client.tx().commit();
             
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        }
+    }
+    
+    public static class LdbcUpdate2AddPostLikeHandler implements OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate2AddPostLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate3AddCommentLikeHandler implements OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate3AddCommentLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate4AddForumHandler implements OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate4AddForum operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate5AddForumMembershipHandler implements OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate5AddForumMembership operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate6AddPostHandler implements OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate6AddPost operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate7AddCommentHandler implements OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate7AddComment operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
+        }
+    }
+    
+    public static class LdbcUpdate8AddFriendshipHandler implements OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+
+        @Override
+        public void executeOperation(LdbcUpdate8AddFriendship operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+
+            
         }
     }
 }
