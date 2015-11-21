@@ -44,4 +44,20 @@ public enum Entity {
     public String getName() {
         return name;
     }
+    
+    public static Entity fromNumber(final long number) {
+        for (Entity e : values())
+            if (number == e.getNumber())
+                return e;
+        
+        throw new IllegalArgumentException();
+    }
+    
+    public static Entity fromName(final String name) {
+        for (Entity e : values())
+            if (name.equals(e.getName()))
+                return e;
+        
+        throw new IllegalArgumentException();
+    }
 }

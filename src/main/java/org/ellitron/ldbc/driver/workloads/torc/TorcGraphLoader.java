@@ -37,8 +37,10 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction;
 import org.ellitron.tinkerpop.gremlin.torc.measurement.MeasurementClient;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
+import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 
 /**
@@ -49,13 +51,13 @@ public class TorcGraphLoader {
 
     private static final Logger logger = Logger.getLogger(TorcGraphLoader.class.getName());
 
-    public static void loadVertices(TorcGraph graph, Path filePath, Long idPrefix, boolean printLoadingDots) throws IOException {
+    public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException {
         long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
         Map<Object, Object> propertiesMap;
-        String fileName = filePath.getFileName().toString();
-        String label = fileName.substring(0, fileName.indexOf("_"));
+        String fileNameParts[] = filePath.getFileName().toString().split("_");
+        String entityName = fileNameParts[0];
         for (String line : Files.readAllLines(filePath)) {
             if (firstLine) {
                 colNames = line.split("\\|");
@@ -68,13 +70,13 @@ public class TorcGraphLoader {
 
             for (int i = 0; i < colVals.length; ++i) {
                 if (colNames[i].equals("id")) {
-                    propertiesMap.put(T.id, TorcHelper.makeVertexId(idPrefix, Long.decode(colVals[i])));
+                    propertiesMap.put(T.id, TorcHelper.makeVertexId(Entity.fromName(entityName).getNumber(), Long.decode(colVals[i])));
                 } else {
                     propertiesMap.put(colNames[i], colVals[i]);
                 }
             }
 
-            propertiesMap.put(T.label, label);
+            propertiesMap.put(T.label, entityName);
 
             List<Object> keyValues = new ArrayList<>();
             propertiesMap.forEach((key, val) -> {
@@ -87,6 +89,62 @@ public class TorcGraphLoader {
             count++;
             if (count % 100 == 0) {
                 graph.tx().commit();
+                if (printLoadingDots && (count % 100000 == 0)) {
+                    System.out.print(". ");
+                }
+            }
+        }
+        graph.tx().commit();
+    }
+    
+    public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots) throws IOException {
+        long count = 0;
+        String[] colNames = null;
+        boolean firstLine = true;
+        Map<Object, Object> propertiesMap;
+        String fileNameParts[] = filePath.getFileName().toString().split("_");
+        String v1EntityName = fileNameParts[0];
+        String edgeLabel = fileNameParts[1];
+        String v2EntityName = fileNameParts[2];
+        for (String line : Files.readAllLines(filePath)) {
+            if (firstLine) {
+                colNames = line.split("\\|");
+                firstLine = false;
+                continue;
+            }
+            
+            String[] colVals = line.split("\\|");
+
+            Long vertex1Id = Long.decode(colVals[0]);
+            Long vertex2Id = Long.decode(colVals[1]);
+            
+            TorcVertex vertex1 = (TorcVertex) graph.vertices(TorcHelper.makeVertexId(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
+            TorcVertex vertex2 = (TorcVertex) graph.vertices(TorcHelper.makeVertexId(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
+            
+            propertiesMap = new HashMap<>();
+            for (int i = 2; i < colVals.length; ++i) {
+                propertiesMap.put(colNames[i], colVals[i]);
+            }
+
+            List<Object> keyValues = new ArrayList<>();
+            propertiesMap.forEach((key, val) -> {
+                keyValues.add(key);
+                keyValues.add(val);
+            });
+
+            if (undirected)
+                vertex1.addBidirectionalEdge(edgeLabel, vertex2, keyValues.toArray());
+            else
+                vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
+            
+            count++;
+            if (count % 1 == 0) {
+                try {
+                    graph.tx().commit();
+                } catch (RuntimeException e) {
+                    System.out.println("count="+count);
+                    throw e;
+                }
                 if (printLoadingDots && (count % 100000 == 0)) {
                     System.out.print(". ");
                 }
@@ -163,12 +221,64 @@ public class TorcGraphLoader {
 
         TorcGraph graph = TorcGraph.open(config);
         
+        // TODO: Make file list generation programmatic. This method of loading,
+        // however, will be far too slow for anything other than the very 
+        // smallest of SNB graphs, and is therefore quite transient. This will
+        // do for now.
+        String nodeFiles[] = {  "comment_0_0.csv",
+                                //"forum_0_0.csv",
+                                //"organisation_0_0.csv",
+                                //"person_0_0.csv",
+                                //"place_0_0.csv",
+                                //"post_0_0.csv",
+                                "tag_0_0.csv",
+                                //"tagclass_0_0.csv" 
+        };
+        
+        String edgeFiles[] = {  //"comment_hasCreator_person_0_0.csv",
+                                "comment_hasTag_tag_0_0.csv",
+                                "comment_isLocatedIn_place_0_0.csv",
+                                "comment_replyOf_comment_0_0.csv",
+                                "comment_replyOf_post_0_0.csv",
+                                "forum_containerOf_post_0_0.csv",
+                                "forum_hasMember_person_0_0.csv",
+                                "forum_hasModerator_person_0_0.csv",
+                                "forum_hasTag_tag_0_0.csv",
+                                "organisation_isLocatedIn_place_0_0.csv",
+                                "person_email_emailaddress_0_0.csv",
+                                "person_hasInterest_tag_0_0.csv",
+                                "person_isLocatedIn_place_0_0.csv",
+                                "person_knows_person_0_0.csv",
+                                "person_likes_comment_0_0.csv",
+                                "person_likes_post_0_0.csv",
+                                "person_speaks_language_0_0.csv",
+                                "person_studyAt_organisation_0_0.csv",
+                                "person_workAt_organisation_0_0.csv",
+                                "place_isPartOf_place_0_0.csv",
+                                "post_hasCreator_person_0_0.csv",
+                                "post_hasTag_tag_0_0.csv",
+                                "post_isLocatedIn_place_0_0.csv",
+                                "tag_hasType_tagclass_0_0.csv",
+                                "tagclass_isSubclassOf_tagclass_0_0.csv",
+                                "updateStream.properties",
+                                "updateStream_0_0_forum.csv",
+                                "updateStream_0_0_person.csv" 
+        };
+        
         try {
-            for (Entity entity : Entity.values()) {
-                String fileName = entity.getName() + "_0_0.csv";
+            for (String fileName : nodeFiles) {
+                System.out.print("Loading " + fileName + " ");
+                loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                System.out.println("Finished");
+            }
+            
+            for (String fileName : edgeFiles) {
                 System.out.print("Loading " + fileName + " ");
                 
-                loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), entity.getNumber(), true);
+                if (fileName.contains("person_knows_person"))
+                    loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true);
+                else
+                    loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, true);
                 
                 System.out.println("Finished");
             }
