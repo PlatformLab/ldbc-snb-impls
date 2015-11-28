@@ -138,7 +138,7 @@ public class TorcGraphLoader {
                 vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
             
             count++;
-            if (count % 1 == 0) {
+            if (count % 100 == 0) {
                 try {
                     graph.tx().commit();
                 } catch (RuntimeException e) {
@@ -172,7 +172,7 @@ public class TorcGraphLoader {
         }
 
         if (cmd.hasOption("h")) {
-            formatter.printHelp("LDBCSNBBulkLoader", options);
+            formatter.printHelp("TorcGraphLoader", options);
             return;
         }
 
@@ -226,16 +226,16 @@ public class TorcGraphLoader {
         // smallest of SNB graphs, and is therefore quite transient. This will
         // do for now.
         String nodeFiles[] = {  "comment_0_0.csv",
-                                //"forum_0_0.csv",
-                                //"organisation_0_0.csv",
-                                //"person_0_0.csv",
-                                //"place_0_0.csv",
-                                //"post_0_0.csv",
+                                "forum_0_0.csv",
+                                "organisation_0_0.csv",
+                                "person_0_0.csv",
+                                "place_0_0.csv",
+                                "post_0_0.csv",
                                 "tag_0_0.csv",
-                                //"tagclass_0_0.csv" 
+                                "tagclass_0_0.csv" 
         };
         
-        String edgeFiles[] = {  //"comment_hasCreator_person_0_0.csv",
+        String edgeFiles[] = {  "comment_hasCreator_person_0_0.csv",
                                 "comment_hasTag_tag_0_0.csv",
                                 "comment_isLocatedIn_place_0_0.csv",
                                 "comment_replyOf_comment_0_0.csv",
@@ -259,10 +259,7 @@ public class TorcGraphLoader {
                                 "post_hasTag_tag_0_0.csv",
                                 "post_isLocatedIn_place_0_0.csv",
                                 "tag_hasType_tagclass_0_0.csv",
-                                "tagclass_isSubclassOf_tagclass_0_0.csv",
-                                "updateStream.properties",
-                                "updateStream_0_0_forum.csv",
-                                "updateStream_0_0_person.csv" 
+                                "tagclass_isSubclassOf_tagclass_0_0.csv"
         };
         
         try {
