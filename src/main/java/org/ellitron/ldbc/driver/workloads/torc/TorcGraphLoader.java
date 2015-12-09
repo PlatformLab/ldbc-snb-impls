@@ -21,10 +21,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.cli.CommandLine;
@@ -35,12 +33,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction;
-import org.ellitron.tinkerpop.gremlin.torc.measurement.MeasurementClient;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
+import org.ellitron.tinkerpop.gremlin.torc.structure.UInt128;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 
 /**
@@ -70,7 +65,7 @@ public class TorcGraphLoader {
 
             for (int i = 0; i < colVals.length; ++i) {
                 if (colNames[i].equals("id")) {
-                    propertiesMap.put(T.id, TorcHelper.makeVertexId(Entity.fromName(entityName).getNumber(), Long.decode(colVals[i])));
+                    propertiesMap.put(T.id, new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[i])));
                 } else {
                     propertiesMap.put(colNames[i], colVals[i]);
                 }
@@ -118,8 +113,8 @@ public class TorcGraphLoader {
             Long vertex1Id = Long.decode(colVals[0]);
             Long vertex2Id = Long.decode(colVals[1]);
             
-            TorcVertex vertex1 = (TorcVertex) graph.vertices(TorcHelper.makeVertexId(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
-            TorcVertex vertex2 = (TorcVertex) graph.vertices(TorcHelper.makeVertexId(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
+            TorcVertex vertex1 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
+            TorcVertex vertex2 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
             
             propertiesMap = new HashMap<>();
             for (int i = 2; i < colVals.length; ++i) {
@@ -133,7 +128,7 @@ public class TorcGraphLoader {
             });
 
             if (undirected)
-                vertex1.addBidirectionalEdge(edgeLabel, vertex2, keyValues.toArray());
+                vertex1.addUndirectedEdge(edgeLabel, vertex2, keyValues.toArray());
             else
                 vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
             
@@ -216,7 +211,7 @@ public class TorcGraphLoader {
         BaseConfiguration config = new BaseConfiguration();
         config.setDelimiterParsingDisabled(true);
         config.setProperty(TorcGraph.CONFIG_GRAPH_NAME, graphName);
-        config.setProperty(TorcGraph.CONFIG_COORD_LOC, coordinatorLocator);
+        config.setProperty(TorcGraph.CONFIG_COORD_LOCATOR, coordinatorLocator);
         config.setProperty(TorcGraph.CONFIG_NUM_MASTER_SERVERS, numMasters);
 
         TorcGraph graph = TorcGraph.open(config);

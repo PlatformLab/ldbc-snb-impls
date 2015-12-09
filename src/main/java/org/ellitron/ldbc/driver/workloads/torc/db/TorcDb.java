@@ -71,7 +71,7 @@ public class TorcDb extends Db {
             BaseConfiguration config = new BaseConfiguration();
             config.setDelimiterParsingDisabled(true);
             config.setProperty(TorcGraph.CONFIG_GRAPH_NAME, properties.get("graphName"));
-            config.setProperty(TorcGraph.CONFIG_COORD_LOC, properties.get("coordinatorLocator"));
+            config.setProperty(TorcGraph.CONFIG_COORD_LOCATOR, properties.get("coordinatorLocator"));
             config.setProperty(TorcGraph.CONFIG_NUM_MASTER_SERVERS, properties.get("numMasterServers"));
 
             client = TorcGraph.open(config);
