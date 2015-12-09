@@ -37,7 +37,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -51,6 +50,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
+import org.ellitron.tinkerpop.gremlin.torc.structure.UInt128;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +117,7 @@ public class TorcDb extends Db {
             long person_id = operation.personId();
             TorcGraph client = dbConnectionState.client();
 
-            TorcVertex root = (TorcVertex) client.vertices(TorcHelper.makeVertexId(Entity.PERSON.getNumber(), person_id)).next();
+            TorcVertex root = (TorcVertex) client.vertices(new UInt128(Entity.PERSON.getNumber(), person_id)).next();
             Iterator<VertexProperty<String>> props = root.properties();
             Map<String, String> propertyMap = new HashMap<>();
             props.forEachRemaining((prop) -> {
@@ -171,7 +171,7 @@ public class TorcDb extends Db {
             creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
             
             Map<Object, Object> props = new HashMap<>();
-            props.put(T.id, TorcHelper.makeVertexId(Entity.PERSON.getNumber(), operation.personId()));
+            props.put(T.id, new UInt128(Entity.PERSON.getNumber(), operation.personId()));
             props.put(T.label, "person");
             props.put("firstName", operation.personFirstName());
             props.put("lastName", operation.personLastName());
