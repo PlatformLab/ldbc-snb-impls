@@ -278,7 +278,7 @@ public class TorcGraphLoader {
             System.out.println("Exception: " + e);
             e.printStackTrace();
         } finally {
-            //graph.deleteDatabaseAndCloseConnection();
+            //graph.deleteDatabaseAndCloseAllConnectionsAndTransactions();
             graph.close();
         }
     }
