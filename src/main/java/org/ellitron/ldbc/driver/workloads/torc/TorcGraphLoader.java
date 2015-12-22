@@ -35,7 +35,7 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
-import org.ellitron.tinkerpop.gremlin.torc.structure.UInt128;
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 
 /**

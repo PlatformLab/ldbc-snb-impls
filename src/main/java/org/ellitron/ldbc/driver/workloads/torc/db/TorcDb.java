@@ -50,7 +50,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
-import org.ellitron.tinkerpop.gremlin.torc.structure.UInt128;
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
