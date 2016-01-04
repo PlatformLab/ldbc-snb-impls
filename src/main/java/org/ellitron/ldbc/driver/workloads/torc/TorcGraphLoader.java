@@ -33,6 +33,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
@@ -80,6 +81,37 @@ public class TorcGraphLoader {
             });
 
             graph.addVertex(keyValues.toArray());
+
+            count++;
+            if (count % 100 == 0) {
+                graph.tx().commit();
+                if (printLoadingDots && (count % 100000 == 0)) {
+                    System.out.print(". ");
+                }
+            }
+        }
+        graph.tx().commit();
+    }
+    
+    public static void loadProperties(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException {
+        long count = 0;
+        String[] colNames = null;
+        boolean firstLine = true;
+        String fileNameParts[] = filePath.getFileName().toString().split("_");
+        String entityName = fileNameParts[0];
+        for (String line : Files.readAllLines(filePath)) {
+            if (firstLine) {
+                colNames = line.split("\\|");
+                firstLine = false;
+                continue;
+            }
+
+            String[] colVals = line.split("\\|");
+            TorcVertex vertex = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[0]))).next();
+            
+            for (int i = 1; i < colVals.length; ++i) {
+                vertex.property(VertexProperty.Cardinality.list, colNames[i], colVals[i]);
+            }
 
             count++;
             if (count % 100 == 0) {
@@ -230,6 +262,10 @@ public class TorcGraphLoader {
                                 "tagclass_0_0.csv" 
         };
         
+        String propertiesFiles[] = {    "person_email_emailaddress_0_0.csv",
+                                        "person_speaks_language_0_0.csv"
+        };
+        
         String edgeFiles[] = {  "comment_hasCreator_person_0_0.csv",
                                 "comment_hasTag_tag_0_0.csv",
                                 "comment_isLocatedIn_place_0_0.csv",
@@ -240,13 +276,11 @@ public class TorcGraphLoader {
                                 "forum_hasModerator_person_0_0.csv",
                                 "forum_hasTag_tag_0_0.csv",
                                 "organisation_isLocatedIn_place_0_0.csv",
-                                "person_email_emailaddress_0_0.csv",
                                 "person_hasInterest_tag_0_0.csv",
                                 "person_isLocatedIn_place_0_0.csv",
                                 "person_knows_person_0_0.csv",
                                 "person_likes_comment_0_0.csv",
                                 "person_likes_post_0_0.csv",
-                                "person_speaks_language_0_0.csv",
                                 "person_studyAt_organisation_0_0.csv",
                                 "person_workAt_organisation_0_0.csv",
                                 "place_isPartOf_place_0_0.csv",
@@ -259,8 +293,14 @@ public class TorcGraphLoader {
         
         try {
             for (String fileName : nodeFiles) {
-                System.out.print("Loading " + fileName + " ");
+                System.out.print("Loading node file " + fileName + " ");
                 loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                System.out.println("Finished");
+            }
+            
+            for (String fileName : propertiesFiles) {
+                System.out.print("Loading properties file " + fileName + " ");
+                loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), true);
                 System.out.println("Finished");
             }
             
