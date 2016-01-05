@@ -305,7 +305,7 @@ public class TorcGraphLoader {
             }
             
             for (String fileName : edgeFiles) {
-                System.out.print("Loading " + fileName + " ");
+                System.out.print("Loading edge file " + fileName + " ");
                 
                 if (fileName.contains("person_knows_person"))
                     loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true);
