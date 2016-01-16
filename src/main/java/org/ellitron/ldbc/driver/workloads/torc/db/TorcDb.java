@@ -163,6 +163,9 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate1AddPerson operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
+//            long[] addVertexTimer = new long[2];
+//            addVertexTimer[0] = System.nanoTime();
+
             TorcGraph client = dbConnectionState.client();
 
             SimpleDateFormat birthdayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -188,9 +191,18 @@ public class TorcDb extends Db {
                 keyValues.add(val);
             });
 
-            client.addVertex(keyValues.toArray());
-            client.tx().commit();
+            Object[] keyValArray = keyValues.toArray();
             
+            long[] addVertexTimer = new long[2];
+            addVertexTimer[0] = System.nanoTime();
+            client.addVertex(keyValArray);
+            client.tx().commit();
+            addVertexTimer[1] = System.nanoTime();
+            System.out.println(String.format("LdbcUpdate1AddPersonHandler: time: %d", addVertexTimer[1] - addVertexTimer[0]));
+
+//            addVertexTimer[1] = System.nanoTime();
+//            System.out.println(String.format("LdbcUpdate1AddPersonHandler: time: %d", addVertexTimer[1] - addVertexTimer[0]));
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }

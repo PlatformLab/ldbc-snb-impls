@@ -252,10 +252,10 @@ public class TorcGraphLoader {
         // however, will be far too slow for anything other than the very 
         // smallest of SNB graphs, and is therefore quite transient. This will
         // do for now.
-        String nodeFiles[] = {  "comment_0_0.csv",
+        String nodeFiles[] = {  "person_0_0.csv",
+                                "comment_0_0.csv",
                                 "forum_0_0.csv",
                                 "organisation_0_0.csv",
-                                "person_0_0.csv",
                                 "place_0_0.csv",
                                 "post_0_0.csv",
                                 "tag_0_0.csv",
