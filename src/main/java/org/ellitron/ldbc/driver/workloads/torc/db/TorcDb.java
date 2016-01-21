@@ -111,7 +111,7 @@ public class TorcDb extends Db {
     public static class LdbcShortQuery1PersonProfileHandler implements OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
-
+        
         @Override
         public void executeOperation(final LdbcShortQuery1PersonProfile operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
             long person_id = operation.personId();
@@ -124,34 +124,12 @@ public class TorcDb extends Db {
                 propertyMap.put(prop.key(), prop.value());
             });
 
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-            Calendar calendar = new GregorianCalendar();
-
-            try {
-                calendar.setTime(dateFormat.parse(propertyMap.get("birthday")));
-            } catch (ParseException ex) {
-                java.util.logging.Logger.getLogger(TorcDb.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-            long birthday = calendar.getTimeInMillis();
-
-            dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-            try {
-                calendar.setTime(dateFormat.parse(propertyMap.get("creationDate")));
-            } catch (ParseException ex) {
-                java.util.logging.Logger.getLogger(TorcDb.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-            long creationDate = calendar.getTimeInMillis();
-
             LdbcShortQuery1PersonProfileResult res = new LdbcShortQuery1PersonProfileResult(
                     propertyMap.get("firstName"), propertyMap.get("lastName"),
-                    birthday, propertyMap.get("locationIP"),
+                    Long.parseLong(propertyMap.get("birthday")), propertyMap.get("locationIP"),
                     propertyMap.get("browserUsed"), Long.decode(propertyMap.get("place")), propertyMap.get("gender"),
-                    creationDate);
+                    Long.parseLong(propertyMap.get("creationDate")));
+            
             resultReporter.report(0, res, operation);
         }
 
@@ -161,47 +139,63 @@ public class TorcDb extends Db {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
 
+        private final Calendar calendar;
+                
+        public LdbcUpdate1AddPersonHandler() {
+            this.calendar = new GregorianCalendar();
+        }
+        
         @Override
         public void executeOperation(LdbcUpdate1AddPerson operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-//            long[] addVertexTimer = new long[2];
-//            addVertexTimer[0] = System.nanoTime();
-
-            TorcGraph client = dbConnectionState.client();
-
-            SimpleDateFormat birthdayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            birthdayDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-            SimpleDateFormat creationDateDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-            creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+//            int NUMTIMERS = 5;
+//            long[][] timers = new long[NUMTIMERS][2];
+//            for (int i = 0; i < NUMTIMERS; i++) {
+//                timers[i][0] = 0;
+//                timers[i][1] = 0;
+//            }
+//            timers[NUMTIMERS-1][0] = System.nanoTime();
             
+            TorcGraph client = dbConnectionState.client();
+            
+//            timers[0][0] = System.nanoTime();
+//            calendar.setTime(operation.birthday());
+            String birthday = String.valueOf(operation.birthday().getTime());
+//            calendar.setTime(operation.creationDate());
+            String creationDate = String.valueOf(operation.creationDate().getTime());
+//            timers[0][1] = System.nanoTime();
+            
+//            timers[1][0] = System.nanoTime();
             Map<Object, Object> props = new HashMap<>();
             props.put(T.id, new UInt128(Entity.PERSON.getNumber(), operation.personId()));
             props.put(T.label, "person");
             props.put("firstName", operation.personFirstName());
             props.put("lastName", operation.personLastName());
             props.put("gender", operation.gender());
-            props.put("birthday", birthdayDateFormat.format(operation.birthday()));
-            props.put("creationDate", creationDateDateFormat.format(operation.creationDate()));
+            props.put("birthday", birthday);
+            props.put("creationDate", creationDate);
             props.put("locationIP", operation.locationIp());
             props.put("browserUsed", operation.browserUsed());
             props.put("place", Long.toString(operation.cityId()));
+//            timers[1][1] = System.nanoTime();
             
+//            timers[2][0] = System.nanoTime();
             List<Object> keyValues = new ArrayList<>();
             props.forEach((key, val) -> {
                 keyValues.add(key);
                 keyValues.add(val);
             });
-
+//            timers[2][1] = System.nanoTime();
+            
             Object[] keyValArray = keyValues.toArray();
             
-            long[] addVertexTimer = new long[2];
-            addVertexTimer[0] = System.nanoTime();
+//            timers[3][0] = System.nanoTime();
             client.addVertex(keyValArray);
             client.tx().commit();
-            addVertexTimer[1] = System.nanoTime();
-            System.out.println(String.format("LdbcUpdate1AddPersonHandler: time: %d", addVertexTimer[1] - addVertexTimer[0]));
+//            timers[3][1] = System.nanoTime();
 
-//            addVertexTimer[1] = System.nanoTime();
-//            System.out.println(String.format("LdbcUpdate1AddPersonHandler: time: %d", addVertexTimer[1] - addVertexTimer[0]));
+//            timers[NUMTIMERS-1][1] = System.nanoTime();
+//            for (int i = 0; i < NUMTIMERS; i++)
+//                System.out.println(String.format("LdbcUpdate1AddPersonHandler: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
 
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }

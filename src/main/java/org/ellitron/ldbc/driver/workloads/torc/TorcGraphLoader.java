@@ -17,12 +17,18 @@ package org.ellitron.ldbc.driver.workloads.torc;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.apache.commons.cli.CommandLine;
@@ -47,11 +53,15 @@ public class TorcGraphLoader {
 
     private static final Logger logger = Logger.getLogger(TorcGraphLoader.class.getName());
 
-    public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException {
+    public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException, java.text.ParseException {
         long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
         Map<Object, Object> propertiesMap;
+        SimpleDateFormat birthdayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        birthdayDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        SimpleDateFormat creationDateDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         String fileNameParts[] = filePath.getFileName().toString().split("_");
         String entityName = fileNameParts[0];
         for (String line : Files.readAllLines(filePath)) {
@@ -63,10 +73,14 @@ public class TorcGraphLoader {
 
             String[] colVals = line.split("\\|");
             propertiesMap = new HashMap<>();
-
+            
             for (int i = 0; i < colVals.length; ++i) {
                 if (colNames[i].equals("id")) {
                     propertiesMap.put(T.id, new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[i])));
+                } else if (colNames[i].equals("birthday")) {
+                    propertiesMap.put(colNames[i], String.valueOf(birthdayDateFormat.parse(colVals[i]).getTime()));
+                } else if (colNames[i].equals("creationDate")) {
+                    propertiesMap.put(colNames[i], String.valueOf(creationDateDateFormat.parse(colVals[i]).getTime()));
                 } else {
                     propertiesMap.put(colNames[i], colVals[i]);
                 }
@@ -124,11 +138,15 @@ public class TorcGraphLoader {
         graph.tx().commit();
     }
     
-    public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots) throws IOException {
+    public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots) throws IOException, java.text.ParseException {
         long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
         Map<Object, Object> propertiesMap;
+        SimpleDateFormat creationDateDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        SimpleDateFormat joinDateDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+        joinDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         String fileNameParts[] = filePath.getFileName().toString().split("_");
         String v1EntityName = fileNameParts[0];
         String edgeLabel = fileNameParts[1];
@@ -150,9 +168,15 @@ public class TorcGraphLoader {
             
             propertiesMap = new HashMap<>();
             for (int i = 2; i < colVals.length; ++i) {
-                propertiesMap.put(colNames[i], colVals[i]);
+                if (colNames[i].equals("creationDate")) {
+                    propertiesMap.put(colNames[i], String.valueOf(creationDateDateFormat.parse(colVals[i]).getTime()));
+                } else if (colNames[i].equals("joinDate")) {
+                    propertiesMap.put(colNames[i], String.valueOf(joinDateDateFormat.parse(colVals[i]).getTime()));
+                } else {
+                    propertiesMap.put(colNames[i], colVals[i]);
+                }
             }
-
+            
             List<Object> keyValues = new ArrayList<>();
             propertiesMap.forEach((key, val) -> {
                 keyValues.add(key);
@@ -294,25 +318,37 @@ public class TorcGraphLoader {
         try {
             for (String fileName : nodeFiles) {
                 System.out.print("Loading node file " + fileName + " ");
-                loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true);
-                System.out.println("Finished");
+                try {
+                    loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                    System.out.println("Finished");
+                } catch (NoSuchFileException e) {
+                    System.out.println(" File not found.");
+                }
             }
             
             for (String fileName : propertiesFiles) {
                 System.out.print("Loading properties file " + fileName + " ");
-                loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), true);
-                System.out.println("Finished");
+                try {
+                    loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                    System.out.println("Finished");
+                } catch (NoSuchFileException e) {
+                    System.out.println(" File not found.");
+                }
             }
             
             for (String fileName : edgeFiles) {
                 System.out.print("Loading edge file " + fileName + " ");
-                
-                if (fileName.contains("person_knows_person"))
-                    loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true);
-                else
-                    loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, true);
-                
-                System.out.println("Finished");
+                try {
+                    if (fileName.contains("person_knows_person")) {
+                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true);
+                    } else {
+                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, true);
+                    }
+
+                    System.out.println("Finished");
+                } catch (NoSuchFileException e) {
+                    System.out.println(" File not found.");
+                }
             }
         } catch (Exception e) {
             System.out.println("Exception: " + e);
