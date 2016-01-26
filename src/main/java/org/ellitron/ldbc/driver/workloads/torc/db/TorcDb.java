@@ -158,39 +158,32 @@ public class TorcDb extends Db {
             
             TorcGraph client = dbConnectionState.client();
             
-//            timers[0][0] = System.nanoTime();
-//            calendar.setTime(operation.birthday());
-            String birthday = String.valueOf(operation.birthday().getTime());
-//            calendar.setTime(operation.creationDate());
-            String creationDate = String.valueOf(operation.creationDate().getTime());
-//            timers[0][1] = System.nanoTime();
-            
 //            timers[1][0] = System.nanoTime();
-            Map<Object, Object> props = new HashMap<>();
-            props.put(T.id, new UInt128(Entity.PERSON.getNumber(), operation.personId()));
-            props.put(T.label, "person");
-            props.put("firstName", operation.personFirstName());
-            props.put("lastName", operation.personLastName());
-            props.put("gender", operation.gender());
-            props.put("birthday", birthday);
-            props.put("creationDate", creationDate);
-            props.put("locationIP", operation.locationIp());
-            props.put("browserUsed", operation.browserUsed());
-            props.put("place", Long.toString(operation.cityId()));
+            List<Object> personKeyValues = new ArrayList<>(20);
+            personKeyValues.add(T.id);
+            personKeyValues.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
+            personKeyValues.add(T.label);
+            personKeyValues.add("person");
+            personKeyValues.add("firstName");
+            personKeyValues.add(operation.personFirstName());
+            personKeyValues.add("lastName");
+            personKeyValues.add(operation.personLastName());
+            personKeyValues.add("gender");
+            personKeyValues.add(operation.gender());
+            personKeyValues.add("birthday");
+            personKeyValues.add(String.valueOf(operation.birthday().getTime()));
+            personKeyValues.add("creationDate");
+            personKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+            personKeyValues.add("locationIP");
+            personKeyValues.add(operation.locationIp());
+            personKeyValues.add("browserUsed");
+            personKeyValues.add(operation.browserUsed());
+            personKeyValues.add("place");
+            personKeyValues.add(Long.toString(operation.cityId()));
 //            timers[1][1] = System.nanoTime();
             
-//            timers[2][0] = System.nanoTime();
-            List<Object> keyValues = new ArrayList<>();
-            props.forEach((key, val) -> {
-                keyValues.add(key);
-                keyValues.add(val);
-            });
-//            timers[2][1] = System.nanoTime();
-            
-            Object[] keyValArray = keyValues.toArray();
-            
 //            timers[3][0] = System.nanoTime();
-            client.addVertex(keyValArray);
+            client.addVertex(personKeyValues.toArray());
             client.tx().commit();
 //            timers[3][1] = System.nanoTime();
 
@@ -217,7 +210,7 @@ public class TorcDb extends Db {
             Vertex post = results.next();
             List<Object> keyValues = new ArrayList<>(2);
             keyValues.add("creationDate");
-            keyValues.add(operation.creationDate().getTime());
+            keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", post, keyValues.toArray());
             client.tx().commit();
             
@@ -240,7 +233,7 @@ public class TorcDb extends Db {
             Vertex comment = results.next();
             List<Object> keyValues = new ArrayList<>(2);
             keyValues.add("creationDate");
-            keyValues.add(operation.creationDate().getTime());
+            keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", comment, keyValues.toArray());
             client.tx().commit();
             
@@ -264,7 +257,7 @@ public class TorcDb extends Db {
             forumKeyValues.add("title");
             forumKeyValues.add(operation.forumTitle());
             forumKeyValues.add("creationDate");
-            forumKeyValues.add(operation.creationDate().getTime());
+            forumKeyValues.add(String.valueOf(operation.creationDate().getTime()));
             
             Vertex forum = client.addVertex(forumKeyValues.toArray());
             
@@ -285,6 +278,8 @@ public class TorcDb extends Db {
             });
             
             client.tx().commit();
+            
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
     
@@ -306,7 +301,7 @@ public class TorcDb extends Db {
             
             List<Object> edgeKeyValues = new ArrayList<>(2);
             edgeKeyValues.add("joinDate");
-            edgeKeyValues.add(operation.joinDate().getTime());
+            edgeKeyValues.add(String.valueOf(operation.joinDate().getTime()));
             
             forum.addEdge("hasMember", member, edgeKeyValues.toArray());
             
