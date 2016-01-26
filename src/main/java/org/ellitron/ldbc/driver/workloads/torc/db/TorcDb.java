@@ -255,8 +255,36 @@ public class TorcDb extends Db {
         @Override
         public void executeOperation(LdbcUpdate4AddForum operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
-
             
+            List<Object> forumKeyValues = new ArrayList<>(8);
+            forumKeyValues.add(T.id);
+            forumKeyValues.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
+            forumKeyValues.add(T.label);
+            forumKeyValues.add(Entity.FORUM.getName());
+            forumKeyValues.add("title");
+            forumKeyValues.add(operation.forumTitle());
+            forumKeyValues.add("creationDate");
+            forumKeyValues.add(operation.creationDate().getTime());
+            
+            Vertex forum = client.addVertex(forumKeyValues.toArray());
+            
+            List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
+            operation.tagIds().forEach((id) -> { 
+                ids.add(new UInt128(Entity.TAG.getNumber(), id));
+            });
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.moderatorPersonId()));
+            
+            client.vertices(ids.toArray()).forEachRemaining((v) -> {
+                if (v.label().equals(Entity.TAG.getName())) {
+                    forum.addEdge("hasTag", v);
+                } else if (v.label().equals(Entity.PERSON.getName())) {
+                    forum.addEdge("hasModerator", v);
+                } else {
+                    throw new RuntimeException("ERROR: LdbcUpdate4AddForum query tried to add an edge to a vertex that is neither a tag nor a person.");
+                }
+            });
+            
+            client.tx().commit();
         }
     }
     
