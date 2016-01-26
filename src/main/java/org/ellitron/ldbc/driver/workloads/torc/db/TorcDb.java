@@ -46,6 +46,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
@@ -209,7 +210,18 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate2AddPostLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            UInt128 personId = new UInt128(Entity.PERSON.getNumber(), operation.personId());
+            UInt128 postId = new UInt128(Entity.POST.getNumber(), operation.postId());
+            Iterator<Vertex> results = client.vertices(personId, postId);
+            Vertex person = results.next();
+            Vertex post = results.next();
+            List<Object> keyValues = new ArrayList<>(2);
+            keyValues.add("creationDate");
+            keyValues.add(operation.creationDate().getTime());
+            person.addEdge("likes", post, keyValues.toArray());
+            client.tx().commit();
             
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
     
