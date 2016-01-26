@@ -296,7 +296,23 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate5AddForumMembership operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            List<UInt128> ids = new ArrayList<>(2);
+            ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
             
+            Iterator<Vertex> vItr = client.vertices(ids.toArray());
+            Vertex forum = vItr.next();
+            Vertex member = vItr.next();
+            
+            List<Object> edgeKeyValues = new ArrayList<>(2);
+            edgeKeyValues.add("joinDate");
+            edgeKeyValues.add(operation.joinDate().getTime());
+            
+            forum.addEdge("hasMember", member, edgeKeyValues.toArray());
+            
+            client.tx().commit();
+            
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
     
