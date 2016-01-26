@@ -233,7 +233,18 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate3AddCommentLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            UInt128 personId = new UInt128(Entity.PERSON.getNumber(), operation.personId());
+            UInt128 commentId = new UInt128(Entity.COMMENT.getNumber(), operation.commentId());
+            Iterator<Vertex> results = client.vertices(personId, commentId);
+            Vertex person = results.next();
+            Vertex comment = results.next();
+            List<Object> keyValues = new ArrayList<>(2);
+            keyValues.add("creationDate");
+            keyValues.add(operation.creationDate().getTime());
+            person.addEdge("likes", comment, keyValues.toArray());
+            client.tx().commit();
             
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
     
