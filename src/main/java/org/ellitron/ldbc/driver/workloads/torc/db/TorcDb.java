@@ -377,8 +377,57 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate7AddComment operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            Map<String, Object> props = new HashMap<>(5);
+            List<Object> commentKeyValues = new ArrayList<>(14);
+            commentKeyValues.add(T.id);
+            commentKeyValues.add(new UInt128(Entity.COMMENT.getNumber(), operation.commentId()));
+            commentKeyValues.add(T.label);
+            commentKeyValues.add(Entity.COMMENT.getName());
+            commentKeyValues.add("creationDate");
+            commentKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+            commentKeyValues.add("locationIP");
+            commentKeyValues.add(operation.locationIp());
+            commentKeyValues.add("browserUsed"); 
+            commentKeyValues.add(operation.browserUsed());
+            commentKeyValues.add("content");
+            commentKeyValues.add(operation.content());
+            commentKeyValues.add("length");
+            commentKeyValues.add(operation.length());
             
-        }
+            Vertex comment = client.addVertex(commentKeyValues.toArray());
+            
+            List<UInt128> ids = new ArrayList<>(2);
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+            ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+            operation.tagIds().forEach((id) -> { 
+                ids.add(new UInt128(Entity.TAG.getNumber(), id));
+            });
+            if (operation.replyToCommentId() != -1) {
+                ids.add(new UInt128(Entity.COMMENT.getNumber(), operation.replyToCommentId()));
+            }
+            if (operation.replyToPostId() != -1) {
+                ids.add(new UInt128(Entity.POST.getNumber(), operation.replyToPostId()));
+            }
+            
+            client.vertices(ids.toArray()).forEachRemaining((v) -> {
+                if (v.label().equals(Entity.PERSON.getName())) {
+                    comment.addEdge("hasCreator", v);
+                } else if (v.label().equals(Entity.PLACE.getName())) {
+                    comment.addEdge("isLocatedIn", v);
+                } else if (v.label().equals(Entity.COMMENT.getName())) {
+                    comment.addEdge("replyOf", v);
+                } else if (v.label().equals(Entity.POST.getName())) {
+                    comment.addEdge("replyOf", v);
+                } else if (v.label().equals(Entity.TAG.getName())) {
+                    comment.addEdge("hasTag", v);
+                } else {
+                    throw new RuntimeException("ERROR: LdbcUpdate7AddCommentHandler query tried to add an edge to a vertex that is none of {person, place, comment, post, tag}.");
+                }
+            });
+
+            client.tx().commit();
+            
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
     
     public static class LdbcUpdate8AddFriendshipHandler implements OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
