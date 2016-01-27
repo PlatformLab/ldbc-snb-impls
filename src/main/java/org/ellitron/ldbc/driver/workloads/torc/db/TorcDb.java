@@ -377,7 +377,6 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate7AddComment operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
-            Map<String, Object> props = new HashMap<>(5);
             List<Object> commentKeyValues = new ArrayList<>(14);
             commentKeyValues.add(T.id);
             commentKeyValues.add(new UInt128(Entity.COMMENT.getNumber(), operation.commentId()));
@@ -428,6 +427,7 @@ public class TorcDb extends Db {
             client.tx().commit();
             
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        }
     }
     
     public static class LdbcUpdate8AddFriendshipHandler implements OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
@@ -438,7 +438,24 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate8AddFriendship operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
+            knowsEdgeKeyValues.add("creationDate");
+            knowsEdgeKeyValues.add(String.valueOf(operation.creationDate().getTime()));
             
+            List<UInt128> ids = new ArrayList<>(2);
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person1Id()));
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person2Id()));
+            
+            Iterator<Vertex> vItr = client.vertices(ids.toArray());
+            
+            Vertex person = vItr.next();
+            Vertex friend = vItr.next();
+            
+            person.addEdge("knows", friend, knowsEdgeKeyValues);
+            
+            client.tx().commit();
+            
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
 }
