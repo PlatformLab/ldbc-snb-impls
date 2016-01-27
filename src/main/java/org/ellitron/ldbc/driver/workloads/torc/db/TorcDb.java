@@ -319,7 +319,53 @@ public class TorcDb extends Db {
         public void executeOperation(LdbcUpdate6AddPost operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             TorcGraph client = dbConnectionState.client();
 
+            List<Object> postKeyValues = new ArrayList<>(18);
+            postKeyValues.add(T.id);
+            postKeyValues.add(new UInt128(Entity.POST.getNumber(), operation.postId()));
+            postKeyValues.add(T.label);
+            postKeyValues.add(Entity.POST.getName());
+            postKeyValues.add("imageFile");
+            postKeyValues.add(operation.imageFile());
+            postKeyValues.add("creationDate");
+            postKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+            postKeyValues.add("locationIP");
+            postKeyValues.add(operation.locationIp());
+            postKeyValues.add("browserUsed"); 
+            postKeyValues.add(operation.browserUsed());
+            postKeyValues.add("lang");
+            postKeyValues.add(operation.language());
+            postKeyValues.add("content");
+            postKeyValues.add(operation.content());
+            postKeyValues.add("length");
+            postKeyValues.add(operation.length());
             
+            Vertex post = client.addVertex(postKeyValues.toArray());
+            
+            List<UInt128> ids = new ArrayList<>(2);
+            ids.add(new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+            ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
+            ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+            operation.tagIds().forEach((id) -> { 
+                ids.add(new UInt128(Entity.TAG.getNumber(), id));
+            });
+            
+            client.vertices(ids.toArray()).forEachRemaining((v) -> {
+                if (v.label().equals(Entity.PERSON.getName())) {
+                    post.addEdge("hasCreator", v);
+                } else if (v.label().equals(Entity.FORUM.getName())) {
+                    v.addEdge("containerOf", post);
+                } else if (v.label().equals(Entity.PLACE.getName())) {
+                    post.addEdge("isLocatedIn", v);
+                } else if (v.label().equals(Entity.TAG.getName())) {
+                    post.addEdge("hasTag", v);
+                } else {
+                    throw new RuntimeException("ERROR: LdbcUpdate6AddPostHandler query tried to add an edge to a vertex that is none of {person, forum, place, tag}.");
+                }
+            });
+            
+            client.tx().commit();
+            
+            reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
     
