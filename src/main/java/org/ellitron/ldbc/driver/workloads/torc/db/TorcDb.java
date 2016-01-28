@@ -24,6 +24,12 @@ import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContent;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreator;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageReplies;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate2AddPostLike;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate3AddCommentLike;
@@ -139,6 +145,78 @@ public class TorcDb extends Db {
                     Long.parseLong(propertyMap.get("creationDate")));
             
             resultReporter.report(0, res, operation);
+        }
+
+    }
+    
+    public static class LdbcShortQuery2PersonPostsHandler implements OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery2PersonPosts operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
+        }
+
+    }
+    
+    public static class LdbcShortQuery3PersonFriendsHandler implements OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery3PersonFriends operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
+        }
+
+    }
+    
+    public static class LdbcShortQuery4MessageContentHandler implements OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery4MessageContent operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
+        }
+
+    }
+    
+    public static class LdbcShortQuery5MessageCreatorHandler implements OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery5MessageCreator operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
+        }
+
+    }
+    
+    public static class LdbcShortQuery6MessageForumHandler implements OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery6MessageForum operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
+        }
+
+    }
+    
+    public static class LdbcShortQuery7MessageRepliesHandler implements OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
+        
+        @Override
+        public void executeOperation(final LdbcShortQuery7MessageReplies operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            TorcGraph client = dbConnectionState.client();
+            
         }
 
     }
