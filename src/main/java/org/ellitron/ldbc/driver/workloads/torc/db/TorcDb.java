@@ -458,7 +458,7 @@ public class TorcDb extends Db {
             Vertex person = vItr.next();
             Vertex friend = vItr.next();
             
-            person.addEdge("knows", friend, knowsEdgeKeyValues);
+            person.addEdge("knows", friend, knowsEdgeKeyValues.toArray());
             
             client.tx().commit();
             
