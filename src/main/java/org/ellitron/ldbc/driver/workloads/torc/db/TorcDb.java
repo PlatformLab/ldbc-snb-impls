@@ -344,7 +344,7 @@ public class TorcDb extends Db {
             postKeyValues.add("content");
             postKeyValues.add(operation.content());
             postKeyValues.add("length");
-            postKeyValues.add(operation.length());
+            postKeyValues.add(String.valueOf(operation.length()));
             
             Vertex post = client.addVertex(postKeyValues.toArray());
             
@@ -398,7 +398,7 @@ public class TorcDb extends Db {
             commentKeyValues.add("content");
             commentKeyValues.add(operation.content());
             commentKeyValues.add("length");
-            commentKeyValues.add(operation.length());
+            commentKeyValues.add(String.valueOf(operation.length()));
             
             Vertex comment = client.addVertex(commentKeyValues.toArray());
             
