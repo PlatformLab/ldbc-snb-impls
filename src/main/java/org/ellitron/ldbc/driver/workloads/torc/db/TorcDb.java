@@ -25,6 +25,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPostsResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContent;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreator;
@@ -51,6 +52,9 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -155,10 +159,86 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery2PersonPosts operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
+            List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
+            
+            Vertex root = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
+            Iterator<Edge> edges = root.edges(Direction.IN, "hasCreator");
+            
+            List<Vertex> messageList = new ArrayList<>();
+            edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
+            messageList.sort((v1, v2) -> {
+                long v1Date = Long.decode(((Vertex)v1).<String>property("creationDate").value());
+                long v2Date = Long.decode(((Vertex)v2).<String>property("creationDate").value());
+                
+                if (v1Date > v2Date) {
+                    return -1;
+                } else if (v1Date < v2Date) {
+                    return 1;
+                } else {
+                    return 0;
+                }    
+            });
+            
+            for (int i = 0; i < Integer.min(operation.limit(), messageList.size()); i++) {
+                Vertex message = messageList.get(i);
+                
+                Map<String, String> propMap = new HashMap<>();
+                message.<String>properties().forEachRemaining((vp) -> {
+                    propMap.put(vp.key(), vp.value());
+                });
+                
+                long messageId = ((UInt128)message.id()).getLowerLong();
+                
+                String messageContent;
+                if (propMap.get("content").length() != 0)
+                    messageContent = propMap.get("content");
+                else
+                    messageContent = propMap.get("imageFile");
+                
+                long messageCreationDate = Long.decode(propMap.get("creationDate"));
+                
+                long originalPostId;
+                long originalPostAuthorId;
+                String originalPostAuthorFirstName;
+                String originalPostAuthorLastName;
+                if (message.label().equals(Entity.POST.getName())) {
+                    originalPostId = messageId;
+                    originalPostAuthorId = ((UInt128) root.id()).getLowerLong();
+                    originalPostAuthorFirstName = root.<String>property("firstName").value();
+                    originalPostAuthorLastName = root.<String>property("lastName").value();
+                } else {
+                    Vertex parentMessage = message.edges(Direction.OUT, "replyOf").next().inVertex();
+                    while(true) {
+                        if (parentMessage.label().equals(Entity.POST.getName())) {
+                            originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
+                            
+                            Vertex author = parentMessage.edges(Direction.OUT, "hasCreator").next().inVertex();
+                            originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
+                            originalPostAuthorFirstName = author.<String>property("firstName").value();
+                            originalPostAuthorLastName = author.<String>property("lastName").value();
+                            break;
+                        } else {
+                            parentMessage = parentMessage.edges(Direction.OUT, "replyOf").next().inVertex();
+                        }
+                    }
+                }
+                
+                LdbcShortQuery2PersonPostsResult res = new LdbcShortQuery2PersonPostsResult(
+                        messageId, 
+                        messageContent, 
+                        messageCreationDate,
+                        originalPostId,
+                        originalPostAuthorId,
+                        originalPostAuthorFirstName, 
+                        originalPostAuthorLastName);
+                
+                result.add(res);
+            }
+            
+            resultReporter.report(result.size(), result, operation);
         }
-
     }
     
     public static class LdbcShortQuery3PersonFriendsHandler implements OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
