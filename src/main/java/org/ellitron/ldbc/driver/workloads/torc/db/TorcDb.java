@@ -167,7 +167,10 @@ public class TorcDb extends Db {
             
             List<Vertex> messageList = new ArrayList<>();
             edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
-            messageList.sort((v1, v2) -> {
+            messageList.sort((a, b) -> {
+                Vertex v1 = (Vertex)a;
+                Vertex v2 = (Vertex)b;
+                
                 long v1Date = Long.decode(((Vertex)v1).<String>property("creationDate").value());
                 long v2Date = Long.decode(((Vertex)v2).<String>property("creationDate").value());
                 
@@ -176,7 +179,15 @@ public class TorcDb extends Db {
                 } else if (v1Date < v2Date) {
                     return 1;
                 } else {
-                    return 0;
+                    long v1Id = ((UInt128)v1.id()).getLowerLong();
+                    long v2Id = ((UInt128)v2.id()).getLowerLong();
+                    if (v1Id > v2Id) {
+                        return -1;
+                    } else if (v1Id < v2Id) {
+                        return 1;
+                    } else {
+                        return 0;
+                    }
                 }    
             });
             
