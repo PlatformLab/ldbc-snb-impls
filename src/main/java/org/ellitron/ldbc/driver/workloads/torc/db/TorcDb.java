@@ -40,8 +40,6 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -49,7 +47,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -60,9 +57,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
-import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,7 +71,7 @@ public class TorcDb extends Db {
 
     static class BasicDbConnectionState extends DbConnectionState {
 
-        private TorcGraph client;
+        private Graph client;
 
         private BasicDbConnectionState(Map<String, String> properties) {
             BaseConfiguration config = new BaseConfiguration();
@@ -88,13 +83,17 @@ public class TorcDb extends Db {
             client = TorcGraph.open(config);
         }
 
-        public TorcGraph client() {
+        public Graph client() {
             return client;
         }
 
         @Override
         public void close() throws IOException {
-            client.close();
+            try {
+                client.close();
+            } catch (Exception ex) {
+                java.util.logging.Logger.getLogger(TorcDb.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
     }
 
@@ -133,9 +132,9 @@ public class TorcDb extends Db {
         @Override
         public void executeOperation(final LdbcShortQuery1PersonProfile operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
             long person_id = operation.personId();
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
-            TorcVertex root = (TorcVertex) client.vertices(new UInt128(Entity.PERSON.getNumber(), person_id)).next();
+            Vertex root = client.vertices(new UInt128(Entity.PERSON.getNumber(), person_id)).next();
             Iterator<VertexProperty<String>> props = root.properties();
             Map<String, String> propertyMap = new HashMap<>();
             props.forEachRemaining((prop) -> {
@@ -247,7 +246,7 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery3PersonFriends operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
         }
 
@@ -259,7 +258,7 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery4MessageContent operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
         }
 
@@ -271,7 +270,7 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery5MessageCreator operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
         }
 
@@ -283,7 +282,7 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery6MessageForum operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
         }
 
@@ -295,7 +294,7 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(final LdbcShortQuery7MessageReplies operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
         }
 
@@ -321,7 +320,7 @@ public class TorcDb extends Db {
 //            }
 //            timers[NUMTIMERS-1][0] = System.nanoTime();
             
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
 //            timers[1][0] = System.nanoTime();
             List<Object> personKeyValues = new ArrayList<>(20);
@@ -366,7 +365,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate2AddPostLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             UInt128 personId = new UInt128(Entity.PERSON.getNumber(), operation.personId());
             UInt128 postId = new UInt128(Entity.POST.getNumber(), operation.postId());
@@ -389,7 +388,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate3AddCommentLike operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             UInt128 personId = new UInt128(Entity.PERSON.getNumber(), operation.personId());
             UInt128 commentId = new UInt128(Entity.COMMENT.getNumber(), operation.commentId());
@@ -412,7 +411,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate4AddForum operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
             
             List<Object> forumKeyValues = new ArrayList<>(8);
             forumKeyValues.add(T.id);
@@ -454,7 +453,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate5AddForumMembership operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             List<UInt128> ids = new ArrayList<>(2);
             ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
@@ -482,7 +481,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate6AddPost operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             List<Object> postKeyValues = new ArrayList<>(18);
             postKeyValues.add(T.id);
@@ -540,7 +539,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate7AddComment operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             List<Object> commentKeyValues = new ArrayList<>(14);
             commentKeyValues.add(T.id);
@@ -601,7 +600,7 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(LdbcUpdate8AddFriendship operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-            TorcGraph client = dbConnectionState.client();
+            Graph client = dbConnectionState.client();
 
             List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
             knowsEdgeKeyValues.add("creationDate");
