@@ -27,6 +27,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfi
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPostsResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriendsResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContent;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreator;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForum;
@@ -171,8 +172,8 @@ public class TorcDb extends Db {
                 Vertex v1 = (Vertex)a;
                 Vertex v2 = (Vertex)b;
                 
-                long v1Date = Long.decode(((Vertex)v1).<String>property("creationDate").value());
-                long v2Date = Long.decode(((Vertex)v2).<String>property("creationDate").value());
+                long v1Date = Long.decode(v1.<String>property("creationDate").value());
+                long v2Date = Long.decode(v2.<String>property("creationDate").value());
                 
                 if (v1Date > v2Date) {
                     return -1;
@@ -259,6 +260,53 @@ public class TorcDb extends Db {
         public void executeOperation(final LdbcShortQuery3PersonFriends operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
             Graph client = dbConnectionState.client();
             
+            List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
+            
+            Vertex root = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
+            
+            Iterator<Edge> edges = root.edges(Direction.BOTH, "knows");
+            
+            edges.forEachRemaining((e) -> {
+                long creationDate = Long.decode(e.<String>property("creationDate").value());
+                
+                Vertex friend = e.inVertex();
+                if (friend.equals(root))
+                    friend = e.outVertex();
+                
+                long personId = ((UInt128)friend.id()).getLowerLong();
+                
+                String firstName = friend.<String>property("firstName").value();
+                String lastName = friend.<String>property("lastName").value();
+                
+                LdbcShortQuery3PersonFriendsResult res = new LdbcShortQuery3PersonFriendsResult(
+                        personId,
+                        firstName, 
+                        lastName,
+                        creationDate);
+                result.add(res);
+            });
+            
+            // Sort the result here.
+            result.sort((a, b) -> {
+                LdbcShortQuery3PersonFriendsResult r1 = (LdbcShortQuery3PersonFriendsResult) a;
+                LdbcShortQuery3PersonFriendsResult r2 = (LdbcShortQuery3PersonFriendsResult) b;
+                
+                if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
+                    return -1;
+                } else if (r1.friendshipCreationDate() < r2.friendshipCreationDate()) {
+                    return 1;
+                } else {
+                    if (r1.personId() > r2.personId()) {
+                        return 1;
+                    } else if (r1.personId() < r2.personId()) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            });
+            
+            resultReporter.report(result.size(), result, operation);
         }
 
     }
