@@ -22,10 +22,11 @@ package org.ellitron.ldbc.driver.workloads.torc;
 public enum Entity {
     COMMENT         (1l, "comment"),
     FORUM           (2l, "forum"),
+    MESSAGE         (1l, "message"),
     ORGANISATION    (3l, "organisation"),
     PERSON          (4l, "person"),
     PLACE           (5l, "place"),
-    POST            (6l, "post"),
+    POST            (1l, "post"),
     TAG             (7l, "tag"),
     TAGCLASS        (8l, "tagclass");
     
@@ -43,14 +44,6 @@ public enum Entity {
     
     public String getName() {
         return name;
-    }
-    
-    public static Entity fromNumber(final long number) {
-        for (Entity e : values())
-            if (number == e.getNumber())
-                return e;
-        
-        throw new IllegalArgumentException();
     }
     
     public static Entity fromName(final String name) {
