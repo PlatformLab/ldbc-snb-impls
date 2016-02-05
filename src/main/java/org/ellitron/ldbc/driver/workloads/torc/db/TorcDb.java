@@ -268,14 +268,12 @@ public class TorcDb extends Db {
             
             Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
             
-            Iterator<Edge> edges = person.edges(Direction.BOTH, "knows");
+            Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
             
             edges.forEachRemaining((e) -> {
                 long creationDate = Long.decode(e.<String>property("creationDate").value());
                 
                 Vertex friend = e.inVertex();
-                if (friend.equals(person))
-                    friend = e.outVertex();
                 
                 long personId = ((UInt128)friend.id()).getLowerLong();
                 
@@ -318,23 +316,23 @@ public class TorcDb extends Db {
     public static class LdbcShortQuery4MessageContentHandler implements OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery4MessageContent operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
             Graph client = dbConnectionState.client();
-            
+
             Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
-            
+
             long creationDate = Long.decode(message.<String>property("creationDate").value());
             String content = message.<String>property("content").value();
-            if (content.length() == 0)
+            if (content.length() == 0) {
                 content = message.<String>property("imageFile").value();
-            
+            }
+
             LdbcShortQuery4MessageContentResult result = new LdbcShortQuery4MessageContentResult(
                     content,
-                    creationDate
-            );
-            
+                    creationDate);
+
             resultReporter.report(1, result, operation);
         }
 
@@ -774,10 +772,11 @@ public class TorcDb extends Db {
             
             Iterator<Vertex> vItr = client.vertices(ids.toArray());
             
-            Vertex person = vItr.next();
-            Vertex friend = vItr.next();
+            Vertex person1 = vItr.next();
+            Vertex person2 = vItr.next();
             
-            person.addEdge("knows", friend, knowsEdgeKeyValues.toArray());
+            person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
+            person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
             
             client.tx().commit();
             
