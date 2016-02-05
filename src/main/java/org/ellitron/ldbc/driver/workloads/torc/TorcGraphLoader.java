@@ -183,10 +183,10 @@ public class TorcGraphLoader {
                 keyValues.add(val);
             });
 
+            vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
+            
             if (undirected)
-                vertex1.addUndirectedEdge(edgeLabel, vertex2, keyValues.toArray());
-            else
-                vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
+                vertex2.addEdge(edgeLabel, vertex1, keyValues.toArray());
             
             count++;
             if (count % 100 == 0) {
