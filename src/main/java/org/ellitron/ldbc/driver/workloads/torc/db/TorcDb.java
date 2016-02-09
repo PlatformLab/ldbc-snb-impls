@@ -152,6 +152,8 @@ public class TorcDb extends Db {
                     propertyMap.get("browserUsed"), Long.decode(propertyMap.get("place")), propertyMap.get("gender"),
                     Long.parseLong(propertyMap.get("creationDate")));
             
+            client.tx().commit();
+            
             resultReporter.report(0, res, operation);
         }
 
@@ -252,6 +254,8 @@ public class TorcDb extends Db {
                 result.add(res);
             }
             
+            client.tx().commit();
+            
             resultReporter.report(result.size(), result, operation);
         }
     }
@@ -308,6 +312,8 @@ public class TorcDb extends Db {
                 }
             });
             
+            client.tx().commit();
+            
             resultReporter.report(result.size(), result, operation);
         }
 
@@ -333,6 +339,8 @@ public class TorcDb extends Db {
                     content,
                     creationDate);
 
+            client.tx().commit();
+            
             resultReporter.report(1, result, operation);
         }
 
@@ -358,6 +366,8 @@ public class TorcDb extends Db {
                         creatorId,
                         creatorFirstName,
                         creatorLastName);
+            
+            client.tx().commit();
             
             resultReporter.report(1, result, operation);
         }
@@ -393,6 +403,8 @@ public class TorcDb extends Db {
                             moderatorFirstName,
                             moderatorLastName);
 
+                    client.tx().commit();
+                    
                     resultReporter.report(1, result, operation);
 
                     return;
@@ -455,6 +467,8 @@ public class TorcDb extends Db {
                 
                 result.add(res);
             }
+            
+            client.tx().commit();
             
             resultReporter.report(result.size(), result, operation);
         }
@@ -536,6 +550,7 @@ public class TorcDb extends Db {
             keyValues.add("creationDate");
             keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", post, keyValues.toArray());
+            
             client.tx().commit();
             
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
@@ -559,6 +574,7 @@ public class TorcDb extends Db {
             keyValues.add("creationDate");
             keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", comment, keyValues.toArray());
+            
             client.tx().commit();
             
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
