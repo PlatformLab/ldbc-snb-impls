@@ -388,15 +388,14 @@ public class TorcDb extends Db {
         public void executeOperation(final LdbcShortQuery6MessageForum operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
             Graph client = dbConnectionState.client();
             
-            Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
+            Vertex vertex = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
             
-            Vertex parent = message.edges(Direction.OUT, "replyOf").next().inVertex();
             while (true) {
-                if (parent.label().equals(Entity.FORUM.getName())) {
-                    long forumId = ((UInt128) parent.id()).getLowerLong();
-                    String forumTitle = parent.<String>property("title").value();
+                if (vertex.label().equals(Entity.FORUM.getName())) {
+                    long forumId = ((UInt128) vertex.id()).getLowerLong();
+                    String forumTitle = vertex.<String>property("title").value();
 
-                    Vertex moderator = parent.edges(Direction.OUT, "hasModerator").next().inVertex();
+                    Vertex moderator = vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
 
                     long moderatorId = ((UInt128) moderator.id()).getLowerLong();
                     String moderatorFirstName = moderator.<String>property("firstName").value();
@@ -410,12 +409,14 @@ public class TorcDb extends Db {
                             moderatorLastName);
 
                     client.tx().commit();
-                    
+                   
                     resultReporter.report(1, result, operation);
 
                     return;
+                } else if (vertex.label().equals(Entity.POST.getName())) {
+                    vertex = vertex.edges(Direction.IN, "containerOf").next().outVertex();
                 } else {
-                    parent = parent.edges(Direction.OUT, "replyOf").next().inVertex();
+                    vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
                 }
             }
         }
