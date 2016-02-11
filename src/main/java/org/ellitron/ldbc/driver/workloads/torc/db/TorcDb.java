@@ -152,10 +152,13 @@ public class TorcDb extends Db {
                 propertyMap.put(prop.key(), prop.value());
             });
 
+            Vertex place = person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+            long placeId = ((UInt128)place.id()).getLowerLong();
+            
             LdbcShortQuery1PersonProfileResult res = new LdbcShortQuery1PersonProfileResult(
                     propertyMap.get("firstName"), propertyMap.get("lastName"),
                     Long.parseLong(propertyMap.get("birthday")), propertyMap.get("locationIP"),
-                    propertyMap.get("browserUsed"), Long.decode(propertyMap.get("place")), propertyMap.get("gender"),
+                    propertyMap.get("browserUsed"), placeId, propertyMap.get("gender"),
                     Long.parseLong(propertyMap.get("creationDate")));
             
             client.tx().commit();
