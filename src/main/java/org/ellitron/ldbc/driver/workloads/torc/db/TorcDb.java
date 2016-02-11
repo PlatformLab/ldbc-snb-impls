@@ -478,6 +478,26 @@ public class TorcDb extends Db {
                 result.add(res);
             }
             
+            // Sort the result here.
+            result.sort((a, b) -> {
+                LdbcShortQuery7MessageRepliesResult r1 = (LdbcShortQuery7MessageRepliesResult) a;
+                LdbcShortQuery7MessageRepliesResult r2 = (LdbcShortQuery7MessageRepliesResult) b;
+                
+                if (r1.commentCreationDate() > r2.commentCreationDate()) {
+                    return -1;
+                } else if (r1.commentCreationDate() < r2.commentCreationDate()) {
+                    return 1;
+                } else {
+                    if (r1.replyAuthorId() > r2.replyAuthorId()) {
+                        return 1;
+                    } else if (r1.replyAuthorId() < r2.replyAuthorId()) {
+                        return -1;
+                    } else {
+                        return 0;
+                    }
+                }
+            });
+            
             client.tx().commit();
             
             resultReporter.report(result.size(), result, operation);
