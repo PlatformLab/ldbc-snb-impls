@@ -493,18 +493,10 @@ public class TorcDb extends Db {
         
         @Override
         public void executeOperation(LdbcUpdate1AddPerson operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
-//            int NUMTIMERS = 5;
-//            long[][] timers = new long[NUMTIMERS][2];
-//            for (int i = 0; i < NUMTIMERS; i++) {
-//                timers[i][0] = 0;
-//                timers[i][1] = 0;
-//            }
-//            timers[NUMTIMERS-1][0] = System.nanoTime();
-            
             Graph client = dbConnectionState.client();
             
-//            timers[1][0] = System.nanoTime();
-            List<Object> personKeyValues = new ArrayList<>(20);
+            // Build key value properties array
+            List<Object> personKeyValues = new ArrayList<>(18 + 2*operation.languages().size() + 2*operation.emails().size());
             personKeyValues.add(T.id);
             personKeyValues.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
             personKeyValues.add(T.label);
@@ -523,18 +515,53 @@ public class TorcDb extends Db {
             personKeyValues.add(operation.locationIp());
             personKeyValues.add("browserUsed");
             personKeyValues.add(operation.browserUsed());
-            personKeyValues.add("place");
-            personKeyValues.add(Long.toString(operation.cityId()));
-//            timers[1][1] = System.nanoTime();
             
-//            timers[3][0] = System.nanoTime();
-            client.addVertex(personKeyValues.toArray());
+            for (String language : operation.languages()) {
+                personKeyValues.add("language");
+                personKeyValues.add(language);
+            }
+            
+            for (String email : operation.emails()) {
+                personKeyValues.add("email");
+                personKeyValues.add(email);
+            }
+            
+            // Add person
+            Vertex person = client.addVertex(personKeyValues.toArray());
+            
+            // Add edge to place
+            Vertex place = client.vertices(new UInt128(Entity.PLACE.getNumber(), operation.cityId())).next();
+            person.addEdge("isLocatedIn", place);
+            
+            // Add edges to tags
+            List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
+            operation.tagIds().forEach((id) -> tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
+            Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
+            tagVItr.forEachRemaining((tag) -> {
+                person.addEdge("hasInterest", tag);
+            });
+            
+            // Add edges to universities
+            List<Object> studiedAtKeyValues = new ArrayList<>(2);
+            for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
+                studiedAtKeyValues.clear();
+                studiedAtKeyValues.add("classYear");
+                studiedAtKeyValues.add(String.valueOf(org.year()));
+                Vertex orgV = client.vertices(new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId())).next();
+                person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
+            }
+            
+            // Add edges to companies
+            List<Object> workedAtKeyValues = new ArrayList<>(2);
+            for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
+                workedAtKeyValues.clear();
+                workedAtKeyValues.add("workFrom");
+                workedAtKeyValues.add(String.valueOf(org.year()));
+                Vertex orgV = client.vertices(new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId())).next();
+                person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
+            }
+            
             client.tx().commit();
-//            timers[3][1] = System.nanoTime();
-
-//            timers[NUMTIMERS-1][1] = System.nanoTime();
-//            for (int i = 0; i < NUMTIMERS; i++)
-//                System.out.println(String.format("LdbcUpdate1AddPersonHandler: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
 
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
