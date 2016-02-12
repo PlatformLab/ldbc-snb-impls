@@ -53,8 +53,9 @@ public class TorcGraphLoader {
 
     private static final Logger logger = Logger.getLogger(TorcGraphLoader.class.getName());
 
+    private static final long TX_MAX_RETRIES = 1000;
+    
     public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException, java.text.ParseException {
-        long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
         Map<Object, Object> propertiesMap;
@@ -64,47 +65,65 @@ public class TorcGraphLoader {
         creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
         String fileNameParts[] = filePath.getFileName().toString().split("_");
         String entityName = fileNameParts[0];
-        for (String line : Files.readAllLines(filePath)) {
-            if (firstLine) {
-                colNames = line.split("\\|");
-                firstLine = false;
-                continue;
-            }
+        
+        List<String> lines = Files.readAllLines(filePath);
+        colNames = lines.get(0).split("\\|");
+        int BATCH_SIZE = 100;
+        long lineCount = 0;
+        boolean txSucceeded;
+        long txFailCount;
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
+            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+            txSucceeded = false;
+            txFailCount = 0;
+            do {
+                for (int i = startIndex; i < endIndex; i++) {
+                    String line = lines.get(startIndex);
 
-            String[] colVals = line.split("\\|");
-            propertiesMap = new HashMap<>();
+                    String[] colVals = line.split("\\|");
+                    propertiesMap = new HashMap<>();
+
+                    for (int j = 0; j < colVals.length; ++j) {
+                        if (colNames[j].equals("id")) {
+                            propertiesMap.put(T.id, new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[j])));
+                        } else if (colNames[j].equals("birthday")) {
+                            propertiesMap.put(colNames[j], String.valueOf(birthdayDateFormat.parse(colVals[j]).getTime()));
+                        } else if (colNames[j].equals("creationDate")) {
+                            propertiesMap.put(colNames[j], String.valueOf(creationDateDateFormat.parse(colVals[j]).getTime()));
+                        } else {
+                            propertiesMap.put(colNames[j], colVals[j]);
+                        }
+                    }
+
+                    propertiesMap.put(T.label, entityName);
+
+                    List<Object> keyValues = new ArrayList<>();
+                    propertiesMap.forEach((key, val) -> {
+                        keyValues.add(key);
+                        keyValues.add(val);
+                    });
+
+                    graph.addVertex(keyValues.toArray());
+
+                    lineCount++;
+                }
+
+                try {
+                    graph.tx().commit();
+                    txSucceeded = true;
+                } catch (Exception e) {
+                    txFailCount++;
+                }
+                
+                if (txFailCount > TX_MAX_RETRIES) {
+                    throw new RuntimeException(String.format("ERROR: Transaction failed %d times (file lines [%d,%d]), aborting...", txFailCount, startIndex, endIndex-1));
+                }
+            } while (!txSucceeded);
             
-            for (int i = 0; i < colVals.length; ++i) {
-                if (colNames[i].equals("id")) {
-                    propertiesMap.put(T.id, new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[i])));
-                } else if (colNames[i].equals("birthday")) {
-                    propertiesMap.put(colNames[i], String.valueOf(birthdayDateFormat.parse(colVals[i]).getTime()));
-                } else if (colNames[i].equals("creationDate")) {
-                    propertiesMap.put(colNames[i], String.valueOf(creationDateDateFormat.parse(colVals[i]).getTime()));
-                } else {
-                    propertiesMap.put(colNames[i], colVals[i]);
-                }
-            }
-
-            propertiesMap.put(T.label, entityName);
-
-            List<Object> keyValues = new ArrayList<>();
-            propertiesMap.forEach((key, val) -> {
-                keyValues.add(key);
-                keyValues.add(val);
-            });
-
-            graph.addVertex(keyValues.toArray());
-
-            count++;
-            if (count % 100 == 0) {
-                graph.tx().commit();
-                if (printLoadingDots && (count % 100000 == 0)) {
-                    System.out.print(". ");
-                }
+            if (printLoadingDots && (lineCount % 100000 == 0)) {
+                System.out.print(". ");
             }
         }
-        graph.tx().commit();
     }
     
     public static void loadProperties(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException {
@@ -113,29 +132,47 @@ public class TorcGraphLoader {
         boolean firstLine = true;
         String fileNameParts[] = filePath.getFileName().toString().split("_");
         String entityName = fileNameParts[0];
-        for (String line : Files.readAllLines(filePath)) {
-            if (firstLine) {
-                colNames = line.split("\\|");
-                firstLine = false;
-                continue;
-            }
+        
+        List<String> lines = Files.readAllLines(filePath);
+        colNames = lines.get(0).split("\\|");
+        int BATCH_SIZE = 100;
+        long lineCount = 0;
+        boolean txSucceeded;
+        long txFailCount;
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
+            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+            txSucceeded = false;
+            txFailCount = 0;
+            do {
+                for (int i = startIndex; i < endIndex; i++) {
+                    String line = lines.get(startIndex);
 
-            String[] colVals = line.split("\\|");
-            TorcVertex vertex = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[0]))).next();
-            
-            for (int i = 1; i < colVals.length; ++i) {
-                vertex.property(VertexProperty.Cardinality.list, colNames[i], colVals[i]);
-            }
+                    String[] colVals = line.split("\\|");
+                    TorcVertex vertex = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[0]))).next();
 
-            count++;
-            if (count % 100 == 0) {
-                graph.tx().commit();
-                if (printLoadingDots && (count % 100000 == 0)) {
-                    System.out.print(". ");
+                    for (int j = 1; j < colVals.length; ++j) {
+                        vertex.property(VertexProperty.Cardinality.list, colNames[j], colVals[j]);
+                    }
+
+                    lineCount++;
                 }
+
+                try {
+                    graph.tx().commit();
+                    txSucceeded = true;
+                } catch (Exception e) {
+                    txFailCount++;
+                }
+                
+                if (txFailCount > TX_MAX_RETRIES) {
+                    throw new RuntimeException(String.format("ERROR: Transaction failed %d times (file lines [%d,%d]), aborting...", txFailCount, startIndex, endIndex-1));
+                }
+            } while (!txSucceeded);
+            
+            if (printLoadingDots && (lineCount % 100000 == 0)) {
+                System.out.print(". ");
             }
         }
-        graph.tx().commit();
     }
     
     public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots) throws IOException, java.text.ParseException {
@@ -151,57 +188,71 @@ public class TorcGraphLoader {
         String v1EntityName = fileNameParts[0];
         String edgeLabel = fileNameParts[1];
         String v2EntityName = fileNameParts[2];
-        for (String line : Files.readAllLines(filePath)) {
-            if (firstLine) {
-                colNames = line.split("\\|");
-                firstLine = false;
-                continue;
-            }
-            
-            String[] colVals = line.split("\\|");
+        
+        List<String> lines = Files.readAllLines(filePath);
+        colNames = lines.get(0).split("\\|");
+        int BATCH_SIZE = 100;
+        long lineCount = 0;
+        boolean txSucceeded;
+        long txFailCount;
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
+            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+            txSucceeded = false;
+            txFailCount = 0;
+            do {
+                for (int i = startIndex; i < endIndex; i++) {
+                    String line = lines.get(startIndex);
 
-            Long vertex1Id = Long.decode(colVals[0]);
-            Long vertex2Id = Long.decode(colVals[1]);
-            
-            TorcVertex vertex1 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
-            TorcVertex vertex2 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
-            
-            propertiesMap = new HashMap<>();
-            for (int i = 2; i < colVals.length; ++i) {
-                if (colNames[i].equals("creationDate")) {
-                    propertiesMap.put(colNames[i], String.valueOf(creationDateDateFormat.parse(colVals[i]).getTime()));
-                } else if (colNames[i].equals("joinDate")) {
-                    propertiesMap.put(colNames[i], String.valueOf(joinDateDateFormat.parse(colVals[i]).getTime()));
-                } else {
-                    propertiesMap.put(colNames[i], colVals[i]);
+                    String[] colVals = line.split("\\|");
+
+                    Long vertex1Id = Long.decode(colVals[0]);
+                    Long vertex2Id = Long.decode(colVals[1]);
+
+                    TorcVertex vertex1 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
+                    TorcVertex vertex2 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
+
+                    propertiesMap = new HashMap<>();
+                    for (int j = 2; j < colVals.length; ++j) {
+                        if (colNames[j].equals("creationDate")) {
+                            propertiesMap.put(colNames[j], String.valueOf(creationDateDateFormat.parse(colVals[j]).getTime()));
+                        } else if (colNames[j].equals("joinDate")) {
+                            propertiesMap.put(colNames[j], String.valueOf(joinDateDateFormat.parse(colVals[j]).getTime()));
+                        } else {
+                            propertiesMap.put(colNames[j], colVals[j]);
+                        }
+                    }
+
+                    List<Object> keyValues = new ArrayList<>();
+                    propertiesMap.forEach((key, val) -> {
+                        keyValues.add(key);
+                        keyValues.add(val);
+                    });
+
+                    vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
+
+                    if (undirected) {
+                        vertex2.addEdge(edgeLabel, vertex1, keyValues.toArray());
+                    }
+
+                    lineCount++;
                 }
-            }
-            
-            List<Object> keyValues = new ArrayList<>();
-            propertiesMap.forEach((key, val) -> {
-                keyValues.add(key);
-                keyValues.add(val);
-            });
 
-            vertex1.addEdge(edgeLabel, vertex2, keyValues.toArray());
-            
-            if (undirected)
-                vertex2.addEdge(edgeLabel, vertex1, keyValues.toArray());
-            
-            count++;
-            if (count % 100 == 0) {
                 try {
                     graph.tx().commit();
-                } catch (RuntimeException e) {
-                    System.out.println("count="+count);
-                    throw e;
+                    txSucceeded = true;
+                } catch (Exception e) {
+                    txFailCount++;
                 }
-                if (printLoadingDots && (count % 100000 == 0)) {
-                    System.out.print(". ");
+                
+                if (txFailCount > TX_MAX_RETRIES) {
+                    throw new RuntimeException(String.format("ERROR: Transaction failed %d times (file lines [%d,%d]), aborting...", txFailCount, startIndex, endIndex-1));
                 }
+            } while (!txSucceeded);
+            
+            if (printLoadingDots && (lineCount % 100000 == 0)) {
+                System.out.print(". ");
             }
         }
-        graph.tx().commit();
     }
     
     public static void main(String[] args) throws IOException {
