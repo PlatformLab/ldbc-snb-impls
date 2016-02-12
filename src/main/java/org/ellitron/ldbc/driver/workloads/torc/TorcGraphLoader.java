@@ -78,7 +78,7 @@ public class TorcGraphLoader {
             txFailCount = 0;
             do {
                 for (int i = startIndex; i < endIndex; i++) {
-                    String line = lines.get(startIndex);
+                    String line = lines.get(i);
 
                     String[] colVals = line.split("\\|");
                     propertiesMap = new HashMap<>();
@@ -145,7 +145,7 @@ public class TorcGraphLoader {
             txFailCount = 0;
             do {
                 for (int i = startIndex; i < endIndex; i++) {
-                    String line = lines.get(startIndex);
+                    String line = lines.get(i);
 
                     String[] colVals = line.split("\\|");
                     TorcVertex vertex = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[0]))).next();
@@ -201,7 +201,7 @@ public class TorcGraphLoader {
             txFailCount = 0;
             do {
                 for (int i = startIndex; i < endIndex; i++) {
-                    String line = lines.get(startIndex);
+                    String line = lines.get(i);
 
                     String[] colVals = line.split("\\|");
 
