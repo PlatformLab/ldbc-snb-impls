@@ -22,6 +22,20 @@ import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
@@ -134,7 +148,168 @@ public class TorcDb extends Db {
     }
 
     /**
-     * Query handler implementations.
+     * ------------------------------------------------------------------------
+     * Complex Queries
+     * ------------------------------------------------------------------------
+     */
+    public static class LdbcQuery1Handler implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery2Handler implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery2Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery2 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery3Handler implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery3Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery3 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery4Handler implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery4Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery4 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery5Handler implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery5Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery5 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery6Handler implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery6Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery6 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery7Handler implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery7Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery7 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery8Handler implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery8Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery8 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery9Handler implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery9Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery9 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery10Handler implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery10Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery10 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery11Handler implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery11Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery11 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery12Handler implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery12Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery12 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery13Handler implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery13Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery13 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    public static class LdbcQuery14Handler implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
+
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery14Handler.class);
+
+        @Override
+        public void executeOperation(final LdbcQuery14 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+
+        }
+
+    }
+
+    /**
+     * ------------------------------------------------------------------------
+     * Short Queries
+     * ------------------------------------------------------------------------
      */
     public static class LdbcShortQuery1PersonProfileHandler implements OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
@@ -504,6 +679,11 @@ public class TorcDb extends Db {
         }
     }
 
+    /**
+     * ------------------------------------------------------------------------
+     * Update Queries
+     * ------------------------------------------------------------------------
+     */
     public static class LdbcUpdate1AddPersonHandler implements OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
