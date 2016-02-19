@@ -119,6 +119,7 @@ public class TorcDb extends Db {
 
     @Override
     protected void onInit(Map<String, String> properties, LoggingService loggingService) throws DbException {
+        registerOperationHandler(LdbcQuery1.class, LdbcQuery1Handler.class);
         registerOperationHandler(LdbcShortQuery1PersonProfile.class, LdbcShortQuery1PersonProfileHandler.class);
         registerOperationHandler(LdbcShortQuery2PersonPosts.class, LdbcShortQuery2PersonPostsHandler.class);
         registerOperationHandler(LdbcShortQuery3PersonFriends.class, LdbcShortQuery3PersonFriendsHandler.class);
@@ -207,7 +208,8 @@ public class TorcDb extends Db {
                 int endIndex = levelIndices.get(level);
                 
                 List<Vertex> equidistantVertices = new ArrayList<>();
-                while (matchIndices.get(matchNumber) < endIndex) {
+                while ( matchNumber < matchIndices.size() &&
+                        matchIndices.get(matchNumber) < endIndex) {
                     Vertex friend = friends.get(matchIndices.get(matchNumber));
                     equidistantVertices.add(friend);
                     matchNumber++;
@@ -339,6 +341,9 @@ public class TorcDb extends Db {
                         return;
                     }
                 }
+                
+                if (matchNumber == matchIndices.size())
+                    break;
             }
 
             resultReporter.report(result.size(), result, operation);
