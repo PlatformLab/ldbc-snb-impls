@@ -75,6 +75,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction;
 import org.ellitron.ldbc.driver.workloads.torc.Entity;
 import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
@@ -88,7 +89,11 @@ import org.slf4j.LoggerFactory;
 public class TorcDb extends Db {
 
     private BasicDbConnectionState connectionState = null;
-
+    private boolean doTransactionalReads = false;
+    
+    // Maximum number of times to try a transaction before giving up.
+    private static int MAX_TX_ATTEMPTS = 100;
+    
     static class BasicDbConnectionState extends DbConnectionState {
 
         private Graph client;
@@ -137,6 +142,8 @@ public class TorcDb extends Db {
         registerOperationHandler(LdbcUpdate8AddFriendship.class, LdbcUpdate8AddFriendshipHandler.class);
         
         connectionState = new BasicDbConnectionState(properties);
+        if (properties.containsKey("txReads"))
+            doTransactionalReads = true;
     }
 
     @Override
@@ -154,199 +161,225 @@ public class TorcDb extends Db {
      * Complex Queries
      * ------------------------------------------------------------------------
      */
-    public static class LdbcQuery1Handler implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+    public class LdbcQuery1Handler implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
 
-        final static Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
+        final Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
         @Override
         public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            long personId = operation.personId();
-            String firstName = operation.firstName();
-            int maxLevels = 3;
-            
-            Graph client = dbConnectionState.client();
+//            int NUMTIMERS = 1;
+//            long[][] timers = new long[NUMTIMERS][2];
+//            for (int i = 0; i < NUMTIMERS; i++) {
+//                timers[i][0] = 0;
+//                timers[i][1] = 0;
+//            }
+//            timers[NUMTIMERS-1][0] = System.nanoTime();
 
-            Vertex rootPerson = client.vertices(new UInt128(Entity.PERSON.getNumber(), personId)).next();
-            
-            List<Vertex> friends = new ArrayList<>();
-            List<Integer> levelIndices = new ArrayList<>();
-            List<Integer> matchIndices = new ArrayList<>();
-            
-            friends.add(rootPerson);
-            levelIndices.add(friends.size());
-            int currentLevel = 0;
-            
-            for (int i = 0; i < friends.size(); i++) {
-                if (i == levelIndices.get(levelIndices.size()-1)) {
-                    levelIndices.add(friends.size());
-                    currentLevel++;
-                    
-                    if (currentLevel == maxLevels)
-                        break;
-                    
-                    if (matchIndices.size() >= operation.limit())
-                        break;
-                }
-                
-                Vertex person = friends.get(i);
-                
-                person.edges(Direction.OUT, "knows").forEachRemaining((e) -> {
-                    Vertex friend = e.inVertex();
-                    if (!friends.contains(friend)) {
-                        friends.add(friend);
-                        if (friend.<String>property("firstName").value().equals(firstName)) {
-                            matchIndices.add(friends.size() - 1);
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                long personId = operation.personId();
+                String firstName = operation.firstName();
+                int maxLevels = 3;
+
+                Graph client = dbConnectionState.client();
+
+                Vertex rootPerson = client.vertices(new UInt128(Entity.PERSON.getNumber(), personId)).next();
+
+                List<Vertex> friends = new ArrayList<>();
+                List<Integer> levelIndices = new ArrayList<>();
+                List<Integer> matchIndices = new ArrayList<>();
+
+                friends.add(rootPerson);
+                levelIndices.add(friends.size());
+                int currentLevel = 0;
+
+                for (int i = 0; i < friends.size(); i++) {
+                    if (i == levelIndices.get(levelIndices.size() - 1)) {
+                        levelIndices.add(friends.size());
+                        currentLevel++;
+
+                        if (currentLevel == maxLevels) {
+                            break;
+                        }
+
+                        if (matchIndices.size() >= operation.limit()) {
+                            break;
                         }
                     }
-                });
-            }
-            
-            List<LdbcQuery1Result> result = new ArrayList<>();
-            
-            int matchNumber = 0;
-            for (int level = 1; level < levelIndices.size(); level++) {
-                int endIndex = levelIndices.get(level);
-                
-                List<Vertex> equidistantVertices = new ArrayList<>();
-                while ( matchNumber < matchIndices.size() &&
-                        matchIndices.get(matchNumber) < endIndex) {
-                    Vertex friend = friends.get(matchIndices.get(matchNumber));
-                    equidistantVertices.add(friend);
-                    matchNumber++;
+
+                    Vertex person = friends.get(i);
+
+                    person.edges(Direction.OUT, "knows").forEachRemaining((e) -> {
+                        Vertex friend = e.inVertex();
+                        if (!friends.contains(friend)) {
+                            friends.add(friend);
+                            if (friend.<String>property("firstName").value().equals(firstName)) {
+                                matchIndices.add(friends.size() - 1);
+                            }
+                        }
+                    });
                 }
-                
-                equidistantVertices.sort((a,b) -> {
-                    Vertex v1 = (Vertex) a;
-                    Vertex v2 = (Vertex) b;
-                    
-                    String v1LastName = v1.<String>property("lastName").value();
-                    String v2LastName = v2.<String>property("lastName").value();
-                    
-                    int lastNameCompareVal = v1LastName.compareTo(v2LastName);
-                    if (lastNameCompareVal != 0) {
-                        return lastNameCompareVal;
-                    } else {
-                        UInt128 v1Id = (UInt128) v1.id();
-                        UInt128 v2Id = (UInt128) v2.id();
-                        
-                        return v1Id.compareTo(v2Id);
+
+                List<LdbcQuery1Result> result = new ArrayList<>();
+
+                int matchNumber = 0;
+                for (int level = 1; level < levelIndices.size(); level++) {
+                    int endIndex = levelIndices.get(level);
+
+                    List<Vertex> equidistantVertices = new ArrayList<>();
+                    while (matchNumber < matchIndices.size()
+                            && matchIndices.get(matchNumber) < endIndex) {
+                        Vertex friend = friends.get(matchIndices.get(matchNumber));
+                        equidistantVertices.add(friend);
+                        matchNumber++;
                     }
-                });
-                
-                for (Vertex f : equidistantVertices) {
-                    long friendId = ((UInt128)f.id()).getLowerLong();
-                    String friendLastName = null;
-                    int distanceFromPerson = level;
-                    long friendBirthday = 0;
-                    long friendCreationDate = 0;
-                    String friendGender = null;
-                    String friendBrowserUsed = null;
-                    String friendLocationIp = null;
-                    List<String> friendEmails = new ArrayList<>();
-                    List<String> friendLanguages = new ArrayList<>();
-                    String friendCityName = null;
-                    List<List<Object>> friendUniversities = new ArrayList<>();
-                    List<List<Object>> friendCompanies = new ArrayList<>();
-                            
-                    // Extract normal properties.
-                    Iterator<VertexProperty<String>> props = f.properties();
-                    while (props.hasNext()) {
-                        VertexProperty<String> prop = props.next();
-                        
-                        switch (prop.key()) {
-                            case "lastName":
-                                friendLastName = prop.value();
-                                break;
-                            case "birthday":
-                                friendBirthday = Long.decode(prop.value());
-                                break;
-                            case "creationDate":
-                                friendCreationDate = Long.decode(prop.value());
-                                break;
-                            case "gender": 
-                                friendGender = prop.value();
-                                break;
-                            case "browserUsed": 
-                                friendBrowserUsed = prop.value();
-                                break;
-                            case "locationIp":
-                                friendLocationIp = prop.value();
-                                break;
-                            case "email": 
-                                friendEmails.add(prop.value());
-                                break;
-                            case "language":
-                                friendLanguages.add(prop.value());
-                                break;
+
+                    equidistantVertices.sort((a, b) -> {
+                        Vertex v1 = (Vertex) a;
+                        Vertex v2 = (Vertex) b;
+
+                        String v1LastName = v1.<String>property("lastName").value();
+                        String v2LastName = v2.<String>property("lastName").value();
+
+                        int lastNameCompareVal = v1LastName.compareTo(v2LastName);
+                        if (lastNameCompareVal != 0) {
+                            return lastNameCompareVal;
+                        } else {
+                            UInt128 v1Id = (UInt128) v1.id();
+                            UInt128 v2Id = (UInt128) v2.id();
+
+                            return v1Id.compareTo(v2Id);
+                        }
+                    });
+
+                    for (Vertex f : equidistantVertices) {
+                        long friendId = ((UInt128) f.id()).getLowerLong();
+                        String friendLastName = null;
+                        int distanceFromPerson = level;
+                        long friendBirthday = 0;
+                        long friendCreationDate = 0;
+                        String friendGender = null;
+                        String friendBrowserUsed = null;
+                        String friendLocationIp = null;
+                        List<String> friendEmails = new ArrayList<>();
+                        List<String> friendLanguages = new ArrayList<>();
+                        String friendCityName = null;
+                        List<List<Object>> friendUniversities = new ArrayList<>();
+                        List<List<Object>> friendCompanies = new ArrayList<>();
+
+                        // Extract normal properties.
+                        Iterator<VertexProperty<String>> props = f.properties();
+                        while (props.hasNext()) {
+                            VertexProperty<String> prop = props.next();
+
+                            switch (prop.key()) {
+                                case "lastName":
+                                    friendLastName = prop.value();
+                                    break;
+                                case "birthday":
+                                    friendBirthday = Long.decode(prop.value());
+                                    break;
+                                case "creationDate":
+                                    friendCreationDate = Long.decode(prop.value());
+                                    break;
+                                case "gender":
+                                    friendGender = prop.value();
+                                    break;
+                                case "browserUsed":
+                                    friendBrowserUsed = prop.value();
+                                    break;
+                                case "locationIP":
+                                    friendLocationIp = prop.value();
+                                    break;
+                                case "email":
+                                    friendEmails.add(prop.value());
+                                    break;
+                                case "language":
+                                    friendLanguages.add(prop.value());
+                                    break;
+                            }
+                        }
+
+                        // Fetch where person is located
+                        Vertex friendPlace = f.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+                        friendCityName = friendPlace.<String>property("name").value();
+
+                        // Fetch universities studied at
+                        f.edges(Direction.OUT, "studyAt").forEachRemaining((e) -> {
+                            Integer classYear = Integer.decode(e.<String>property("classYear").value());
+                            Vertex organization = e.inVertex();
+                            String orgName = organization.<String>property("name").value();
+                            Vertex place = organization.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+                            String placeName = place.<String>property("name").value();
+
+                            List<Object> universityInfo = new ArrayList<>();
+                            universityInfo.add(orgName);
+                            universityInfo.add(classYear);
+                            universityInfo.add(placeName);
+
+                            friendUniversities.add(universityInfo);
+                        });
+
+                        // Fetch companies worked at
+                        f.edges(Direction.OUT, "workAt").forEachRemaining((e) -> {
+                            Integer workFrom = Integer.decode(e.<String>property("workFrom").value());
+                            Vertex company = e.inVertex();
+                            String compName = company.<String>property("name").value();
+                            Vertex place = company.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+                            String placeName = place.<String>property("name").value();
+
+                            List<Object> companyInfo = new ArrayList<>();
+                            companyInfo.add(compName);
+                            companyInfo.add(workFrom);
+                            companyInfo.add(placeName);
+
+                            friendCompanies.add(companyInfo);
+                        });
+
+                        LdbcQuery1Result res = new LdbcQuery1Result(
+                                friendId,
+                                friendLastName,
+                                level,
+                                friendBirthday,
+                                friendCreationDate,
+                                friendGender,
+                                friendBrowserUsed,
+                                friendLocationIp,
+                                friendEmails,
+                                friendLanguages,
+                                friendCityName,
+                                friendUniversities,
+                                friendCompanies
+                        );
+
+                        result.add(res);
+
+                        if (result.size() == operation.limit()) {
+                            break;
                         }
                     }
-                    
-                    // Fetch where person is located
-                    Vertex friendPlace = f.edges(Direction.OUT, "isLocatedIn").next().inVertex();
-                    friendCityName = friendPlace.<String>property("name").value();
-                    
-                    // Fetch universities studied at
-                    f.edges(Direction.OUT, "studyAt").forEachRemaining((e) -> {
-                        Integer classYear = Integer.decode(e.<String>property("classYear").value());
-                        Vertex organization = e.inVertex();
-                        String orgName = organization.<String>property("name").value();
-                        Vertex place = organization.edges(Direction.OUT, "isLocatedIn").next().inVertex();
-                        String placeName = place.<String>property("name").value();
-                        
-                        List<Object> universityInfo = new ArrayList<>();
-                        universityInfo.add(orgName);
-                        universityInfo.add(classYear);
-                        universityInfo.add(placeName);
-                        
-                        friendUniversities.add(universityInfo);
-                    });
-                    
-                    // Fetch companies worked at
-                    f.edges(Direction.OUT, "workAt").forEachRemaining((e) -> {
-                        Integer workFrom = Integer.decode(e.<String>property("workFrom").value());
-                        Vertex company = e.inVertex();
-                        String compName = company.<String>property("name").value();
-                        Vertex place = company.edges(Direction.OUT, "isLocatedIn").next().inVertex();
-                        String placeName = place.<String>property("name").value();
-                        
-                        List<Object> companyInfo = new ArrayList<>();
-                        companyInfo.add(compName);
-                        companyInfo.add(workFrom);
-                        companyInfo.add(placeName);
-                        
-                        friendCompanies.add(companyInfo);
-                    });
-                    
-                    
-                    LdbcQuery1Result res = new LdbcQuery1Result(
-                            friendId,
-                            friendLastName,
-                            level,
-                            friendBirthday,
-                            friendCreationDate,
-                            friendGender,
-                            friendBrowserUsed,
-                            friendLocationIp,
-                            friendEmails,
-                            friendLanguages,
-                            friendCityName,
-                            friendUniversities,
-                            friendCompanies
-                    );
-                    
-                    result.add(res);
-                    
-                    if (result.size() == operation.limit()) {
-                        resultReporter.report(result.size(), result, operation);
-                        return;
+
+                    if (result.size() == operation.limit() || matchNumber == matchIndices.size()) {
+                        break;
                     }
                 }
-                
-                if (matchNumber == matchIndices.size())
-                    break;
-            }
 
-            resultReporter.report(result.size(), result, operation);
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+                    
+                resultReporter.report(result.size(), result, operation);
+                break;
+            }
+            
+//            timers[NUMTIMERS-1][1] = System.nanoTime();
+//            for (int i = 0; i < NUMTIMERS; i++)
+//                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
         }
 
     }
