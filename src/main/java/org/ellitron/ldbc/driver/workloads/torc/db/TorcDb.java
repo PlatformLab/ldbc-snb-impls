@@ -89,11 +89,11 @@ import org.slf4j.LoggerFactory;
 public class TorcDb extends Db {
 
     private BasicDbConnectionState connectionState = null;
-    private boolean doTransactionalReads = false;
-    
+    private static boolean doTransactionalReads = false;
+
     // Maximum number of times to try a transaction before giving up.
     private static int MAX_TX_ATTEMPTS = 100;
-    
+
     static class BasicDbConnectionState extends DbConnectionState {
 
         private Graph client;
@@ -140,10 +140,11 @@ public class TorcDb extends Db {
         registerOperationHandler(LdbcUpdate6AddPost.class, LdbcUpdate6AddPostHandler.class);
         registerOperationHandler(LdbcUpdate7AddComment.class, LdbcUpdate7AddCommentHandler.class);
         registerOperationHandler(LdbcUpdate8AddFriendship.class, LdbcUpdate8AddFriendshipHandler.class);
-        
+
         connectionState = new BasicDbConnectionState(properties);
-        if (properties.containsKey("txReads"))
+        if (properties.containsKey("txReads")) {
             doTransactionalReads = true;
+        }
     }
 
     @Override
@@ -161,9 +162,9 @@ public class TorcDb extends Db {
      * Complex Queries
      * ------------------------------------------------------------------------
      */
-    public class LdbcQuery1Handler implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+    public static class LdbcQuery1Handler implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
 
-        final Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
+        final static Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
         @Override
         public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
@@ -372,11 +373,11 @@ public class TorcDb extends Db {
                         continue;
                     }
                 }
-                    
+
                 resultReporter.report(result.size(), result, operation);
                 break;
             }
-            
+
 //            timers[NUMTIMERS-1][1] = System.nanoTime();
 //            for (int i = 0; i < NUMTIMERS; i++)
 //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
@@ -535,368 +536,447 @@ public class TorcDb extends Db {
     public static class LdbcShortQuery1PersonProfileHandler implements OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery1PersonProfile operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            long person_id = operation.personId();
-            Graph client = dbConnectionState.client();
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                long person_id = operation.personId();
+                Graph client = dbConnectionState.client();
 
-            Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), person_id)).next();
-            Iterator<VertexProperty<String>> props = person.properties();
-            Map<String, String> propertyMap = new HashMap<>();
-            props.forEachRemaining((prop) -> {
-                propertyMap.put(prop.key(), prop.value());
-            });
+                Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), person_id)).next();
+                Iterator<VertexProperty<String>> props = person.properties();
+                Map<String, String> propertyMap = new HashMap<>();
+                props.forEachRemaining((prop) -> {
+                    propertyMap.put(prop.key(), prop.value());
+                });
 
-            Vertex place = person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
-            long placeId = ((UInt128)place.id()).getLowerLong();
-            
-            LdbcShortQuery1PersonProfileResult res = new LdbcShortQuery1PersonProfileResult(
-                    propertyMap.get("firstName"), propertyMap.get("lastName"),
-                    Long.parseLong(propertyMap.get("birthday")), propertyMap.get("locationIP"),
-                    propertyMap.get("browserUsed"), placeId, propertyMap.get("gender"),
-                    Long.parseLong(propertyMap.get("creationDate")));
-            
-            client.tx().commit();
-            
-            resultReporter.report(0, res, operation);
+                Vertex place = person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+                long placeId = ((UInt128) place.id()).getLowerLong();
+
+                LdbcShortQuery1PersonProfileResult res = new LdbcShortQuery1PersonProfileResult(
+                        propertyMap.get("firstName"), propertyMap.get("lastName"),
+                        Long.parseLong(propertyMap.get("birthday")), propertyMap.get("locationIP"),
+                        propertyMap.get("browserUsed"), placeId, propertyMap.get("gender"),
+                        Long.parseLong(propertyMap.get("creationDate")));
+
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+
+                resultReporter.report(0, res, operation);
+                break;
+            }
         }
 
     }
-    
+
     public static class LdbcShortQuery2PersonPostsHandler implements OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery2PersonPosts operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
-            
-            List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
-            
-            Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
-            Iterator<Edge> edges = person.edges(Direction.IN, "hasCreator");
-            
-            List<Vertex> messageList = new ArrayList<>();
-            edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
-            messageList.sort((a, b) -> {
-                Vertex v1 = (Vertex)a;
-                Vertex v2 = (Vertex)b;
-                
-                long v1Date = Long.decode(v1.<String>property("creationDate").value());
-                long v2Date = Long.decode(v2.<String>property("creationDate").value());
-                
-                if (v1Date > v2Date) {
-                    return -1;
-                } else if (v1Date < v2Date) {
-                    return 1;
-                } else {
-                    long v1Id = ((UInt128)v1.id()).getLowerLong();
-                    long v2Id = ((UInt128)v2.id()).getLowerLong();
-                    if (v1Id > v2Id) {
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
+
+                List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
+
+                Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
+                Iterator<Edge> edges = person.edges(Direction.IN, "hasCreator");
+
+                List<Vertex> messageList = new ArrayList<>();
+                edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
+                messageList.sort((a, b) -> {
+                    Vertex v1 = (Vertex) a;
+                    Vertex v2 = (Vertex) b;
+
+                    long v1Date = Long.decode(v1.<String>property("creationDate").value());
+                    long v2Date = Long.decode(v2.<String>property("creationDate").value());
+
+                    if (v1Date > v2Date) {
                         return -1;
-                    } else if (v1Id < v2Id) {
+                    } else if (v1Date < v2Date) {
                         return 1;
                     } else {
-                        return 0;
-                    }
-                }    
-            });
-            
-            for (int i = 0; i < Integer.min(operation.limit(), messageList.size()); i++) {
-                Vertex message = messageList.get(i);
-                
-                Map<String, String> propMap = new HashMap<>();
-                message.<String>properties().forEachRemaining((vp) -> {
-                    propMap.put(vp.key(), vp.value());
-                });
-                
-                long messageId = ((UInt128)message.id()).getLowerLong();
-                
-                String messageContent;
-                if (propMap.get("content").length() != 0)
-                    messageContent = propMap.get("content");
-                else
-                    messageContent = propMap.get("imageFile");
-                
-                long messageCreationDate = Long.decode(propMap.get("creationDate"));
-                
-                long originalPostId;
-                long originalPostAuthorId;
-                String originalPostAuthorFirstName;
-                String originalPostAuthorLastName;
-                if (message.label().equals(Entity.POST.getName())) {
-                    originalPostId = messageId;
-                    originalPostAuthorId = ((UInt128) person.id()).getLowerLong();
-                    originalPostAuthorFirstName = person.<String>property("firstName").value();
-                    originalPostAuthorLastName = person.<String>property("lastName").value();
-                } else {
-                    Vertex parentMessage = message.edges(Direction.OUT, "replyOf").next().inVertex();
-                    while(true) {
-                        if (parentMessage.label().equals(Entity.POST.getName())) {
-                            originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
-                            
-                            Vertex author = parentMessage.edges(Direction.OUT, "hasCreator").next().inVertex();
-                            originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
-                            originalPostAuthorFirstName = author.<String>property("firstName").value();
-                            originalPostAuthorLastName = author.<String>property("lastName").value();
-                            break;
+                        long v1Id = ((UInt128) v1.id()).getLowerLong();
+                        long v2Id = ((UInt128) v2.id()).getLowerLong();
+                        if (v1Id > v2Id) {
+                            return -1;
+                        } else if (v1Id < v2Id) {
+                            return 1;
                         } else {
-                            parentMessage = parentMessage.edges(Direction.OUT, "replyOf").next().inVertex();
+                            return 0;
                         }
                     }
+                });
+
+                for (int i = 0; i < Integer.min(operation.limit(), messageList.size()); i++) {
+                    Vertex message = messageList.get(i);
+
+                    Map<String, String> propMap = new HashMap<>();
+                    message.<String>properties().forEachRemaining((vp) -> {
+                        propMap.put(vp.key(), vp.value());
+                    });
+
+                    long messageId = ((UInt128) message.id()).getLowerLong();
+
+                    String messageContent;
+                    if (propMap.get("content").length() != 0) {
+                        messageContent = propMap.get("content");
+                    } else {
+                        messageContent = propMap.get("imageFile");
+                    }
+
+                    long messageCreationDate = Long.decode(propMap.get("creationDate"));
+
+                    long originalPostId;
+                    long originalPostAuthorId;
+                    String originalPostAuthorFirstName;
+                    String originalPostAuthorLastName;
+                    if (message.label().equals(Entity.POST.getName())) {
+                        originalPostId = messageId;
+                        originalPostAuthorId = ((UInt128) person.id()).getLowerLong();
+                        originalPostAuthorFirstName = person.<String>property("firstName").value();
+                        originalPostAuthorLastName = person.<String>property("lastName").value();
+                    } else {
+                        Vertex parentMessage = message.edges(Direction.OUT, "replyOf").next().inVertex();
+                        while (true) {
+                            if (parentMessage.label().equals(Entity.POST.getName())) {
+                                originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
+
+                                Vertex author = parentMessage.edges(Direction.OUT, "hasCreator").next().inVertex();
+                                originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
+                                originalPostAuthorFirstName = author.<String>property("firstName").value();
+                                originalPostAuthorLastName = author.<String>property("lastName").value();
+                                break;
+                            } else {
+                                parentMessage = parentMessage.edges(Direction.OUT, "replyOf").next().inVertex();
+                            }
+                        }
+                    }
+
+                    LdbcShortQuery2PersonPostsResult res = new LdbcShortQuery2PersonPostsResult(
+                            messageId,
+                            messageContent,
+                            messageCreationDate,
+                            originalPostId,
+                            originalPostAuthorId,
+                            originalPostAuthorFirstName,
+                            originalPostAuthorLastName);
+
+                    result.add(res);
                 }
-                
-                LdbcShortQuery2PersonPostsResult res = new LdbcShortQuery2PersonPostsResult(
-                        messageId, 
-                        messageContent, 
-                        messageCreationDate,
-                        originalPostId,
-                        originalPostAuthorId,
-                        originalPostAuthorFirstName, 
-                        originalPostAuthorLastName);
-                
-                result.add(res);
+
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+
+                resultReporter.report(result.size(), result, operation);
+                break;
             }
-            
-            client.tx().commit();
-            
-            resultReporter.report(result.size(), result, operation);
         }
     }
-    
+
     public static class LdbcShortQuery3PersonFriendsHandler implements OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery3PersonFriends operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
-            
-            List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
-            
-            Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
-            
-            Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
-            
-            edges.forEachRemaining((e) -> {
-                long creationDate = Long.decode(e.<String>property("creationDate").value());
-                
-                Vertex friend = e.inVertex();
-                
-                long personId = ((UInt128)friend.id()).getLowerLong();
-                
-                String firstName = friend.<String>property("firstName").value();
-                String lastName = friend.<String>property("lastName").value();
-                
-                LdbcShortQuery3PersonFriendsResult res = new LdbcShortQuery3PersonFriendsResult(
-                        personId,
-                        firstName, 
-                        lastName,
-                        creationDate);
-                result.add(res);
-            });
-            
-            // Sort the result here.
-            result.sort((a, b) -> {
-                LdbcShortQuery3PersonFriendsResult r1 = (LdbcShortQuery3PersonFriendsResult) a;
-                LdbcShortQuery3PersonFriendsResult r2 = (LdbcShortQuery3PersonFriendsResult) b;
-                
-                if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
-                    return -1;
-                } else if (r1.friendshipCreationDate() < r2.friendshipCreationDate()) {
-                    return 1;
-                } else {
-                    if (r1.personId() > r2.personId()) {
-                        return 1;
-                    } else if (r1.personId() < r2.personId()) {
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
+
+                List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
+
+                Vertex person = client.vertices(new UInt128(Entity.PERSON.getNumber(), operation.personId())).next();
+
+                Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
+
+                edges.forEachRemaining((e) -> {
+                    long creationDate = Long.decode(e.<String>property("creationDate").value());
+
+                    Vertex friend = e.inVertex();
+
+                    long personId = ((UInt128) friend.id()).getLowerLong();
+
+                    String firstName = friend.<String>property("firstName").value();
+                    String lastName = friend.<String>property("lastName").value();
+
+                    LdbcShortQuery3PersonFriendsResult res = new LdbcShortQuery3PersonFriendsResult(
+                            personId,
+                            firstName,
+                            lastName,
+                            creationDate);
+                    result.add(res);
+                });
+
+                // Sort the result here.
+                result.sort((a, b) -> {
+                    LdbcShortQuery3PersonFriendsResult r1 = (LdbcShortQuery3PersonFriendsResult) a;
+                    LdbcShortQuery3PersonFriendsResult r2 = (LdbcShortQuery3PersonFriendsResult) b;
+
+                    if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
                         return -1;
+                    } else if (r1.friendshipCreationDate() < r2.friendshipCreationDate()) {
+                        return 1;
                     } else {
-                        return 0;
+                        if (r1.personId() > r2.personId()) {
+                            return 1;
+                        } else if (r1.personId() < r2.personId()) {
+                            return -1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                });
+
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
                     }
                 }
-            });
-            
-            client.tx().commit();
-            
-            resultReporter.report(result.size(), result, operation);
-        }
 
+                resultReporter.report(result.size(), result, operation);
+                break;
+            }
+
+        }
     }
-    
+
     public static class LdbcShortQuery4MessageContentHandler implements OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
         @Override
         public void executeOperation(final LdbcShortQuery4MessageContent operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
 
-            Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
+                Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
 
-            long creationDate = Long.decode(message.<String>property("creationDate").value());
-            String content = message.<String>property("content").value();
-            if (content.length() == 0) {
-                content = message.<String>property("imageFile").value();
+                long creationDate = Long.decode(message.<String>property("creationDate").value());
+                String content = message.<String>property("content").value();
+                if (content.length() == 0) {
+                    content = message.<String>property("imageFile").value();
+                }
+
+                LdbcShortQuery4MessageContentResult result = new LdbcShortQuery4MessageContentResult(
+                        content,
+                        creationDate);
+
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+
+                resultReporter.report(1, result, operation);
+                break;
             }
 
-            LdbcShortQuery4MessageContentResult result = new LdbcShortQuery4MessageContentResult(
-                    content,
-                    creationDate);
-
-            client.tx().commit();
-            
-            resultReporter.report(1, result, operation);
         }
-
     }
-    
+
     public static class LdbcShortQuery5MessageCreatorHandler implements OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery5MessageCreator operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
-            
-            Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
-            
-            Vertex creator = message.edges(Direction.OUT, "hasCreator").next().inVertex();
-            
-            long creatorId = ((UInt128)creator.id()).getLowerLong();
-            String creatorFirstName = creator.<String>property("firstName").value();
-            String creatorLastName = creator.<String>property("lastName").value();
-            
-            LdbcShortQuery5MessageCreatorResult result = new LdbcShortQuery5MessageCreatorResult(
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
+
+                Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
+
+                Vertex creator = message.edges(Direction.OUT, "hasCreator").next().inVertex();
+
+                long creatorId = ((UInt128) creator.id()).getLowerLong();
+                String creatorFirstName = creator.<String>property("firstName").value();
+                String creatorLastName = creator.<String>property("lastName").value();
+
+                LdbcShortQuery5MessageCreatorResult result = new LdbcShortQuery5MessageCreatorResult(
                         creatorId,
                         creatorFirstName,
                         creatorLastName);
-            
-            client.tx().commit();
-            
-            resultReporter.report(1, result, operation);
-        }
 
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+
+                resultReporter.report(1, result, operation);
+                break;
+            }
+
+        }
     }
-    
+
     public static class LdbcShortQuery6MessageForumHandler implements OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery6MessageForum operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
-            
-            Vertex vertex = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
-            
-            while (true) {
-                if (vertex.label().equals(Entity.FORUM.getName())) {
-                    long forumId = ((UInt128) vertex.id()).getLowerLong();
-                    String forumTitle = vertex.<String>property("title").value();
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
 
-                    Vertex moderator = vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
+                Vertex vertex = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
 
-                    long moderatorId = ((UInt128) moderator.id()).getLowerLong();
-                    String moderatorFirstName = moderator.<String>property("firstName").value();
-                    String moderatorLastName = moderator.<String>property("lastName").value();
+                LdbcShortQuery6MessageForumResult result;
+                while (true) {
+                    if (vertex.label().equals(Entity.FORUM.getName())) {
+                        long forumId = ((UInt128) vertex.id()).getLowerLong();
+                        String forumTitle = vertex.<String>property("title").value();
 
-                    LdbcShortQuery6MessageForumResult result = new LdbcShortQuery6MessageForumResult(
-                            forumId,
-                            forumTitle,
-                            moderatorId,
-                            moderatorFirstName,
-                            moderatorLastName);
+                        Vertex moderator = vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
 
-                    client.tx().commit();
-                   
-                    resultReporter.report(1, result, operation);
+                        long moderatorId = ((UInt128) moderator.id()).getLowerLong();
+                        String moderatorFirstName = moderator.<String>property("firstName").value();
+                        String moderatorLastName = moderator.<String>property("lastName").value();
 
-                    return;
-                } else if (vertex.label().equals(Entity.POST.getName())) {
-                    vertex = vertex.edges(Direction.IN, "containerOf").next().outVertex();
-                } else {
-                    vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
+                        result = new LdbcShortQuery6MessageForumResult(
+                                forumId,
+                                forumTitle,
+                                moderatorId,
+                                moderatorFirstName,
+                                moderatorLastName);
+
+                        break;
+                    } else if (vertex.label().equals(Entity.POST.getName())) {
+                        vertex = vertex.edges(Direction.IN, "containerOf").next().outVertex();
+                    } else {
+                        vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
+                    }
                 }
-            }
-        }
 
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                }
+
+                resultReporter.report(1, result, operation);
+                break;
+            }
+
+        }
     }
-    
+
     public static class LdbcShortQuery7MessageRepliesHandler implements OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
-        
+
         @Override
         public void executeOperation(final LdbcShortQuery7MessageReplies operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
-            Graph client = dbConnectionState.client();
-            
-            Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
-            Vertex messageAuthor = message.edges(Direction.OUT, "hasCreator").next().inVertex();
-            long messageAuthorId = ((UInt128)messageAuthor.id()).getLowerLong();
-            
-            List<Vertex> replies = new ArrayList<>();
-            message.edges(Direction.IN, "replyOf").forEachRemaining((e) -> {
-                replies.add(e.outVertex());
-            });
-            
-            List<Long> messageAuthorFriendIds = new ArrayList<>();
-            messageAuthor.edges(Direction.OUT, "knows").forEachRemaining((e) -> {
-                messageAuthorFriendIds.add(((UInt128)e.inVertex().id()).getLowerLong());
-            });
-            
-            List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
-            
-            for (Vertex reply : replies) {
-                long replyId = ((UInt128)reply.id()).getLowerLong();
-                String replyContent = reply.<String>property("content").value();
-                long replyCreationDate = Long.decode(reply.<String>property("creationDate").value());
-                
-                Vertex replyAuthor = reply.edges(Direction.OUT, "hasCreator").next().inVertex();
-                long replyAuthorId = ((UInt128)replyAuthor.id()).getLowerLong();
-                String replyAuthorFirstName = replyAuthor.<String>property("firstName").value();
-                String replyAuthorLastName = replyAuthor.<String>property("lastName").value();
-                
-                boolean knows = false;
-                if (messageAuthorId != replyAuthorId) {
-                    knows = messageAuthorFriendIds.contains(replyAuthorId);
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                Graph client = dbConnectionState.client();
+
+                Vertex message = client.vertices(new UInt128(Entity.MESSAGE.getNumber(), operation.messageId())).next();
+                Vertex messageAuthor = message.edges(Direction.OUT, "hasCreator").next().inVertex();
+                long messageAuthorId = ((UInt128) messageAuthor.id()).getLowerLong();
+
+                List<Vertex> replies = new ArrayList<>();
+                message.edges(Direction.IN, "replyOf").forEachRemaining((e) -> {
+                    replies.add(e.outVertex());
+                });
+
+                List<Long> messageAuthorFriendIds = new ArrayList<>();
+                messageAuthor.edges(Direction.OUT, "knows").forEachRemaining((e) -> {
+                    messageAuthorFriendIds.add(((UInt128) e.inVertex().id()).getLowerLong());
+                });
+
+                List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
+
+                for (Vertex reply : replies) {
+                    long replyId = ((UInt128) reply.id()).getLowerLong();
+                    String replyContent = reply.<String>property("content").value();
+                    long replyCreationDate = Long.decode(reply.<String>property("creationDate").value());
+
+                    Vertex replyAuthor = reply.edges(Direction.OUT, "hasCreator").next().inVertex();
+                    long replyAuthorId = ((UInt128) replyAuthor.id()).getLowerLong();
+                    String replyAuthorFirstName = replyAuthor.<String>property("firstName").value();
+                    String replyAuthorLastName = replyAuthor.<String>property("lastName").value();
+
+                    boolean knows = false;
+                    if (messageAuthorId != replyAuthorId) {
+                        knows = messageAuthorFriendIds.contains(replyAuthorId);
+                    }
+
+                    LdbcShortQuery7MessageRepliesResult res = new LdbcShortQuery7MessageRepliesResult(
+                            replyId,
+                            replyContent,
+                            replyCreationDate,
+                            replyAuthorId,
+                            replyAuthorFirstName,
+                            replyAuthorLastName,
+                            knows
+                    );
+
+                    result.add(res);
                 }
-                
-                LdbcShortQuery7MessageRepliesResult res = new LdbcShortQuery7MessageRepliesResult(
-                        replyId, 
-                        replyContent, 
-                        replyCreationDate, 
-                        replyAuthorId, 
-                        replyAuthorFirstName, 
-                        replyAuthorLastName, 
-                        knows
-                );
-                
-                result.add(res);
-            }
-            
-            // Sort the result here.
-            result.sort((a, b) -> {
-                LdbcShortQuery7MessageRepliesResult r1 = (LdbcShortQuery7MessageRepliesResult) a;
-                LdbcShortQuery7MessageRepliesResult r2 = (LdbcShortQuery7MessageRepliesResult) b;
-                
-                if (r1.commentCreationDate() > r2.commentCreationDate()) {
-                    return -1;
-                } else if (r1.commentCreationDate() < r2.commentCreationDate()) {
-                    return 1;
-                } else {
-                    if (r1.replyAuthorId() > r2.replyAuthorId()) {
-                        return 1;
-                    } else if (r1.replyAuthorId() < r2.replyAuthorId()) {
+
+                // Sort the result here.
+                result.sort((a, b) -> {
+                    LdbcShortQuery7MessageRepliesResult r1 = (LdbcShortQuery7MessageRepliesResult) a;
+                    LdbcShortQuery7MessageRepliesResult r2 = (LdbcShortQuery7MessageRepliesResult) b;
+
+                    if (r1.commentCreationDate() > r2.commentCreationDate()) {
                         return -1;
+                    } else if (r1.commentCreationDate() < r2.commentCreationDate()) {
+                        return 1;
                     } else {
-                        return 0;
+                        if (r1.replyAuthorId() > r2.replyAuthorId()) {
+                            return 1;
+                        } else if (r1.replyAuthorId() < r2.replyAuthorId()) {
+                            return -1;
+                        } else {
+                            return 0;
+                        }
+                    }
+                });
+
+                if (doTransactionalReads) {
+                    try {
+                        client.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
                     }
                 }
-            });
-            
-            client.tx().commit();
-            
-            resultReporter.report(result.size(), result, operation);
+
+                resultReporter.report(result.size(), result, operation);
+                break;
+            }
         }
     }
 
@@ -910,17 +990,17 @@ public class TorcDb extends Db {
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
 
         private final Calendar calendar;
-                
+
         public LdbcUpdate1AddPersonHandler() {
             this.calendar = new GregorianCalendar();
         }
-        
+
         @Override
         public void executeOperation(LdbcUpdate1AddPerson operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             Graph client = dbConnectionState.client();
-            
+
             // Build key value properties array
-            List<Object> personKeyValues = new ArrayList<>(18 + 2*operation.languages().size() + 2*operation.emails().size());
+            List<Object> personKeyValues = new ArrayList<>(18 + 2 * operation.languages().size() + 2 * operation.emails().size());
             personKeyValues.add(T.id);
             personKeyValues.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
             personKeyValues.add(T.label);
@@ -939,24 +1019,24 @@ public class TorcDb extends Db {
             personKeyValues.add(operation.locationIp());
             personKeyValues.add("browserUsed");
             personKeyValues.add(operation.browserUsed());
-            
+
             for (String language : operation.languages()) {
                 personKeyValues.add("language");
                 personKeyValues.add(language);
             }
-            
+
             for (String email : operation.emails()) {
                 personKeyValues.add("email");
                 personKeyValues.add(email);
             }
-            
+
             // Add person
             Vertex person = client.addVertex(personKeyValues.toArray());
-            
+
             // Add edge to place
             Vertex place = client.vertices(new UInt128(Entity.PLACE.getNumber(), operation.cityId())).next();
             person.addEdge("isLocatedIn", place);
-            
+
             // Add edges to tags
             List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
             operation.tagIds().forEach((id) -> tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
@@ -964,7 +1044,7 @@ public class TorcDb extends Db {
             tagVItr.forEachRemaining((tag) -> {
                 person.addEdge("hasInterest", tag);
             });
-            
+
             // Add edges to universities
             List<Object> studiedAtKeyValues = new ArrayList<>(2);
             for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
@@ -974,7 +1054,7 @@ public class TorcDb extends Db {
                 Vertex orgV = client.vertices(new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId())).next();
                 person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
             }
-            
+
             // Add edges to companies
             List<Object> workedAtKeyValues = new ArrayList<>(2);
             for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
@@ -984,13 +1064,13 @@ public class TorcDb extends Db {
                 Vertex orgV = client.vertices(new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId())).next();
                 person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
             }
-            
+
             client.tx().commit();
 
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate2AddPostLikeHandler implements OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
@@ -1008,13 +1088,13 @@ public class TorcDb extends Db {
             keyValues.add("creationDate");
             keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", post, keyValues.toArray());
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate3AddCommentLikeHandler implements OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
@@ -1032,13 +1112,13 @@ public class TorcDb extends Db {
             keyValues.add("creationDate");
             keyValues.add(String.valueOf(operation.creationDate().getTime()));
             person.addEdge("likes", comment, keyValues.toArray());
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate4AddForumHandler implements OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
@@ -1046,7 +1126,7 @@ public class TorcDb extends Db {
         @Override
         public void executeOperation(LdbcUpdate4AddForum operation, BasicDbConnectionState dbConnectionState, ResultReporter reporter) throws DbException {
             Graph client = dbConnectionState.client();
-            
+
             List<Object> forumKeyValues = new ArrayList<>(8);
             forumKeyValues.add(T.id);
             forumKeyValues.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
@@ -1056,15 +1136,15 @@ public class TorcDb extends Db {
             forumKeyValues.add(operation.forumTitle());
             forumKeyValues.add("creationDate");
             forumKeyValues.add(String.valueOf(operation.creationDate().getTime()));
-            
+
             Vertex forum = client.addVertex(forumKeyValues.toArray());
-            
+
             List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
-            operation.tagIds().forEach((id) -> { 
+            operation.tagIds().forEach((id) -> {
                 ids.add(new UInt128(Entity.TAG.getNumber(), id));
             });
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.moderatorPersonId()));
-            
+
             client.vertices(ids.toArray()).forEachRemaining((v) -> {
                 if (v.label().equals(Entity.TAG.getName())) {
                     forum.addEdge("hasTag", v);
@@ -1074,13 +1154,13 @@ public class TorcDb extends Db {
                     throw new RuntimeException("ERROR: LdbcUpdate4AddForum query tried to add an edge to a vertex that is neither a tag nor a person.");
                 }
             });
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate5AddForumMembershipHandler implements OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
@@ -1092,23 +1172,23 @@ public class TorcDb extends Db {
             List<UInt128> ids = new ArrayList<>(2);
             ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
-            
+
             Iterator<Vertex> vItr = client.vertices(ids.toArray());
             Vertex forum = vItr.next();
             Vertex member = vItr.next();
-            
+
             List<Object> edgeKeyValues = new ArrayList<>(2);
             edgeKeyValues.add("joinDate");
             edgeKeyValues.add(String.valueOf(operation.joinDate().getTime()));
-            
+
             forum.addEdge("hasMember", member, edgeKeyValues.toArray());
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate6AddPostHandler implements OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
@@ -1128,7 +1208,7 @@ public class TorcDb extends Db {
             postKeyValues.add(String.valueOf(operation.creationDate().getTime()));
             postKeyValues.add("locationIP");
             postKeyValues.add(operation.locationIp());
-            postKeyValues.add("browserUsed"); 
+            postKeyValues.add("browserUsed");
             postKeyValues.add(operation.browserUsed());
             postKeyValues.add("lang");
             postKeyValues.add(operation.language());
@@ -1136,17 +1216,17 @@ public class TorcDb extends Db {
             postKeyValues.add(operation.content());
             postKeyValues.add("length");
             postKeyValues.add(String.valueOf(operation.length()));
-            
+
             Vertex post = client.addVertex(postKeyValues.toArray());
-            
+
             List<UInt128> ids = new ArrayList<>(2);
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
             ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
             ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
-            operation.tagIds().forEach((id) -> { 
+            operation.tagIds().forEach((id) -> {
                 ids.add(new UInt128(Entity.TAG.getNumber(), id));
             });
-            
+
             client.vertices(ids.toArray()).forEachRemaining((v) -> {
                 if (v.label().equals(Entity.PERSON.getName())) {
                     post.addEdge("hasCreator", v);
@@ -1160,13 +1240,13 @@ public class TorcDb extends Db {
                     throw new RuntimeException("ERROR: LdbcUpdate6AddPostHandler query tried to add an edge to a vertex that is none of {person, forum, place, tag}.");
                 }
             });
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate7AddCommentHandler implements OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
@@ -1184,19 +1264,19 @@ public class TorcDb extends Db {
             commentKeyValues.add(String.valueOf(operation.creationDate().getTime()));
             commentKeyValues.add("locationIP");
             commentKeyValues.add(operation.locationIp());
-            commentKeyValues.add("browserUsed"); 
+            commentKeyValues.add("browserUsed");
             commentKeyValues.add(operation.browserUsed());
             commentKeyValues.add("content");
             commentKeyValues.add(operation.content());
             commentKeyValues.add("length");
             commentKeyValues.add(String.valueOf(operation.length()));
-            
+
             Vertex comment = client.addVertex(commentKeyValues.toArray());
-            
+
             List<UInt128> ids = new ArrayList<>(2);
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
             ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
-            operation.tagIds().forEach((id) -> { 
+            operation.tagIds().forEach((id) -> {
                 ids.add(new UInt128(Entity.TAG.getNumber(), id));
             });
             if (operation.replyToCommentId() != -1) {
@@ -1205,7 +1285,7 @@ public class TorcDb extends Db {
             if (operation.replyToPostId() != -1) {
                 ids.add(new UInt128(Entity.POST.getNumber(), operation.replyToPostId()));
             }
-            
+
             client.vertices(ids.toArray()).forEachRemaining((v) -> {
                 if (v.label().equals(Entity.PERSON.getName())) {
                     comment.addEdge("hasCreator", v);
@@ -1223,11 +1303,11 @@ public class TorcDb extends Db {
             });
 
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
-    
+
     public static class LdbcUpdate8AddFriendshipHandler implements OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
@@ -1239,21 +1319,21 @@ public class TorcDb extends Db {
             List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
             knowsEdgeKeyValues.add("creationDate");
             knowsEdgeKeyValues.add(String.valueOf(operation.creationDate().getTime()));
-            
+
             List<UInt128> ids = new ArrayList<>(2);
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person1Id()));
             ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person2Id()));
-            
+
             Iterator<Vertex> vItr = client.vertices(ids.toArray());
-            
+
             Vertex person1 = vItr.next();
             Vertex person2 = vItr.next();
-            
+
             person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
             person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
-            
+
             client.tx().commit();
-            
+
             reporter.report(0, LdbcNoResult.INSTANCE, operation);
         }
     }
