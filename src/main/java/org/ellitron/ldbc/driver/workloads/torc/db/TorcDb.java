@@ -372,6 +372,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(result.size(), result, operation);
@@ -567,6 +569,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(0, res, operation);
@@ -681,6 +685,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(result.size(), result, operation);
@@ -750,6 +756,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(result.size(), result, operation);
@@ -788,6 +796,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(1, result, operation);
@@ -827,6 +837,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(1, result, operation);
@@ -882,6 +894,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(1, result, operation);
@@ -972,6 +986,8 @@ public class TorcDb extends Db {
                         txAttempts++;
                         continue;
                     }
+                } else {
+                    client.tx().rollback();
                 }
 
                 resultReporter.report(result.size(), result, operation);
