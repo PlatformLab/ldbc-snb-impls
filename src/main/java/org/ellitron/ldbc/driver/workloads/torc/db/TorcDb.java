@@ -69,6 +69,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
+import org.apache.tinkerpop.gremlin.process.traversal.Order;
+import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
+import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -166,6 +171,58 @@ public class TorcDb extends Db {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
+        public void executeOperationWithGremlin(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+//            int NUMTIMERS = 1;
+//            long[][] timers = new long[NUMTIMERS][2];
+//            for (int i = 0; i < NUMTIMERS; i++) {
+//                timers[i][0] = 0;
+//                timers[i][1] = 0;
+//            }
+//            timers[NUMTIMERS-1][0] = System.nanoTime();
+
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                long personId = operation.personId();
+                String firstName = operation.firstName();
+                int resultLimit = operation.limit();
+                int maxLevels = 3;
+                Graph graph = dbConnectionState.client();
+                List<LdbcQuery1Result> result = new ArrayList<>();
+                
+                GraphTraversalSource g = graph.traversal();
+                
+                Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId)).next();
+                
+                List<Vertex> l1Friends = g.V(root).out("knows").toList();
+                List<Vertex> l1Matches = g.V(l1Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
+                
+                List<Vertex> l2Friends = g.V(l1Friends.toArray()).out("knows").dedup().is(without(l1Friends)).is(without(root)).toList();
+                List<Vertex> l2Matches = g.V(l2Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
+                
+                List<Vertex> l3Friends = g.V(l2Friends.toArray()).out("knows").dedup().is(without(l2Friends)).is(without(l1Friends)).toList();
+                List<Vertex> l3Matches = g.V(l3Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
+                
+                
+                if (doTransactionalReads) {
+                    try {
+                        graph.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                } else {
+                    graph.tx().rollback();
+                }
+
+                resultReporter.report(result.size(), result, operation);
+                break;
+            }
+
+//            timers[NUMTIMERS-1][1] = System.nanoTime();
+//            for (int i = 0; i < NUMTIMERS; i++)
+//                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
+        }
+        
         @Override
         public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
