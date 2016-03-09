@@ -62,6 +62,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -187,21 +188,151 @@ public class TorcDb extends Db {
                 int resultLimit = operation.limit();
                 int maxLevels = 3;
                 Graph graph = dbConnectionState.client();
-                List<LdbcQuery1Result> result = new ArrayList<>();
-                
+
                 GraphTraversalSource g = graph.traversal();
-                
+
+                List<Integer> distList = new ArrayList<>(resultLimit);
+                List<Vertex> matchList = new ArrayList<>(resultLimit);
+
                 Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId)).next();
+
+                List<Vertex> l1Friends = new ArrayList<>();
+                g.V(root).out("knows")
+                        .sideEffect(v -> l1Friends.add(v.get()))
+                        .has("firstName", firstName)
+                        .order()
+                        .by("lastName", incr)
+                        .by(id(), incr)
+                        .sideEffect(v -> {
+                            if (matchList.size() < resultLimit) {
+                                matchList.add(v.get());
+                                distList.add(1);
+                            }
+                        });
+
+                if (matchList.size() < resultLimit) {
+                    List<Vertex> l2Friends = new ArrayList<>();
+                    g.V(l1Friends.toArray())
+                            .out("knows")
+                            .dedup()
+                            .is(without(l1Friends))
+                            .is(without(root))
+                            .sideEffect(v -> l2Friends.add(v.get()))
+                            .has("firstName", firstName)
+                            .order()
+                            .by("lastName", incr)
+                            .by(id(), incr)
+                            .sideEffect(v -> {
+                                if (matchList.size() < resultLimit) {
+                                    matchList.add(v.get());
+                                    distList.add(2);
+                                }
+                            });
+
+                    if (matchList.size() < resultLimit) {
+                        g.V(l2Friends.toArray())
+                                .out("knows")
+                                .dedup()
+                                .is(without(l2Friends))
+                                .is(without(l1Friends))
+                                .has("firstName", firstName)
+                                .order()
+                                .by("lastName", incr)
+                                .by(id(), incr)
+                                .sideEffect(v -> {
+                                    if (matchList.size() < resultLimit) {
+                                        matchList.add(v.get());
+                                        distList.add(3);
+                                    }
+                                });
+                    }
+                }
+
+                Map<Vertex, Map<String, List<String>>> propertiesMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .<List<String>>valueMap().as("props")
+                        .select("person", "props")
+                        .forEachRemaining(map -> {
+                            propertiesMap.put((Vertex)map.get("person"), (Map<String,List<String>>)map.get("props"));
+                        });
                 
-                List<Vertex> l1Friends = g.V(root).out("knows").toList();
-                List<Vertex> l1Matches = g.V(l1Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
+                Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .out("isLocatedIn")
+                        .<String>values("name")
+                        .as("placeName")
+                        .select("person", "placeName")
+                        .forEachRemaining(map -> {
+                            placeNameMap.put((Vertex)map.get("person"), (String)map.get("placeName"));
+                        });
                 
-                List<Vertex> l2Friends = g.V(l1Friends.toArray()).out("knows").dedup().is(without(l1Friends)).is(without(root)).toList();
-                List<Vertex> l2Matches = g.V(l2Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
-                
-                List<Vertex> l3Friends = g.V(l2Friends.toArray()).out("knows").dedup().is(without(l2Friends)).is(without(l1Friends)).toList();
-                List<Vertex> l3Matches = g.V(l3Friends.toArray()).has("firstName", firstName).order().by("lastName", incr).by(id(), incr).toList();
-                
+                Map<Vertex, List<List<Object>>> universityInfoMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .outE("studyAt").as("classYear")
+                        .inV().as("universityName")
+                        .out("isLocatedIn").as("cityName")
+                        .select("person", "universityName", "classYear", "cityName")
+                        .by().by("name").by("classYear").by("name")
+                        .forEachRemaining(map -> {
+                            Vertex v = (Vertex) map.get("person");
+                            List<Object> tuple = new ArrayList<>(3);
+                            tuple.add(map.get("universityName"));
+                            tuple.add(Integer.decode((String) map.get("classYear")));
+                            tuple.add(map.get("cityName"));
+                            if (universityInfoMap.containsKey(v)) {
+                                universityInfoMap.get(v).add(tuple);
+                            } else {
+                                List<List<Object>> tupleList = new ArrayList<>();
+                                tupleList.add(tuple);
+                                universityInfoMap.put(v, tupleList);
+                            }
+                        });
+
+                Map<Vertex, List<List<Object>>> companyInfoMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .outE("workAt").as("workFrom")
+                        .inV().as("companyName")
+                        .out("isLocatedIn").as("cityName")
+                        .select("person", "companyName", "workFrom", "cityName")
+                        .by().by("name").by("workFrom").by("name")
+                        .forEachRemaining(map -> {
+                            Vertex v = (Vertex) map.get("person");
+                            List<Object> tuple = new ArrayList<>(3);
+                            tuple.add(map.get("companyName"));
+                            tuple.add(Integer.decode((String) map.get("workFrom")));
+                            tuple.add(map.get("cityName"));
+                            if (companyInfoMap.containsKey(v)) {
+                                companyInfoMap.get(v).add(tuple);
+                            } else {
+                                List<List<Object>> tupleList = new ArrayList<>();
+                                tupleList.add(tuple);
+                                companyInfoMap.put(v, tupleList);
+                            }
+                        });
+
+                List<LdbcQuery1Result> result = new ArrayList<>();
+
+                for (int i = 0; i < matchList.size(); i++) {
+                    Vertex match = matchList.get(i);
+                    Map<String, List<String>> properties = propertiesMap.get(match);
+                    String placeName = placeNameMap.get(match);
+                    List<List<Object>> universityInfo = universityInfoMap.get(match);
+                    List<List<Object>> companyInfo = companyInfoMap.get(match);
+                    result.add(new LdbcQuery1Result(
+                            ((UInt128) match.id()).getLowerLong(),
+                            properties.get("lastName").get(0),
+                            distList.get(i),
+                            Long.decode(properties.get("birthday").get(0)),
+                            Long.decode(properties.get("creationDate").get(0)),
+                            properties.get("gender").get(0),
+                            properties.get("browserUsed").get(0),
+                            properties.get("locationIP").get(0),
+                            properties.get("email"),
+                            properties.get("language"),
+                            placeName,
+                            universityInfo,
+                            companyInfo));
+                }
                 
                 if (doTransactionalReads) {
                     try {
