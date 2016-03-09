@@ -318,7 +318,11 @@ public class TorcDb extends Db {
                     Map<String, List<String>> properties = propertiesMap.get(match);
                     String placeName = placeNameMap.get(match);
                     List<List<Object>> universityInfo = universityInfoMap.get(match);
+                    if (universityInfo == null)
+                        universityInfo = new ArrayList<>();
                     List<List<Object>> companyInfo = companyInfoMap.get(match);
+                    if (companyInfo == null)
+                        companyInfo = new ArrayList<>();
                     result.add(new LdbcQuery1Result(
                             ((UInt128) match.id()).getLowerLong(),
                             properties.get("lastName").get(0),
