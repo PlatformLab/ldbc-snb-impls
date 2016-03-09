@@ -172,7 +172,8 @@ public class TorcDb extends Db {
 
         final static Logger logger = LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
-        public void executeOperationWithGremlin(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+        @Override
+        public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
 //            long[][] timers = new long[NUMTIMERS][2];
 //            for (int i = 0; i < NUMTIMERS; i++) {
@@ -354,8 +355,7 @@ public class TorcDb extends Db {
 //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
         }
         
-        @Override
-        public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+        public void executeOperationOld(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
 //            long[][] timers = new long[NUMTIMERS][2];
 //            for (int i = 0; i < NUMTIMERS; i++) {
