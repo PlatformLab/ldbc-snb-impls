@@ -209,7 +209,8 @@ public class TorcDb extends Db {
                                 matchList.add(v.get());
                                 distList.add(1);
                             }
-                        });
+                        })
+                        .iterate();
 
                 if (matchList.size() < resultLimit) {
                     List<Vertex> l2Friends = new ArrayList<>();
@@ -228,7 +229,8 @@ public class TorcDb extends Db {
                                     matchList.add(v.get());
                                     distList.add(2);
                                 }
-                            });
+                            })
+                            .iterate();
 
                     if (matchList.size() < resultLimit) {
                         g.V(l2Friends.toArray())
@@ -245,7 +247,8 @@ public class TorcDb extends Db {
                                         matchList.add(v.get());
                                         distList.add(3);
                                     }
-                                });
+                                })
+                                .iterate();
                     }
                 }
 
@@ -316,6 +319,12 @@ public class TorcDb extends Db {
                 for (int i = 0; i < matchList.size(); i++) {
                     Vertex match = matchList.get(i);
                     Map<String, List<String>> properties = propertiesMap.get(match);
+                    List<String> emails = properties.get("email");
+                    if (emails == null)
+                        emails = new ArrayList<>();
+                    List<String> languages = properties.get("language");
+                    if (languages == null)
+                        languages = new ArrayList<>();
                     String placeName = placeNameMap.get(match);
                     List<List<Object>> universityInfo = universityInfoMap.get(match);
                     if (universityInfo == null)
@@ -332,8 +341,8 @@ public class TorcDb extends Db {
                             properties.get("gender").get(0),
                             properties.get("browserUsed").get(0),
                             properties.get("locationIP").get(0),
-                            properties.get("email"),
-                            properties.get("language"),
+                            emails,
+                            languages,
                             placeName,
                             universityInfo,
                             companyInfo));
