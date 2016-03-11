@@ -72,9 +72,14 @@ import java.util.logging.Level;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
+import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
+import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.count;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.select;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.unfold;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -174,6 +179,162 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+//            int NUMTIMERS = 1;
+//            long[][] timers = new long[NUMTIMERS][2];
+//            for (int i = 0; i < NUMTIMERS; i++) {
+//                timers[i][0] = 0;
+//                timers[i][1] = 0;
+//            }
+//            timers[NUMTIMERS-1][0] = System.nanoTime();
+
+            int txAttempts = 0;
+            while (txAttempts < MAX_TX_ATTEMPTS) {
+                long personId = operation.personId();
+                String firstName = operation.firstName();
+                int resultLimit = operation.limit();
+                int maxLevels = 3;
+                Graph graph = dbConnectionState.client();
+
+                GraphTraversalSource g = graph.traversal();
+
+                List<Integer> distList = new ArrayList<>(resultLimit);
+                List<Vertex> matchList = new ArrayList<>(resultLimit);
+
+                Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId)).next();
+                
+                g.withSideEffect("x", matchList).withSideEffect("d", distList).V(root).
+                        aggregate("done").out("knows").where(without("done")).dedup().fold().sideEffect(
+                                unfold().has("firstName", firstName).order().by("lastName", incr).by(id(), incr).limit(resultLimit).as("person").
+                                select("x").by(count(Scope.local)).is(lt(resultLimit)).store("x").by(select("person"))
+                        ).filter(select("x").count(Scope.local).is(lt(resultLimit)).store("d")).unfold().
+                        aggregate("done").out("knows").where(without("done")).dedup().fold().sideEffect(
+                                unfold().has("firstName", firstName).order().by("lastName", incr).by(id(), incr).limit(resultLimit).as("person").
+                                select("x").by(count(Scope.local)).is(lt(resultLimit)).store("x").by(select("person"))
+                        ).filter(select("x").count(Scope.local).is(lt(resultLimit)).store("d")).unfold().
+                        aggregate("done").out("knows").where(without("done")).dedup().fold().sideEffect(
+                                unfold().has("firstName", firstName).order().by("lastName", incr).by(id(), incr).limit(resultLimit).as("person").
+                                select("x").by(count(Scope.local)).is(lt(resultLimit)).store("x").by(select("person"))
+                        ).select("x").count(Scope.local).store("d").iterate();
+
+
+                Map<Vertex, Map<String, List<String>>> propertiesMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .<List<String>>valueMap().as("props")
+                        .select("person", "props")
+                        .forEachRemaining(map -> {
+                            propertiesMap.put((Vertex)map.get("person"), (Map<String,List<String>>)map.get("props"));
+                        });
+                
+                Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .out("isLocatedIn")
+                        .<String>values("name")
+                        .as("placeName")
+                        .select("person", "placeName")
+                        .forEachRemaining(map -> {
+                            placeNameMap.put((Vertex)map.get("person"), (String)map.get("placeName"));
+                        });
+                
+                Map<Vertex, List<List<Object>>> universityInfoMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .outE("studyAt").as("classYear")
+                        .inV().as("universityName")
+                        .out("isLocatedIn").as("cityName")
+                        .select("person", "universityName", "classYear", "cityName")
+                        .by().by("name").by("classYear").by("name")
+                        .forEachRemaining(map -> {
+                            Vertex v = (Vertex) map.get("person");
+                            List<Object> tuple = new ArrayList<>(3);
+                            tuple.add(map.get("universityName"));
+                            tuple.add(Integer.decode((String) map.get("classYear")));
+                            tuple.add(map.get("cityName"));
+                            if (universityInfoMap.containsKey(v)) {
+                                universityInfoMap.get(v).add(tuple);
+                            } else {
+                                List<List<Object>> tupleList = new ArrayList<>();
+                                tupleList.add(tuple);
+                                universityInfoMap.put(v, tupleList);
+                            }
+                        });
+
+                Map<Vertex, List<List<Object>>> companyInfoMap = new HashMap<>(matchList.size());
+                g.V(matchList.toArray()).as("person")
+                        .outE("workAt").as("workFrom")
+                        .inV().as("companyName")
+                        .out("isLocatedIn").as("cityName")
+                        .select("person", "companyName", "workFrom", "cityName")
+                        .by().by("name").by("workFrom").by("name")
+                        .forEachRemaining(map -> {
+                            Vertex v = (Vertex) map.get("person");
+                            List<Object> tuple = new ArrayList<>(3);
+                            tuple.add(map.get("companyName"));
+                            tuple.add(Integer.decode((String) map.get("workFrom")));
+                            tuple.add(map.get("cityName"));
+                            if (companyInfoMap.containsKey(v)) {
+                                companyInfoMap.get(v).add(tuple);
+                            } else {
+                                List<List<Object>> tupleList = new ArrayList<>();
+                                tupleList.add(tuple);
+                                companyInfoMap.put(v, tupleList);
+                            }
+                        });
+
+                List<LdbcQuery1Result> result = new ArrayList<>();
+
+                for (int i = 0; i < matchList.size(); i++) {
+                    Vertex match = matchList.get(i);
+                    int distance = (i < distList.get(0)) ? 1 : (i < distList.get(1)) ? 2 : 3;
+                    Map<String, List<String>> properties = propertiesMap.get(match);
+                    List<String> emails = properties.get("email");
+                    if (emails == null)
+                        emails = new ArrayList<>();
+                    List<String> languages = properties.get("language");
+                    if (languages == null)
+                        languages = new ArrayList<>();
+                    String placeName = placeNameMap.get(match);
+                    List<List<Object>> universityInfo = universityInfoMap.get(match);
+                    if (universityInfo == null)
+                        universityInfo = new ArrayList<>();
+                    List<List<Object>> companyInfo = companyInfoMap.get(match);
+                    if (companyInfo == null)
+                        companyInfo = new ArrayList<>();
+                    result.add(new LdbcQuery1Result(
+                            ((UInt128) match.id()).getLowerLong(),
+                            properties.get("lastName").get(0),
+                            distance,
+                            Long.decode(properties.get("birthday").get(0)),
+                            Long.decode(properties.get("creationDate").get(0)),
+                            properties.get("gender").get(0),
+                            properties.get("browserUsed").get(0),
+                            properties.get("locationIP").get(0),
+                            emails,
+                            languages,
+                            placeName,
+                            universityInfo,
+                            companyInfo));
+                }
+                
+                if (doTransactionalReads) {
+                    try {
+                        graph.tx().commit();
+                    } catch (RuntimeException e) {
+                        txAttempts++;
+                        continue;
+                    }
+                } else {
+                    graph.tx().rollback();
+                }
+
+                resultReporter.report(result.size(), result, operation);
+                break;
+            }
+
+//            timers[NUMTIMERS-1][1] = System.nanoTime();
+//            for (int i = 0; i < NUMTIMERS; i++)
+//                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
+        }
+        
+        public void executeOperationGremlin1(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
 //            long[][] timers = new long[NUMTIMERS][2];
 //            for (int i = 0; i < NUMTIMERS; i++) {
@@ -368,7 +529,7 @@ public class TorcDb extends Db {
 //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
         }
         
-        public void executeOperationOld(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+        public void executeOperationRaw(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
 //            long[][] timers = new long[NUMTIMERS][2];
 //            for (int i = 0; i < NUMTIMERS; i++) {
