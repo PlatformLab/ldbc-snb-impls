@@ -179,6 +179,10 @@ public class TorcDb extends Db {
 
         @Override
         public void executeOperation(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
+            executeOperationGremlin2(operation, dbConnectionState, resultReporter);
+        }
+
+        public void executeOperationGremlin2(final LdbcQuery1 operation, BasicDbConnectionState dbConnectionState, ResultReporter resultReporter) throws DbException {
 //            int NUMTIMERS = 1;
 //            long[][] timers = new long[NUMTIMERS][2];
 //            for (int i = 0; i < NUMTIMERS; i++) {
