@@ -201,7 +201,7 @@ public class TorcDb extends Db {
 
                 GraphTraversalSource g = graph.traversal();
 
-                List<Integer> distList = new ArrayList<>(resultLimit);
+                List<Long> distList = new ArrayList<>(resultLimit);
                 List<Vertex> matchList = new ArrayList<>(resultLimit);
 
                 Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId)).next();
