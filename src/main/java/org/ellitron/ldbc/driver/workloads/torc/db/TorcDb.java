@@ -212,7 +212,7 @@ public class TorcDb extends Db {
                         })
                         .iterate();
 
-                if (matchList.size() < resultLimit) {
+                if (matchList.size() < resultLimit && l1Friends.size() > 0) {
                     List<Vertex> l2Friends = new ArrayList<>();
                     g.V(l1Friends.toArray())
                             .out("knows")
@@ -232,7 +232,7 @@ public class TorcDb extends Db {
                             })
                             .iterate();
 
-                    if (matchList.size() < resultLimit) {
+                    if (matchList.size() < resultLimit && l2Friends.size() > 0) {
                         g.V(l2Friends.toArray())
                                 .out("knows")
                                 .dedup()
