@@ -55,7 +55,7 @@ public class TorcGraphLoader {
 
     private static final long TX_MAX_RETRIES = 1000;
     
-    public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException, java.text.ParseException {
+    public static void loadVertices(TorcGraph graph, Path filePath, boolean printLoadingDots, int batchSize) throws IOException, java.text.ParseException {
         String[] colNames = null;
         boolean firstLine = true;
         Map<Object, Object> propertiesMap;
@@ -68,12 +68,11 @@ public class TorcGraphLoader {
         
         List<String> lines = Files.readAllLines(filePath);
         colNames = lines.get(0).split("\\|");
-        int BATCH_SIZE = 100;
         long lineCount = 0;
         boolean txSucceeded;
         long txFailCount;
-        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
-            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += batchSize) {
+            int endIndex = Math.min(startIndex + batchSize, lines.size());
             txSucceeded = false;
             txFailCount = 0;
             do {
@@ -126,7 +125,7 @@ public class TorcGraphLoader {
         }
     }
     
-    public static void loadProperties(TorcGraph graph, Path filePath, boolean printLoadingDots) throws IOException {
+    public static void loadProperties(TorcGraph graph, Path filePath, boolean printLoadingDots, int batchSize) throws IOException {
         long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
@@ -135,12 +134,11 @@ public class TorcGraphLoader {
         
         List<String> lines = Files.readAllLines(filePath);
         colNames = lines.get(0).split("\\|");
-        int BATCH_SIZE = 100;
         long lineCount = 0;
         boolean txSucceeded;
         long txFailCount;
-        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
-            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += batchSize) {
+            int endIndex = Math.min(startIndex + batchSize, lines.size());
             txSucceeded = false;
             txFailCount = 0;
             do {
@@ -175,7 +173,7 @@ public class TorcGraphLoader {
         }
     }
     
-    public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots) throws IOException, java.text.ParseException {
+    public static void loadEdges(TorcGraph graph, Path filePath, boolean undirected, boolean printLoadingDots, int batchSize) throws IOException, java.text.ParseException {
         long count = 0;
         String[] colNames = null;
         boolean firstLine = true;
@@ -191,12 +189,11 @@ public class TorcGraphLoader {
         
         List<String> lines = Files.readAllLines(filePath);
         colNames = lines.get(0).split("\\|");
-        int BATCH_SIZE = 100;
         long lineCount = 0;
         boolean txSucceeded;
         long txFailCount;
-        for (int startIndex = 1; startIndex < lines.size(); startIndex += BATCH_SIZE) {
-            int endIndex = Math.min(startIndex + BATCH_SIZE, lines.size());
+        for (int startIndex = 1; startIndex < lines.size(); startIndex += batchSize) {
+            int endIndex = Math.min(startIndex + batchSize, lines.size());
             txSucceeded = false;
             txFailCount = 0;
             do {
@@ -258,6 +255,7 @@ public class TorcGraphLoader {
     public static void main(String[] args) throws IOException {
         Options options = new Options();
         options.addOption("C", "coordinator", true, "Service locator where the coordinator can be contacted.");
+        options.addOption(null, "batchSize", true, "Number of nodes/edges to load in a single transaction.");
         options.addOption(null, "numMasters", true, "Total master servers.");
         options.addOption(null, "graphName", true, "Name for this graph.");
         options.addOption(null, "input", true, "Input file directory.");
@@ -284,6 +282,14 @@ public class TorcGraphLoader {
             coordinatorLocator = cmd.getOptionValue("coordinator");
         } else {
             logger.log(Level.SEVERE, "Missing required argument: coordinator");
+            return;
+        }
+
+        int batchSize;
+        if (cmd.hasOption("batchSize")) {
+            batchSize = Integer.decode(cmd.getOptionValue("batchSize"));
+        } else {
+            logger.log(Level.SEVERE, "Missing required argument: batchSize");
             return;
         }
 
@@ -370,7 +376,7 @@ public class TorcGraphLoader {
             for (String fileName : nodeFiles) {
                 System.out.print("Loading node file " + fileName + " ");
                 try {
-                    loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                    loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), true, batchSize);
                     System.out.println("Finished");
                 } catch (NoSuchFileException e) {
                     System.out.println(" File not found.");
@@ -380,7 +386,7 @@ public class TorcGraphLoader {
             for (String fileName : propertiesFiles) {
                 System.out.print("Loading properties file " + fileName + " ");
                 try {
-                    loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), true);
+                    loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), true, batchSize);
                     System.out.println("Finished");
                 } catch (NoSuchFileException e) {
                     System.out.println(" File not found.");
@@ -391,9 +397,9 @@ public class TorcGraphLoader {
                 System.out.print("Loading edge file " + fileName + " ");
                 try {
                     if (fileName.contains("person_knows_person")) {
-                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true);
+                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, true, batchSize);
                     } else {
-                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, true);
+                        loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, true, batchSize);
                     }
 
                     System.out.println("Finished");
