@@ -327,7 +327,7 @@ public class TitanGraphLoader {
         try {
             ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
 
-    //        mgmt.makeEdgeLabet("containerOf" ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("containerOf" ).multiplicity(SIMPLE).make();
     //        mgmt.makeEdgeLabel("hasCreator"  ).multiplicity(SIMPLE).make();
     //        mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
     //        mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
