@@ -18,7 +18,10 @@ package org.ellitron.ldbc.driver.workloads.torc;
 import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
+import com.thinkaurelius.titan.core.Cardinality;
 import com.thinkaurelius.titan.core.schema.TitanManagement;
+import com.thinkaurelius.titan.graphdb.database.management.ManagementSystem;
+import com.thinkaurelius.titan.core.schema.SchemaAction;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -46,6 +49,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
 import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 
@@ -152,8 +156,7 @@ public class TitanGraphLoader {
                     String[] colVals = line.split("\\|");
 
                     GraphTraversalSource g = graph.traversal();
-                    g.V().has("iid", entityName + ":" + colVals[0]);
-                    Vertex vertex = graph.vertices(entityName + ":" + colVals[0]);
+                    Vertex vertex = g.V().has("iid", entityName + ":" + colVals[0]).next();
 
                     for (int j = 1; j < colVals.length; ++j) {
                         vertex.property(VertexProperty.Cardinality.list, colNames[j], colVals[j]);
@@ -209,11 +212,9 @@ public class TitanGraphLoader {
 
                     String[] colVals = line.split("\\|");
 
-                    Long vertex1Id = Long.decode(colVals[0]);
-                    Long vertex2Id = Long.decode(colVals[1]);
-
-                    TorcVertex vertex1 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v1EntityName).getNumber(), vertex1Id)).next();
-                    TorcVertex vertex2 = (TorcVertex) graph.vertices(new UInt128(Entity.fromName(v2EntityName).getNumber(), vertex2Id)).next();
+                    GraphTraversalSource g = graph.traversal();
+                    Vertex vertex1 = g.V().has("iid", v1EntityName + ":" + colVals[0]).next();
+                    Vertex vertex2 = g.V().has("iid", v2EntityName + ":" + colVals[1]).next();
 
                     propertiesMap = new HashMap<>();
                     for (int j = 2; j < colVals.length; ++j) {
@@ -323,47 +324,52 @@ public class TitanGraphLoader {
 //                .set("schema.default", "none")
                 .open();
 
-        ManagementSystem mgmt = graph.openManagement();
+        try {
+            ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
 
-//        mgmt.makeEdgeLabel("containerOf" ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasCreator"  ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
-//        mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
-//
-//        mgmt.makeVertexLabel("person").make();
-//        mgmt.makeVertexLabel("comment").make();
-//        mgmt.makeVertexLabel("forum").make();
-//        mgmt.makeVertexLabel("organisation").make();
-//        mgmt.makeVertexLabel("place").make();
-//        mgmt.makeVertexLabel("post").make();
-//        mgmt.makeVertexLabel("tag").make();
-//        mgmt.makeVertexLabel("tagClass").make();
+    //        mgmt.makeEdgeLabet("containerOf" ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasCreator"  ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
+    //        mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
+    //
+    //        mgmt.makeVertexLabel("person").make();
+    //        mgmt.makeVertexLabel("comment").make();
+    //        mgmt.makeVertexLabel("forum").make();
+    //        mgmt.makeVertexLabel("organisation").make();
+    //        mgmt.makeVertexLabel("place").make();
+    //        mgmt.makeVertexLabel("post").make();
+    //        mgmt.makeVertexLabel("tag").make();
+    //        mgmt.makeVertexLabel("tagClass").make();
 
-        mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+            mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
 
-        mgmt.commit();
+            mgmt.commit();
 
-        mgmt = graph.openManagement();
-        PropertyKey iid = mgmt.getPropertyKey("iid");
-        mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
-        mgmt.commit();
-        
-        mgmt.awaitGraphIndexStatus(graph, "byIid").call();
+            mgmt = (ManagementSystem) graph.openManagement();
+            PropertyKey iid = mgmt.getPropertyKey("iid");
+            mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
+            mgmt.commit();
+            
+            mgmt.awaitGraphIndexStatus(graph, "byIid").call();
 
-        mgmt = graph.openManagement();
-        mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
-        mgmt.commit();
+            mgmt = (ManagementSystem) graph.openManagement();
+            mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
+            mgmt.commit();
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, e.toString());
+            return;
+        }
 
         // TODO: Make file list generation programmatic. This method of loading,
         // however, will be far too slow for anything other than the very 
