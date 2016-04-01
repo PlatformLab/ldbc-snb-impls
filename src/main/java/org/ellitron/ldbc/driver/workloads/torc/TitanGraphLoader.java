@@ -88,7 +88,7 @@ public class TitanGraphLoader {
 
                     for (int j = 0; j < colVals.length; ++j) {
                         if (colNames[j].equals("id")) {
-                            propertiesMap.put(T.id, new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[j])));
+                            propertiesMap.put("iid", entityName + ":" + colVals[j]);
                         } else if (colNames[j].equals("birthday")) {
                             propertiesMap.put(colNames[j], String.valueOf(birthdayDateFormat.parse(colVals[j]).getTime()));
                         } else if (colNames[j].equals("creationDate")) {
@@ -150,7 +150,10 @@ public class TitanGraphLoader {
                     String line = lines.get(i);
 
                     String[] colVals = line.split("\\|");
-                    Vertex vertex = graph.vertices(new UInt128(Entity.fromName(entityName).getNumber(), Long.decode(colVals[0]))).next();
+
+                    GraphTraversalSource g = graph.traversal();
+                    g.V().has("iid", entityName + ":" + colVals[0]);
+                    Vertex vertex = graph.vertices(entityName + ":" + colVals[0]);
 
                     for (int j = 1; j < colVals.length; ++j) {
                         vertex.property(VertexProperty.Cardinality.list, colNames[j], colVals[j]);
@@ -312,14 +315,54 @@ public class TitanGraphLoader {
             return;
         }
 
+        // Create the Titan graph client instance with several configuration
+        // parameters
         TitanGraph graph = TitanFactory.build()
                 .set("storage.backend", "cassandra")
                 .set("storage.hostname", cassandraLocator)
+//                .set("schema.default", "none")
                 .open();
-        
-        TitanManagement mgmt = graph.openManagement();
+
+        ManagementSystem mgmt = graph.openManagement();
+
+//        mgmt.makeEdgeLabel("containerOf" ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasCreator"  ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
+//        mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
+//
+//        mgmt.makeVertexLabel("person").make();
+//        mgmt.makeVertexLabel("comment").make();
+//        mgmt.makeVertexLabel("forum").make();
+//        mgmt.makeVertexLabel("organisation").make();
+//        mgmt.makeVertexLabel("place").make();
+//        mgmt.makeVertexLabel("post").make();
+//        mgmt.makeVertexLabel("tag").make();
+//        mgmt.makeVertexLabel("tagClass").make();
+
+        mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
+
+        mgmt.commit();
+
+        mgmt = graph.openManagement();
         PropertyKey iid = mgmt.getPropertyKey("iid");
         mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
+        mgmt.commit();
+        
+        mgmt.awaitGraphIndexStatus(graph, "byIid").call();
+
+        mgmt = graph.openManagement();
+        mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
         mgmt.commit();
 
         // TODO: Make file list generation programmatic. This method of loading,
