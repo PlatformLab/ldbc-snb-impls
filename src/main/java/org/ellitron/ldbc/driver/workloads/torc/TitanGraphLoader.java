@@ -264,7 +264,6 @@ public class TitanGraphLoader {
         Options options = new Options();
         options.addOption("C", "cassandraLocator", true, "IP address of a cassandra server.");
         options.addOption(null, "batchSize", true, "Number of nodes/edges to load in a single transaction.");
-        options.addOption(null, "graphName", true, "Name for this graph.");
         options.addOption(null, "input", true, "Input file directory.");
         options.addOption("h", "help", false, "Print usage.");
 
@@ -300,14 +299,6 @@ public class TitanGraphLoader {
             return;
         }
 
-        String graphName;
-        if (cmd.hasOption("graphName")) {
-            graphName = cmd.getOptionValue("graphName");
-        } else {
-            logger.log(Level.SEVERE, "Missing required argument: graphName");
-            return;
-        }
-        
         String inputBaseDir;
         if (cmd.hasOption("input")) {
             inputBaseDir = cmd.getOptionValue("input");
@@ -352,13 +343,9 @@ public class TitanGraphLoader {
     //        mgmt.makeVertexLabel("tag").make();
     //        mgmt.makeVertexLabel("tagClass").make();
 
-            mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
-
-            mgmt.commit();
-
-            mgmt = (ManagementSystem) graph.openManagement();
-            PropertyKey iid = mgmt.getPropertyKey("iid");
+            PropertyKey iid = mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
             mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
+
             mgmt.commit();
             
             mgmt.awaitGraphIndexStatus(graph, "byIid").call();
