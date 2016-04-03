@@ -264,6 +264,7 @@ public class TitanGraphLoader {
         Options options = new Options();
         options.addOption("C", "cassandraLocator", true, "IP address of a cassandra server.");
         options.addOption(null, "batchSize", true, "Number of nodes/edges to load in a single transaction.");
+        options.addOption(null, "graphName", true, "Name of the graph instance.");
         options.addOption(null, "input", true, "Input file directory.");
         options.addOption("h", "help", false, "Print usage.");
 
@@ -299,6 +300,14 @@ public class TitanGraphLoader {
             return;
         }
 
+        String graphName;
+        if (cmd.hasOption("graphName")) {
+            graphName = cmd.getOptionValue("graphName");
+        } else {
+            logger.log(Level.SEVERE, "Missing required argument: graphName");
+            return;
+        }
+
         String inputBaseDir;
         if (cmd.hasOption("input")) {
             inputBaseDir = cmd.getOptionValue("input");
@@ -312,47 +321,24 @@ public class TitanGraphLoader {
         TitanGraph graph = TitanFactory.build()
                 .set("storage.backend", "cassandra")
                 .set("storage.hostname", cassandraLocator)
-//                .set("schema.default", "none")
+                .set("storage.cassandra.keyspace", graphName)
                 .open();
-
+        
         try {
             ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
-
-    //        mgmt.makeEdgeLabel("containerOf" ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasCreator"  ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
-    //        mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
-    //
-    //        mgmt.makeVertexLabel("person").make();
-    //        mgmt.makeVertexLabel("comment").make();
-    //        mgmt.makeVertexLabel("forum").make();
-    //        mgmt.makeVertexLabel("organisation").make();
-    //        mgmt.makeVertexLabel("place").make();
-    //        mgmt.makeVertexLabel("post").make();
-    //        mgmt.makeVertexLabel("tag").make();
-    //        mgmt.makeVertexLabel("tagClass").make();
-
-            PropertyKey iid = mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();
-            mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
-
+            PropertyKey iid = mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();     
             mgmt.commit();
-            
-            mgmt.awaitGraphIndexStatus(graph, "byIid").call();
 
             mgmt = (ManagementSystem) graph.openManagement();
-            mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
+            iid = mgmt.getPropertyKey("iid");
+            mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
             mgmt.commit();
+
+            mgmt.awaitGraphIndexStatus(graph, "byIid").call();
+
+//            mgmt = (ManagementSystem) graph.openManagement();
+//            mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
+//            mgmt.commit();
         } catch (Exception e) {
             logger.log(Level.SEVERE, e.toString());
             return;
