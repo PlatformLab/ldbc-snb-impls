@@ -322,10 +322,40 @@ public class TitanGraphLoader {
                 .set("storage.backend", "cassandra")
                 .set("storage.hostname", cassandraLocator)
                 .set("storage.cassandra.keyspace", graphName)
+                .set("schema.default", "none")
                 .open();
         
         try {
             ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
+
+            mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
+            mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
+            
+            mgmt.makeVertexLabel("person").make();
+            mgmt.makeVertexLabel("comment").make();
+            mgmt.makeVertexLabel("forum").make();
+            mgmt.makeVertexLabel("organisation").make();
+            mgmt.makeVertexLabel("place").make();
+            mgmt.makeVertexLabel("post").make();
+            mgmt.makeVertexLabel("tag").make();
+            mgmt.makeVertexLabel("tagClass").make();
+
+            mgmt.commit();
+
+            mgmt = (ManagementSystem) graph.openManagement();
+
+            // Add other properties explicitly here
             PropertyKey iid = mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();     
             mgmt.commit();
 
@@ -336,9 +366,9 @@ public class TitanGraphLoader {
 
             mgmt.awaitGraphIndexStatus(graph, "byIid").call();
 
-//            mgmt = (ManagementSystem) graph.openManagement();
-//            mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
-//            mgmt.commit();
+            mgmt = (ManagementSystem) graph.openManagement();
+            mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
+            mgmt.commit();
         } catch (Exception e) {
             logger.log(Level.SEVERE, e.toString());
             return;
