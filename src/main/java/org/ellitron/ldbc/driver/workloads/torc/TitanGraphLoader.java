@@ -18,6 +18,7 @@ package org.ellitron.ldbc.driver.workloads.torc;
 import com.thinkaurelius.titan.core.PropertyKey;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
+import com.thinkaurelius.titan.core.Multiplicity;
 import com.thinkaurelius.titan.core.Cardinality;
 import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.thinkaurelius.titan.graphdb.database.management.ManagementSystem;
@@ -322,45 +323,119 @@ public class TitanGraphLoader {
                 .set("storage.backend", "cassandra")
                 .set("storage.hostname", cassandraLocator)
                 .set("storage.cassandra.keyspace", graphName)
-                .set("schema.default", "none")
+                .set("storage.batch-loading", true)
+                .set("ids.block-size", 1000000)
+//                .set("schema.default", "none")
                 .open();
         
+        String vertexLabels[] = {  
+            "person",
+            "comment",
+            "forum",
+            "organisation",
+            "place",
+            "post",
+            "tag",
+            "tagclass" 
+        };
+        
+        String edgeLabels[] = {  
+            "containerOf",
+            "hasCreator",
+            "hasInterest",
+            "hasMember",
+            "hasModerator",
+            "hasTag",
+            "hasType",
+            "isLocatedIn",
+            "isPartOf",
+            "isSubclassOf",
+            "knows",
+            "likes",
+            "replyOf",
+            "studyAt",
+            "workAt"
+        };
+
+        // All property keys with Cardinality.SINGLE
+        String singleCardPropKeys[] = {
+            "birthday", // person
+            "browserUsed", // comment person post
+            "content", // comment post
+            "creationDate", // comment forum person post
+            "firstName", // person
+            "gender", // person
+            "imageFile", // post
+            //"language", // post
+            "lastName", // person
+            "length", // comment post
+            "locationIP", // comment person post
+            "name", // organisation place tag tagclass
+            "title", // forum
+            "type", // organisation place
+            "url", // organisation place tag tagclass
+        };
+
+        // All property keys with Cardinality.LIST
+        String listCardPropKeys[] = {
+            "email", // person
+            "language" // person, post
+        };
+
+        /*
+         * Explicitly define the graph schema.
+         *
+         * Note: For unknown reasons, it seems that each modification to the
+         * schema must be committed in its own transaction.
+         */
         try {
-            ManagementSystem mgmt = (ManagementSystem) graph.openManagement();
+            ManagementSystem mgmt;
 
-            mgmt.makeEdgeLabel("hasInterest" ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("hasMember"   ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("hasModerator").multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("hasTag"      ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("hasType"     ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("isLocatedIn" ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("isPartOf"    ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("isSubclassOf").multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("knows"       ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("likes"       ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("replyOf"     ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("studyAt"     ).multiplicity(SIMPLE).make();
-            mgmt.makeEdgeLabel("workAt"      ).multiplicity(SIMPLE).make();
-            
-            mgmt.makeVertexLabel("person").make();
-            mgmt.makeVertexLabel("comment").make();
-            mgmt.makeVertexLabel("forum").make();
-            mgmt.makeVertexLabel("organisation").make();
-            mgmt.makeVertexLabel("place").make();
-            mgmt.makeVertexLabel("post").make();
-            mgmt.makeVertexLabel("tag").make();
-            mgmt.makeVertexLabel("tagClass").make();
+            // Declare all vertex labels.
+            for( String vLabel : vertexLabels ) {
+                System.out.println(vLabel);
+                mgmt = (ManagementSystem) graph.openManagement();
+                mgmt.makeVertexLabel(vLabel).make();
+                mgmt.commit();
+            }
 
+            // Declare all edge labels.
+            for( String eLabel : edgeLabels ) {
+                System.out.println(eLabel);
+                mgmt = (ManagementSystem) graph.openManagement();
+                mgmt.makeEdgeLabel(eLabel).multiplicity(Multiplicity.SIMPLE).make();
+                mgmt.commit();
+            }
+
+            // Delcare all properties with Cardinality.SINGLE
+            for ( String propKey : singleCardPropKeys ) {
+                System.out.println(propKey);
+                mgmt = (ManagementSystem) graph.openManagement();
+                mgmt.makePropertyKey(propKey).dataType(String.class).cardinality(Cardinality.SINGLE).make();     
+                mgmt.commit();
+            }
+
+            // Delcare all properties with Cardinality.LIST
+            for ( String propKey : listCardPropKeys ) {
+                System.out.println(propKey);
+                mgmt = (ManagementSystem) graph.openManagement();
+                mgmt.makePropertyKey(propKey).dataType(String.class).cardinality(Cardinality.LIST).make();     
+                mgmt.commit();
+            }
+
+            /* 
+             * Create a special ID property where we will store the IDs of
+             * vertices in the SNB dataset, and a corresponding index. This is
+             * necessary because TitanDB generates its own IDs for graph
+             * vertices, but the benchmark references vertices by the ID they
+             * were originally assigned during dataset generation.
+             */
+            mgmt = (ManagementSystem) graph.openManagement();
+            mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();     
             mgmt.commit();
 
             mgmt = (ManagementSystem) graph.openManagement();
-
-            // Add other properties explicitly here
-            PropertyKey iid = mgmt.makePropertyKey("iid").dataType(String.class).cardinality(Cardinality.SINGLE).make();     
-            mgmt.commit();
-
-            mgmt = (ManagementSystem) graph.openManagement();
-            iid = mgmt.getPropertyKey("iid");
+            PropertyKey iid = mgmt.getPropertyKey("iid");
             mgmt.buildIndex("byIid", Vertex.class).addKey(iid).buildCompositeIndex();
             mgmt.commit();
 
@@ -369,6 +444,7 @@ public class TitanGraphLoader {
             mgmt = (ManagementSystem) graph.openManagement();
             mgmt.updateIndex(mgmt.getGraphIndex("byIid"), SchemaAction.REINDEX).get();
             mgmt.commit();
+
         } catch (Exception e) {
             logger.log(Level.SEVERE, e.toString());
             return;
