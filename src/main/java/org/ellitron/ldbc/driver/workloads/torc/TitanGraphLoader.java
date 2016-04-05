@@ -15,14 +15,32 @@
  */
 package org.ellitron.ldbc.driver.workloads.torc;
 
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
+
+import com.thinkaurelius.titan.core.Cardinality;
+import com.thinkaurelius.titan.core.Multiplicity;
 import com.thinkaurelius.titan.core.PropertyKey;
+import com.thinkaurelius.titan.core.schema.SchemaAction;
+import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.thinkaurelius.titan.core.TitanFactory;
 import com.thinkaurelius.titan.core.TitanGraph;
-import com.thinkaurelius.titan.core.Multiplicity;
-import com.thinkaurelius.titan.core.Cardinality;
-import com.thinkaurelius.titan.core.schema.TitanManagement;
 import com.thinkaurelius.titan.graphdb.database.management.ManagementSystem;
-import com.thinkaurelius.titan.core.schema.SchemaAction;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.configuration.BaseConfiguration;
+
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -35,24 +53,10 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.configuration.BaseConfiguration;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
+import java.util.Map;
+import java.util.TimeZone;
 
 /**
  *
@@ -60,7 +64,8 @@ import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
  */
 public class TitanGraphLoader {
 
-    private static final Logger logger = Logger.getLogger(TitanGraphLoader.class.getName());
+    private static final Logger logger =
+      Logger.getLogger(TitanGraphLoader.class.getName());
 
     private static final long TX_MAX_RETRIES = 1000;
     
@@ -361,11 +366,13 @@ public class TitanGraphLoader {
         String singleCardPropKeys[] = {
             "birthday", // person
             "browserUsed", // comment person post
+            "classYear", // studyAt
             "content", // comment post
-            "creationDate", // comment forum person post
+            "creationDate", // comment forum person post knows likes
             "firstName", // person
             "gender", // person
             "imageFile", // post
+            "joinDate", // hasMember
             //"language", // post
             "lastName", // person
             "length", // comment post
@@ -374,6 +381,7 @@ public class TitanGraphLoader {
             "title", // forum
             "type", // organisation place
             "url", // organisation place tag tagclass
+            "workFrom", // workAt
         };
 
         // All property keys with Cardinality.LIST
