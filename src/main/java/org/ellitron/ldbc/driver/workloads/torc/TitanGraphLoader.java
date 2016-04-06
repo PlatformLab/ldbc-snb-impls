@@ -69,16 +69,17 @@ public class TitanGraphLoader {
 
   private static final long TX_MAX_RETRIES = 1000;
 
-  public static void loadVertices(Graph graph, Path filePath, boolean
-      printLoadingDots, int batchSize, int dotRate) throws IOException,
-         java.text.ParseException {
+  public static void loadVertices(Graph graph, Path filePath, 
+      boolean printLoadingDots, int batchSize, long progReportPeriod) 
+      throws IOException, java.text.ParseException {
+
     String[] colNames = null;
     boolean firstLine = true;
     Map<Object, Object> propertiesMap;
     SimpleDateFormat birthdayDateFormat = new SimpleDateFormat("yyyy-MM-dd");
     birthdayDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-    SimpleDateFormat creationDateDateFormat = new
-      SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+    SimpleDateFormat creationDateDateFormat = 
+      new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
     creationDateDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
     String fileNameParts[] = filePath.getFileName().toString().split("_");
     String entityName = fileNameParts[0];
@@ -88,6 +89,12 @@ public class TitanGraphLoader {
     long lineCount = 0;
     boolean txSucceeded;
     long txFailCount;
+
+    // For progress reporting
+    long startTime = System.currentTimeMillis();
+    long nextProgReportTime = startTime + progReportPeriod*1000;
+    long lastLineCount = 0;
+
     for (int startIndex = 1; startIndex < lines.size(); 
         startIndex += batchSize) {
       int endIndex = Math.min(startIndex + batchSize, lines.size());
@@ -141,14 +148,22 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % dotRate == 0)) {
-        System.out.print(". ");
+      if (printLoadingDots && 
+          (System.currentTimeMillis() > nextProgReportTime)) {
+        long timeElapsed = System.currentTimeMillis() - startTime;
+        long linesLoaded = lineCount - lastLineCount;
+        System.out.println(String.format(
+              "Time Elapsed: %03dm.%02ds, Lines Loaded: +%d", 
+              (timeElapsed/1000)/60, (timeElapsed/1000) % 60, linesLoaded));
+        nextProgReportTime += progReportPeriod*1000;
+        lastLineCount = lineCount;
       }
     }
   }
 
-  public static void loadProperties(Graph graph, Path filePath, boolean
-      printLoadingDots, int batchSize, int dotRate) throws IOException {
+  public static void loadProperties(Graph graph, Path filePath, 
+      boolean printLoadingDots, int batchSize, long progReportPeriod) 
+      throws IOException {
     long count = 0;
     String[] colNames = null;
     boolean firstLine = true;
@@ -160,6 +175,12 @@ public class TitanGraphLoader {
     long lineCount = 0;
     boolean txSucceeded;
     long txFailCount;
+
+    // For progress reporting
+    long startTime = System.currentTimeMillis();
+    long nextProgReportTime = startTime + progReportPeriod*1000;
+    long lastLineCount = 0;
+
     for (int startIndex = 1; startIndex < lines.size(); 
         startIndex += batchSize) {
       int endIndex = Math.min(startIndex + batchSize, lines.size());
@@ -197,15 +218,22 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % dotRate == 0)) {
-        System.out.print(". ");
+      if (printLoadingDots && 
+          (System.currentTimeMillis() > nextProgReportTime)) {
+        long timeElapsed = System.currentTimeMillis() - startTime;
+        long linesLoaded = lineCount - lastLineCount;
+        System.out.println(String.format(
+              "Time Elapsed: %03dm.%02ds, Lines Loaded: +%d", 
+              (timeElapsed/1000)/60, (timeElapsed/1000) % 60, linesLoaded));
+        nextProgReportTime += progReportPeriod*1000;
+        lastLineCount = lineCount;
       }
     }
   }
 
   public static void loadEdges(Graph graph, Path filePath, boolean undirected,
-      boolean printLoadingDots, int batchSize, int dotRate) throws IOException,
-         java.text.ParseException {
+      boolean printLoadingDots, int batchSize, long progReportPeriod) 
+      throws IOException,  java.text.ParseException {
     long count = 0;
     String[] colNames = null;
     boolean firstLine = true;
@@ -226,6 +254,12 @@ public class TitanGraphLoader {
     long lineCount = 0;
     boolean txSucceeded;
     long txFailCount;
+
+    // For progress reporting
+    long startTime = System.currentTimeMillis();
+    long nextProgReportTime = startTime + progReportPeriod*1000;
+    long lastLineCount = 0;
+
     for (int startIndex = 1; startIndex < lines.size(); 
         startIndex += batchSize) {
       int endIndex = Math.min(startIndex + batchSize, lines.size());
@@ -285,8 +319,15 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % dotRate == 0)) {
-        System.out.print(". ");
+      if (printLoadingDots && 
+          (System.currentTimeMillis() > nextProgReportTime)) {
+        long timeElapsed = System.currentTimeMillis() - startTime;
+        long linesLoaded = lineCount - lastLineCount;
+        System.out.println(String.format(
+              "Time Elapsed: %03dm.%02ds, Lines Loaded: +%d", 
+              (timeElapsed/1000)/60, (timeElapsed/1000) % 60, linesLoaded));
+        nextProgReportTime += progReportPeriod*1000;
+        lastLineCount = lineCount;
       }
     }
   }
@@ -301,8 +342,8 @@ public class TitanGraphLoader {
         "Name of the graph instance.");
     options.addOption(null, "input", true, 
         "Input file directory.");
-    options.addOption(null, "dotRate", true, 
-        "Number of lines to read of input file before printing a dot.");
+    options.addOption(null, "progReportPeriod", true, 
+        "How often, in seconds, to report loading progress (default 10s).");
     options.addOption("h", "help", false, 
         "Print usage.");
 
@@ -354,9 +395,9 @@ public class TitanGraphLoader {
       return;
     }
 
-    int dotRate = 100000;
-    if (cmd.hasOption("dotRate")) {
-      dotRate = Integer.decode(cmd.getOptionValue("dotRate"));
+    long progReportPeriod = 10;
+    if (cmd.hasOption("progReportPeriod")) {
+      progReportPeriod = Long.decode(cmd.getOptionValue("progReportPeriod"));
     } 
 
     // Create the Titan graph client instance with several configuration
@@ -550,7 +591,7 @@ public class TitanGraphLoader {
         System.out.print("Loading node file " + fileName + " ");
         try {
           loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), 
-              true, batchSize, dotRate);
+              true, batchSize, progReportPeriod);
           System.out.println("Finished");
         } catch (NoSuchFileException e) {
           System.out.println(" File not found.");
@@ -561,7 +602,7 @@ public class TitanGraphLoader {
         System.out.print("Loading properties file " + fileName + " ");
         try {
           loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), 
-              true, batchSize, dotRate);
+              true, batchSize, progReportPeriod);
           System.out.println("Finished");
         } catch (NoSuchFileException e) {
           System.out.println(" File not found.");
@@ -573,10 +614,10 @@ public class TitanGraphLoader {
         try {
           if (fileName.contains("person_knows_person")) {
             loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, 
-                true, batchSize, dotRate);
+                true, batchSize, progReportPeriod);
           } else {
             loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, 
-                true, batchSize, dotRate);
+                true, batchSize, progReportPeriod);
           }
 
           System.out.println("Finished");
