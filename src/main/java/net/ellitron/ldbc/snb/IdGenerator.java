@@ -13,11 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ellitron.ldbc.driver.workloads.torc;
+package net.ellitron.ldbc.snb;
 
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
-
-import org.ellitron.ldbc.driver.workloads.torc.Entity;
+import net.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
 
 /** 
  * This is a helper class for making working with LDBC entity Ids at the

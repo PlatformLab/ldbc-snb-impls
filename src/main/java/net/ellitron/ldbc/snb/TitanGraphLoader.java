@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ellitron.ldbc.driver.workloads.torc;
+package net.ellitron.ldbc.snb;
 
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
+import net.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
+import net.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
 
 import com.thinkaurelius.titan.core.Cardinality;
 import com.thinkaurelius.titan.core.Multiplicity;

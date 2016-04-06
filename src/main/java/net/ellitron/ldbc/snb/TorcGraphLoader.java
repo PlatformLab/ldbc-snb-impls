@@ -13,7 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ellitron.ldbc.driver.workloads.torc;
+package net.ellitron.ldbc.snb;
+
+import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
+import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
+import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
+
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
+import org.apache.commons.configuration.BaseConfiguration;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,19 +46,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
-import org.apache.commons.configuration.BaseConfiguration;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
-import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
 
 /**
  *
