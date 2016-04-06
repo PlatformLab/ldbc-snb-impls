@@ -70,7 +70,7 @@ public class TitanGraphLoader {
   private static final long TX_MAX_RETRIES = 1000;
 
   public static void loadVertices(Graph graph, Path filePath, boolean
-      printLoadingDots, int batchSize) throws IOException,
+      printLoadingDots, int batchSize, int dotRate) throws IOException,
          java.text.ParseException {
     String[] colNames = null;
     boolean firstLine = true;
@@ -141,14 +141,14 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % 100000 == 0)) {
+      if (printLoadingDots && (lineCount % dotRate == 0)) {
         System.out.print(". ");
       }
     }
   }
 
   public static void loadProperties(Graph graph, Path filePath, boolean
-      printLoadingDots, int batchSize) throws IOException {
+      printLoadingDots, int batchSize, int dotRate) throws IOException {
     long count = 0;
     String[] colNames = null;
     boolean firstLine = true;
@@ -197,14 +197,14 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % 100000 == 0)) {
+      if (printLoadingDots && (lineCount % dotRate == 0)) {
         System.out.print(". ");
       }
     }
   }
 
   public static void loadEdges(Graph graph, Path filePath, boolean undirected,
-      boolean printLoadingDots, int batchSize) throws IOException,
+      boolean printLoadingDots, int batchSize, int dotRate) throws IOException,
          java.text.ParseException {
     long count = 0;
     String[] colNames = null;
@@ -285,7 +285,7 @@ public class TitanGraphLoader {
         }
       } while (!txSucceeded);
 
-      if (printLoadingDots && (lineCount % 100000 == 0)) {
+      if (printLoadingDots && (lineCount % dotRate == 0)) {
         System.out.print(". ");
       }
     }
@@ -301,6 +301,8 @@ public class TitanGraphLoader {
         "Name of the graph instance.");
     options.addOption(null, "input", true, 
         "Input file directory.");
+    options.addOption(null, "dotRate", true, 
+        "Number of lines to read of input file before printing a dot.");
     options.addOption("h", "help", false, 
         "Print usage.");
 
@@ -351,6 +353,11 @@ public class TitanGraphLoader {
       logger.log(Level.SEVERE, "Missing required argument: input");
       return;
     }
+
+    int dotRate = 100000;
+    if (cmd.hasOption("dotRate")) {
+      dotRate = Integer.decode(cmd.getOptionValue("dotRate"));
+    } 
 
     // Create the Titan graph client instance with several configuration
     // parameters
@@ -543,7 +550,7 @@ public class TitanGraphLoader {
         System.out.print("Loading node file " + fileName + " ");
         try {
           loadVertices(graph, Paths.get(inputBaseDir + "/" + fileName), 
-              true, batchSize);
+              true, batchSize, dotRate);
           System.out.println("Finished");
         } catch (NoSuchFileException e) {
           System.out.println(" File not found.");
@@ -554,7 +561,7 @@ public class TitanGraphLoader {
         System.out.print("Loading properties file " + fileName + " ");
         try {
           loadProperties(graph, Paths.get(inputBaseDir + "/" + fileName), 
-              true, batchSize);
+              true, batchSize, dotRate);
           System.out.println("Finished");
         } catch (NoSuchFileException e) {
           System.out.println(" File not found.");
@@ -566,10 +573,10 @@ public class TitanGraphLoader {
         try {
           if (fileName.contains("person_knows_person")) {
             loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), true, 
-                true, batchSize);
+                true, batchSize, dotRate);
           } else {
             loadEdges(graph, Paths.get(inputBaseDir + "/" + fileName), false, 
-                true, batchSize);
+                true, batchSize, dotRate);
           }
 
           System.out.println("Finished");
