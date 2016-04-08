@@ -23,8 +23,8 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 
-import net.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
-import net.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
+import net.ellitron.torc.TorcGraph;
+import net.ellitron.torc.util.UInt128;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -72,6 +72,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
 import org.apache.commons.configuration.BaseConfiguration;
+
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;

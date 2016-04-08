@@ -15,10 +15,10 @@
  */
 package net.ellitron.ldbc.snb;
 
-import org.ellitron.tinkerpop.gremlin.torc.structure.TorcGraph;
-import org.ellitron.tinkerpop.gremlin.torc.structure.TorcVertex;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
-import org.ellitron.tinkerpop.gremlin.torc.structure.util.TorcHelper;
+import org.ellitron.torc.TorcGraph;
+import org.ellitron.torc.TorcVertex;
+import org.ellitron.torc.util.UInt128;
+import org.ellitron.torc.util.TorcHelper;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;

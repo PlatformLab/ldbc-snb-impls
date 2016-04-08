@@ -15,7 +15,7 @@
  */
 package net.ellitron.ldbc.snb;
 
-import net.ellitron.tinkerpop.gremlin.torc.structure.util.UInt128;
+import net.ellitron.torc.util.UInt128;
 
 /** 
  * This is a helper class for making working with LDBC entity Ids at the
