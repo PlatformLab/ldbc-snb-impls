@@ -1597,7 +1597,7 @@ public class TorcDb extends Db {
             postKeyValues.add(operation.locationIp());
             postKeyValues.add("browserUsed");
             postKeyValues.add(operation.browserUsed());
-            postKeyValues.add("lang");
+            postKeyValues.add("language");
             postKeyValues.add(operation.language());
             postKeyValues.add("content");
             postKeyValues.add(operation.content());
