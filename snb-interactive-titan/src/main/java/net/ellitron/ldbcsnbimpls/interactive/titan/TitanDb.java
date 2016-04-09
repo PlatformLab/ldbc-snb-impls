@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ellitron.ldbcsnbimpls.interative.titan;
+package net.ellitron.ldbcsnbimpls.interactive.titan;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.count;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
