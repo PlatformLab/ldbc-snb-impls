@@ -15,10 +15,10 @@
  */
 package net.ellitron.ldbc.snb;
 
-import org.ellitron.torc.TorcGraph;
-import org.ellitron.torc.TorcVertex;
-import org.ellitron.torc.util.UInt128;
-import org.ellitron.torc.util.TorcHelper;
+import net.ellitron.torc.TorcGraph;
+import net.ellitron.torc.TorcVertex;
+import net.ellitron.torc.util.UInt128;
+import net.ellitron.torc.util.TorcHelper;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
