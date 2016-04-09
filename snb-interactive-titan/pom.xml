@@ -6,16 +6,28 @@
     <artifactId>ldbc-snb-impls</artifactId>
     <version>0.1.0</version>
   </parent>
-  <artifactId>interactive-torc</artifactId>
+  <artifactId>snb-interactive-titan</artifactId>
   <packaging>jar</packaging>
   <version>0.1.0</version>
-  <name>LDBC SNB Interactive Workload Torc DB Implementation</name>
+  <name>LDBC SNB Interactive Workload Titan DB Implementation</name>
   <url>http://maven.apache.org</url>
   <dependencies>
     <dependency>
-      <groupId>net.ellitron.torc</groupId>
-      <artifactId>torc</artifactId>
+      <groupId>net.ellitron.ldbcsnbimpls</groupId>
+      <artifactId>snb-core</artifactId>
+      <version>0.1.0</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>com.thinkaurelius.titan</groupId>
+      <artifactId>titan-all</artifactId>
       <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.thinkaurelius.titan</groupId>
+      <artifactId>titan-all</artifactId>
+      <version>1.0.0</version>
+      <classifier>sources</classifier>
     </dependency>
     <dependency>
       <groupId>commons-cli</groupId>

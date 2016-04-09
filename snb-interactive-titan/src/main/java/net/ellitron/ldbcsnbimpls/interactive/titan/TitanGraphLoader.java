@@ -15,9 +15,6 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.titan;
 
-import net.ellitron.torc.util.TorcHelper;
-import net.ellitron.torc.util.UInt128;
-
 import com.thinkaurelius.titan.core.Cardinality;
 import com.thinkaurelius.titan.core.Multiplicity;
 import com.thinkaurelius.titan.core.PropertyKey;

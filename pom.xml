@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.ellitron.ldbcsnbimpls</groupId>
   <artifactId>ldbc-snb-impls</artifactId>
-  <packaging>jar</packaging>
+  <packaging>pom</packaging>
   <version>0.1.0</version>
   <name>LDBC SNB Workload Implementations</name>
   <url>http://maven.apache.org</url>

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ellitron.ldbcsnbimpls.interactive.torc;
+package net.ellitron.ldbcsnbimpls.snb;
 
 /**
  *

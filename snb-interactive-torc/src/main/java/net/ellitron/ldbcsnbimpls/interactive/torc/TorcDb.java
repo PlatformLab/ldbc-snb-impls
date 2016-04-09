@@ -23,6 +23,8 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 
+import net.ellitron.ldbcsnbimpls.snb.Entity;
+
 import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.util.UInt128;
 

@@ -15,6 +15,8 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
+import net.ellitron.ldbcsnbimpls.snb.Entity;
+
 import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.TorcVertex;
 import net.ellitron.torc.util.UInt128;
