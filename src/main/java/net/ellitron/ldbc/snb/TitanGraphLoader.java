@@ -15,7 +15,7 @@
  */
 package net.ellitron.ldbc.snb;
 
-import net.ellitron.torc.TorcHelper;
+import net.ellitron.torc.util.TorcHelper;
 import net.ellitron.torc.util.UInt128;
 
 import com.thinkaurelius.titan.core.Cardinality;
