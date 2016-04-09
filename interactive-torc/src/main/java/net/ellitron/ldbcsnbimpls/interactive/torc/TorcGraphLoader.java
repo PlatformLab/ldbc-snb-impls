@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ellitron.ldbc.snb;
+package net.ellitron.ldbcsnbimpls.interactive.torc;
 
 import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.TorcVertex;
