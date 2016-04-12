@@ -253,11 +253,9 @@ public class TitanDb extends Db {
         List<Long> distList = new ArrayList<>(resultLimit);
         List<Vertex> matchList = new ArrayList<>(resultLimit);
 
-        Vertex root = g.V().has("iid", 
-            makeIid(Entity.PERSON, personId)).next();
-
         g.withSideEffect("x", matchList).withSideEffect("d", distList)
-            .V(root).aggregate("done").out("knows")
+            .V().has("iid", makeIid(Entity.PERSON, personId))
+            .aggregate("done").out("knows")
             .where(without("done")).dedup().fold().sideEffect(
                 unfold().has("firstName", firstName).order()
                 .by("lastName", incr).by(id(), incr).limit(resultLimit)
@@ -283,10 +281,14 @@ public class TitanDb extends Db {
             ).select("x").count(Scope.local)
             .store("d").iterate();
 
+        List<String> matchListIds = new ArrayList<>(matchList.size());
+        matchList.forEach((v) -> {
+          matchListIds.add(v.<String>property("iid").value());
+        });
 
         Map<Vertex, Map<String, List<String>>> propertiesMap = 
             new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
+        g.V().has("iid", within(matchListIds)).as("person")
             .<List<String>>valueMap().as("props")
             .select("person", "props")
             .forEachRemaining(map -> {
@@ -295,7 +297,7 @@ public class TitanDb extends Db {
             });
 
         Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
+        g.V().has("iid", within(matchListIds)).as("person")
             .out("isLocatedIn")
             .<String>values("name")
             .as("placeName")
@@ -307,7 +309,7 @@ public class TitanDb extends Db {
 
         Map<Vertex, List<List<Object>>> universityInfoMap = 
             new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
+        g.V().has("iid", within(matchListIds)).as("person")
             .outE("studyAt").as("classYear")
             .inV().as("universityName")
             .out("isLocatedIn").as("cityName")
@@ -330,7 +332,7 @@ public class TitanDb extends Db {
 
         Map<Vertex, List<List<Object>>> companyInfoMap = 
             new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
+        g.V().has("iid", within(matchListIds)).as("person")
             .outE("workAt").as("workFrom")
             .inV().as("companyName")
             .out("isLocatedIn").as("cityName")
