@@ -11,6 +11,12 @@
     A collection of workload implementations for the LDBC SNB benchmark driver
     (see https://github.com/ldbc/ldbc_driver).
   </description>
+  <modules>
+    <module>snb-core</module>
+    <module>snb-interactive-neo4j</module>
+    <module>snb-interactive-titan</module>
+    <module>snb-interactive-torc</module>
+  </modules>
   <dependencies>
     <dependency>
       <groupId>com.ldbc.driver</groupId>
