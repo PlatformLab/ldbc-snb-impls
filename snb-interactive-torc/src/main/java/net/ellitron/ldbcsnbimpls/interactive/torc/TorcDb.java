@@ -1629,49 +1629,64 @@ public class TorcDb extends Db {
         personKeyValues.add(email);
       }
 
-      // Add person
-      Vertex person = client.addVertex(personKeyValues.toArray());
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        // Add person
+        Vertex person = client.addVertex(personKeyValues.toArray());
 
-      // Add edge to place
-      Vertex place = client.vertices(
-          new UInt128(Entity.PLACE.getNumber(), operation.cityId())).next();
-      person.addEdge("isLocatedIn", place);
+        // Add edge to place
+        Vertex place = client.vertices(
+            new UInt128(Entity.PLACE.getNumber(), operation.cityId())).next();
+        person.addEdge("isLocatedIn", place);
 
-      // Add edges to tags
-      List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
-      operation.tagIds().forEach((id) -> 
-          tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
-      Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
-      tagVItr.forEachRemaining((tag) -> {
-        person.addEdge("hasInterest", tag);
-      });
+        // Add edges to tags
+        List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
+        operation.tagIds().forEach((id) -> 
+            tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
+        Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
+        tagVItr.forEachRemaining((tag) -> {
+          person.addEdge("hasInterest", tag);
+        });
 
-      // Add edges to universities
-      List<Object> studiedAtKeyValues = new ArrayList<>(2);
-      for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
-        studiedAtKeyValues.clear();
-        studiedAtKeyValues.add("classYear");
-        studiedAtKeyValues.add(String.valueOf(org.year()));
-        Vertex orgV = client.vertices(
-            new UInt128(Entity.ORGANISATION.getNumber(), 
-              org.organizationId()))
-            .next();
-        person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
-      }
+        // Add edges to universities
+        List<Object> studiedAtKeyValues = new ArrayList<>(2);
+        for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
+          studiedAtKeyValues.clear();
+          studiedAtKeyValues.add("classYear");
+          studiedAtKeyValues.add(String.valueOf(org.year()));
+          Vertex orgV = client.vertices(
+              new UInt128(Entity.ORGANISATION.getNumber(), 
+                org.organizationId()))
+              .next();
+          person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
+        }
 
-      // Add edges to companies
-      List<Object> workedAtKeyValues = new ArrayList<>(2);
-      for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
-        workedAtKeyValues.clear();
-        workedAtKeyValues.add("workFrom");
-        workedAtKeyValues.add(String.valueOf(org.year()));
-        Vertex orgV = client.vertices(
-            new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId()))
-            .next();
-        person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
-      }
+        // Add edges to companies
+        List<Object> workedAtKeyValues = new ArrayList<>(2);
+        for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
+          workedAtKeyValues.clear();
+          workedAtKeyValues.add("workFrom");
+          workedAtKeyValues.add(String.valueOf(org.year()));
+          Vertex orgV = client.vertices(
+              new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId()))
+              .next();
+          person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
+        }
 
-      client.tx().commit();
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+        
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1693,15 +1708,31 @@ public class TorcDb extends Db {
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
       UInt128 postId = 
           new UInt128(Entity.POST.getNumber(), operation.postId());
-      Iterator<Vertex> results = client.vertices(personId, postId);
-      Vertex person = results.next();
-      Vertex post = results.next();
-      List<Object> keyValues = new ArrayList<>(2);
-      keyValues.add("creationDate");
-      keyValues.add(String.valueOf(operation.creationDate().getTime()));
-      person.addEdge("likes", post, keyValues.toArray());
 
-      client.tx().commit();
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Iterator<Vertex> results = client.vertices(personId, postId);
+        Vertex person = results.next();
+        Vertex post = results.next();
+        List<Object> keyValues = new ArrayList<>(2);
+        keyValues.add("creationDate");
+        keyValues.add(String.valueOf(operation.creationDate().getTime()));
+        person.addEdge("likes", post, keyValues.toArray());
+
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1723,15 +1754,31 @@ public class TorcDb extends Db {
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
       UInt128 commentId = 
           new UInt128(Entity.COMMENT.getNumber(), operation.commentId());
-      Iterator<Vertex> results = client.vertices(personId, commentId);
-      Vertex person = results.next();
-      Vertex comment = results.next();
-      List<Object> keyValues = new ArrayList<>(2);
-      keyValues.add("creationDate");
-      keyValues.add(String.valueOf(operation.creationDate().getTime()));
-      person.addEdge("likes", comment, keyValues.toArray());
+      
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do { 
+        Iterator<Vertex> results = client.vertices(personId, commentId);
+        Vertex person = results.next();
+        Vertex comment = results.next();
+        List<Object> keyValues = new ArrayList<>(2);
+        keyValues.add("creationDate");
+        keyValues.add(String.valueOf(operation.creationDate().getTime()));
+        person.addEdge("likes", comment, keyValues.toArray());
 
-      client.tx().commit();
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1760,28 +1807,43 @@ public class TorcDb extends Db {
       forumKeyValues.add("creationDate");
       forumKeyValues.add(String.valueOf(operation.creationDate().getTime()));
 
-      Vertex forum = client.addVertex(forumKeyValues.toArray());
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Vertex forum = client.addVertex(forumKeyValues.toArray());
 
-      List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
-      operation.tagIds().forEach((id) -> {
-        ids.add(new UInt128(Entity.TAG.getNumber(), id));
-      });
-      ids.add(new UInt128(Entity.PERSON.getNumber(), 
-            operation.moderatorPersonId()));
+        List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
+        operation.tagIds().forEach((id) -> {
+          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+        });
+        ids.add(new UInt128(Entity.PERSON.getNumber(), 
+              operation.moderatorPersonId()));
 
-      client.vertices(ids.toArray()).forEachRemaining((v) -> {
-        if (v.label().equals(Entity.TAG.getName())) {
-          forum.addEdge("hasTag", v);
-        } else if (v.label().equals(Entity.PERSON.getName())) {
-          forum.addEdge("hasModerator", v);
-        } else {
-          throw new RuntimeException(
-              "ERROR: LdbcUpdate4AddForum query tried to add an edge to a " + 
-              "vertex that is neither a tag nor a person.");
+        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+          if (v.label().equals(Entity.TAG.getName())) {
+            forum.addEdge("hasTag", v);
+          } else if (v.label().equals(Entity.PERSON.getName())) {
+            forum.addEdge("hasModerator", v);
+          } else {
+            throw new RuntimeException(
+                "ERROR: LdbcUpdate4AddForum query tried to add an edge to a " + 
+                "vertex that is neither a tag nor a person.");
+          }
+        });
+
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
         }
-      });
 
-      client.tx().commit();
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1803,17 +1865,32 @@ public class TorcDb extends Db {
       ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
       ids.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
 
-      Iterator<Vertex> vItr = client.vertices(ids.toArray());
-      Vertex forum = vItr.next();
-      Vertex member = vItr.next();
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Iterator<Vertex> vItr = client.vertices(ids.toArray());
+        Vertex forum = vItr.next();
+        Vertex member = vItr.next();
 
-      List<Object> edgeKeyValues = new ArrayList<>(2);
-      edgeKeyValues.add("joinDate");
-      edgeKeyValues.add(String.valueOf(operation.joinDate().getTime()));
+        List<Object> edgeKeyValues = new ArrayList<>(2);
+        edgeKeyValues.add("joinDate");
+        edgeKeyValues.add(String.valueOf(operation.joinDate().getTime()));
 
-      forum.addEdge("hasMember", member, edgeKeyValues.toArray());
+        forum.addEdge("hasMember", member, edgeKeyValues.toArray());
 
-      client.tx().commit();
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1852,34 +1929,49 @@ public class TorcDb extends Db {
       postKeyValues.add("length");
       postKeyValues.add(String.valueOf(operation.length()));
 
-      Vertex post = client.addVertex(postKeyValues.toArray());
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Vertex post = client.addVertex(postKeyValues.toArray());
 
-      List<UInt128> ids = new ArrayList<>(2);
-      ids.add(
-          new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
-      ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
-      ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
-      operation.tagIds().forEach((id) -> {
-        ids.add(new UInt128(Entity.TAG.getNumber(), id));
-      });
+        List<UInt128> ids = new ArrayList<>(2);
+        ids.add(
+            new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+        ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
+        ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+        operation.tagIds().forEach((id) -> {
+          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+        });
 
-      client.vertices(ids.toArray()).forEachRemaining((v) -> {
-        if (v.label().equals(Entity.PERSON.getName())) {
-          post.addEdge("hasCreator", v);
-        } else if (v.label().equals(Entity.FORUM.getName())) {
-          v.addEdge("containerOf", post);
-        } else if (v.label().equals(Entity.PLACE.getName())) {
-          post.addEdge("isLocatedIn", v);
-        } else if (v.label().equals(Entity.TAG.getName())) {
-          post.addEdge("hasTag", v);
-        } else {
-          throw new RuntimeException(
-              "ERROR: LdbcUpdate6AddPostHandler query tried to add an edge " + 
-              "to a vertex that is none of {person, forum, place, tag}.");
+        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+          if (v.label().equals(Entity.PERSON.getName())) {
+            post.addEdge("hasCreator", v);
+          } else if (v.label().equals(Entity.FORUM.getName())) {
+            v.addEdge("containerOf", post);
+          } else if (v.label().equals(Entity.PLACE.getName())) {
+            post.addEdge("isLocatedIn", v);
+          } else if (v.label().equals(Entity.TAG.getName())) {
+            post.addEdge("hasTag", v);
+          } else {
+            throw new RuntimeException(
+                "ERROR: LdbcUpdate6AddPostHandler query tried to add an edge " + 
+                "to a vertex that is none of {person, forum, place, tag}.");
+          }
+        });
+
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
         }
-      });
 
-      client.tx().commit();
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1914,44 +2006,59 @@ public class TorcDb extends Db {
       commentKeyValues.add("length");
       commentKeyValues.add(String.valueOf(operation.length()));
 
-      Vertex comment = client.addVertex(commentKeyValues.toArray());
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Vertex comment = client.addVertex(commentKeyValues.toArray());
 
-      List<UInt128> ids = new ArrayList<>(2);
-      ids.add(
-          new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
-      ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
-      operation.tagIds().forEach((id) -> {
-        ids.add(new UInt128(Entity.TAG.getNumber(), id));
-      });
-      if (operation.replyToCommentId() != -1) {
-        ids.add(new UInt128(Entity.COMMENT.getNumber(), 
-              operation.replyToCommentId()));
-      }
-      if (operation.replyToPostId() != -1) {
+        List<UInt128> ids = new ArrayList<>(2);
         ids.add(
-            new UInt128(Entity.POST.getNumber(), operation.replyToPostId()));
-      }
-
-      client.vertices(ids.toArray()).forEachRemaining((v) -> {
-        if (v.label().equals(Entity.PERSON.getName())) {
-          comment.addEdge("hasCreator", v);
-        } else if (v.label().equals(Entity.PLACE.getName())) {
-          comment.addEdge("isLocatedIn", v);
-        } else if (v.label().equals(Entity.COMMENT.getName())) {
-          comment.addEdge("replyOf", v);
-        } else if (v.label().equals(Entity.POST.getName())) {
-          comment.addEdge("replyOf", v);
-        } else if (v.label().equals(Entity.TAG.getName())) {
-          comment.addEdge("hasTag", v);
-        } else {
-          throw new RuntimeException(
-              "ERROR: LdbcUpdate7AddCommentHandler query tried to add an " + 
-              "edge to a vertex that is none of {person, place, comment, " + 
-              "post, tag}.");
+            new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+        ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+        operation.tagIds().forEach((id) -> {
+          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+        });
+        if (operation.replyToCommentId() != -1) {
+          ids.add(new UInt128(Entity.COMMENT.getNumber(), 
+                operation.replyToCommentId()));
         }
-      });
+        if (operation.replyToPostId() != -1) {
+          ids.add(
+              new UInt128(Entity.POST.getNumber(), operation.replyToPostId()));
+        }
 
-      client.tx().commit();
+        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+          if (v.label().equals(Entity.PERSON.getName())) {
+            comment.addEdge("hasCreator", v);
+          } else if (v.label().equals(Entity.PLACE.getName())) {
+            comment.addEdge("isLocatedIn", v);
+          } else if (v.label().equals(Entity.COMMENT.getName())) {
+            comment.addEdge("replyOf", v);
+          } else if (v.label().equals(Entity.POST.getName())) {
+            comment.addEdge("replyOf", v);
+          } else if (v.label().equals(Entity.TAG.getName())) {
+            comment.addEdge("hasTag", v);
+          } else {
+            throw new RuntimeException(
+                "ERROR: LdbcUpdate7AddCommentHandler query tried to add an " + 
+                "edge to a vertex that is none of {person, place, comment, " + 
+                "post, tag}.");
+          }
+        });
+
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1978,15 +2085,30 @@ public class TorcDb extends Db {
       ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person1Id()));
       ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person2Id()));
 
-      Iterator<Vertex> vItr = client.vertices(ids.toArray());
+      boolean txSucceeded = false;
+      int txFailCount = 0;
+      do {
+        Iterator<Vertex> vItr = client.vertices(ids.toArray());
 
-      Vertex person1 = vItr.next();
-      Vertex person2 = vItr.next();
+        Vertex person1 = vItr.next();
+        Vertex person2 = vItr.next();
 
-      person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
-      person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
+        person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
+        person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
 
-      client.tx().commit();
+        try {
+          client.tx().commit();
+          txSucceeded = true;
+        } catch (Exception e) {
+          txFailCount++;
+        }
+
+        if (txFailCount >= MAX_TX_ATTEMPTS) {
+          throw new RuntimeException(String.format(
+                "ERROR: Transaction failed %d times, aborting...", 
+                txFailCount));
+        }
+      } while (!txSucceeded);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
