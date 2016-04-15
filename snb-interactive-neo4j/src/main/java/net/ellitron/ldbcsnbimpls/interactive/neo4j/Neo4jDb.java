@@ -80,6 +80,15 @@ import java.util.logging.Level;
 import java.util.Map;
 
 /**
+ * An implementation of the LDBC SNB interactive workload for Neo4j. Queries
+ * are executed against a running Neo4j server. Configuration parameters for
+ * this implementation (that are supplied via the LDBC driver) are listed
+ * below.
+ *
+ * Configuration Parameters:
+ *
+ * @param host IP address of the Neo4j web server (default: 127.0.0.1).
+ * @param port port of the Neo4j web server (default: 7473).
  *
  * @author Jonathan Ellithorpe <jde@cs.stanford.edu>
  */
