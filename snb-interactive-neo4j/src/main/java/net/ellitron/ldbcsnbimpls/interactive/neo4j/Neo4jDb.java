@@ -121,7 +121,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery1Handler
       implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
@@ -135,7 +135,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery2Handler
       implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
@@ -149,7 +149,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery3Handler
       implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
@@ -163,7 +163,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery4Handler
       implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
@@ -177,7 +177,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery5Handler
       implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
@@ -191,7 +191,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery6Handler
       implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
@@ -205,7 +205,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery7Handler
       implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
@@ -219,7 +219,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery8Handler
       implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
@@ -233,7 +233,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery9Handler
       implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
@@ -247,7 +247,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery10Handler
       implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
@@ -261,7 +261,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery11Handler
       implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
@@ -275,7 +275,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery12Handler
       implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
@@ -289,7 +289,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery13Handler
       implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
@@ -303,7 +303,7 @@ public class Neo4jDb extends Db {
   public static class LdbcQuery14Handler
       implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
@@ -322,7 +322,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery1PersonProfileHandler implements 
       OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
@@ -336,7 +336,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery2PersonPostsHandler implements
       OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
@@ -350,7 +350,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery3PersonFriendsHandler implements
       OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
@@ -364,7 +364,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery4MessageContentHandler implements
       OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
@@ -378,7 +378,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery5MessageCreatorHandler implements
       OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
@@ -392,7 +392,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery6MessageForumHandler implements
       OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
@@ -406,7 +406,7 @@ public class Neo4jDb extends Db {
   public static class LdbcShortQuery7MessageRepliesHandler implements
       OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
@@ -425,7 +425,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate1AddPersonHandler implements
       OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
     private final Calendar calendar;
 
@@ -444,7 +444,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate2AddPostLikeHandler implements
       OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
@@ -459,7 +459,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate3AddCommentLikeHandler implements
       OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
@@ -473,7 +473,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate4AddForumHandler implements
       OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForumHandler.class);
 
     @Override
@@ -487,7 +487,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate5AddForumMembershipHandler implements
       OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate5AddForumMembershipHandler.class);
 
     @Override
@@ -501,7 +501,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate6AddPostHandler implements
       OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate6AddPostHandler.class);
 
     @Override
@@ -515,7 +515,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate7AddCommentHandler implements
       OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate7AddCommentHandler.class);
 
     @Override
@@ -529,7 +529,7 @@ public class Neo4jDb extends Db {
   public static class LdbcUpdate8AddFriendshipHandler implements
       OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
 
-    final static Logger logger =
+    private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate8AddFriendshipHandler.class);
 
     @Override
