@@ -10,7 +10,10 @@
   <packaging>jar</packaging>
   <version>0.1.0</version>
   <name>LDBC SNB Interactive Workload Torc DB Implementation</name>
-  <url>http://maven.apache.org</url>
+  <url>https://github.com/ellitron/ldbc-snb-impls</url>
+  <description>
+    An implementation of the LDBC SNB interactive workload for TorcDB.
+  </description>
   <dependencies>
     <dependency>
       <groupId>net.ellitron.ldbcsnbimpls</groupId>

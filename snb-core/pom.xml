@@ -10,7 +10,10 @@
   <packaging>jar</packaging>
   <version>0.1.0</version>
   <name>LDBC SNB Workload Implementation Core Library</name>
-  <url>http://maven.apache.org</url>
+  <url>https://github.com/ellitron/ldbc-snb-impls</url>
+  <description>
+    A set of core libaries for LDBC SNB implementations.
+  </description>
   <dependencies>
   </dependencies>
   <build>

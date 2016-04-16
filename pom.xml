@@ -6,7 +6,7 @@
   <packaging>pom</packaging>
   <version>0.1.0</version>
   <name>LDBC SNB Workload Implementations</name>
-  <url>http://maven.apache.org</url>
+  <url>https://github.com/ellitron/ldbc-snb-impls</url>
   <description>
     A collection of workload implementations for the LDBC SNB benchmark driver
     (see https://github.com/ldbc/ldbc_driver).
