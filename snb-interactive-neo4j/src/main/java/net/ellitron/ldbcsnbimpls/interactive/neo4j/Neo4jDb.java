@@ -94,7 +94,7 @@ import java.util.Map;
  */
 public class Neo4jDb extends Db {
 
-  private BasicDbConnectionState connectionState = null;
+  private Neo4jDbConnectionState connectionState = null;
 
   @Override
   protected DbConnectionState getConnectionState() throws DbException {
@@ -110,7 +110,7 @@ public class Neo4jDb extends Db {
   protected void onInit(Map<String, String> properties,
       LoggingService loggingService) throws DbException {
 
-    connectionState = new BasicDbConnectionState(properties);
+    connectionState = new Neo4jDbConnectionState(properties);
   }
 
   /**
@@ -119,196 +119,196 @@ public class Neo4jDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcQuery1Handler
-      implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery1, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery1 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery2Handler
-      implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery2, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery2 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery3Handler
-      implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery3, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery3 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery4Handler
-      implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery4, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery4 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery5Handler
-      implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery5, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery5 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery6Handler
-      implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery6, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery6 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery7Handler
-      implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery7, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery7 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery8Handler
-      implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery8, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery8 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery9Handler
-      implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery9, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery9 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery10Handler
-      implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery10, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery10 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery11Handler
-      implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery11, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery11 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery12Handler
-      implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery12, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery12 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery13Handler
-      implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery13, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery13 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcQuery14Handler
-      implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery14, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery14 operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -320,98 +320,98 @@ public class Neo4jDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcShortQuery1PersonProfileHandler implements 
-      OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery1PersonProfile, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery1PersonProfile operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery2PersonPostsHandler implements
-      OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery2PersonPosts, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery2PersonPosts operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery3PersonFriendsHandler implements
-      OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery3PersonFriends, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery3PersonFriends operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery4MessageContentHandler implements
-      OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery4MessageContent, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery4MessageContent operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery5MessageCreatorHandler implements
-      OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery5MessageCreator, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery5MessageCreator operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery6MessageForumHandler implements
-      OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery6MessageForum, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery6MessageForum operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
   }
 
   public static class LdbcShortQuery7MessageRepliesHandler implements
-      OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery7MessageReplies, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery7MessageReplies operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -423,7 +423,7 @@ public class Neo4jDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcUpdate1AddPersonHandler implements
-      OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
@@ -435,21 +435,21 @@ public class Neo4jDb extends Db {
 
     @Override
     public void executeOperation(LdbcUpdate1AddPerson operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate2AddPostLikeHandler implements
-      OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate2AddPostLike operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
@@ -457,92 +457,92 @@ public class Neo4jDb extends Db {
   }
 
   public static class LdbcUpdate3AddCommentLikeHandler implements
-      OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate3AddCommentLike operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate4AddForumHandler implements
-      OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForumHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate5AddForumMembershipHandler implements
-      OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate5AddForumMembershipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate6AddPostHandler implements
-      OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate6AddPostHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate7AddCommentHandler implements
-      OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate7AddCommentHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
   public static class LdbcUpdate8AddFriendshipHandler implements
-      OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate8AddFriendshipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation,
-        BasicDbConnectionState dbConnectionState,
+        Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
     }
   }
 
-  private static class BasicDbConnectionState extends DbConnectionState {
+  private static class Neo4jDbConnectionState extends DbConnectionState {
 
-    private BasicDbConnectionState(Map<String, String> properties) {
+    private Neo4jDbConnectionState(Map<String, String> properties) {
     }
 
     @Override
