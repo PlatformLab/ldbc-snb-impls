@@ -125,7 +125,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery1 operation,
+    public void executeOperation(LdbcQuery1 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -139,7 +139,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery2 operation,
+    public void executeOperation(LdbcQuery2 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -153,7 +153,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery3 operation,
+    public void executeOperation(LdbcQuery3 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -167,7 +167,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery4 operation,
+    public void executeOperation(LdbcQuery4 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -181,7 +181,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery5 operation,
+    public void executeOperation(LdbcQuery5 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -195,7 +195,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery6 operation,
+    public void executeOperation(LdbcQuery6 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -209,7 +209,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery7 operation,
+    public void executeOperation(LdbcQuery7 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -223,7 +223,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery8 operation,
+    public void executeOperation(LdbcQuery8 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -237,7 +237,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery9 operation,
+    public void executeOperation(LdbcQuery9 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -251,7 +251,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery10 operation,
+    public void executeOperation(LdbcQuery10 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -265,7 +265,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery11 operation,
+    public void executeOperation(LdbcQuery11 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -279,7 +279,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery12 operation,
+    public void executeOperation(LdbcQuery12 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -293,7 +293,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery13 operation,
+    public void executeOperation(LdbcQuery13 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -307,7 +307,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery14 operation,
+    public void executeOperation(LdbcQuery14 operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -326,7 +326,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery1PersonProfile operation,
+    public void executeOperation(LdbcShortQuery1PersonProfile operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -340,7 +340,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery2PersonPosts operation,
+    public void executeOperation(LdbcShortQuery2PersonPosts operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -354,7 +354,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery3PersonFriends operation,
+    public void executeOperation(LdbcShortQuery3PersonFriends operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -368,7 +368,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery4MessageContent operation,
+    public void executeOperation(LdbcShortQuery4MessageContent operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -382,7 +382,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery5MessageCreator operation,
+    public void executeOperation(LdbcShortQuery5MessageCreator operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -396,7 +396,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery6MessageForum operation,
+    public void executeOperation(LdbcShortQuery6MessageForum operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
@@ -410,7 +410,7 @@ public class Neo4jDb extends Db {
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery7MessageReplies operation,
+    public void executeOperation(LdbcShortQuery7MessageReplies operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
