@@ -9,5 +9,6 @@ database.
 
 ## Current Workload Implementations ##
 ### Interactive ###
-* [Torc](https://github.com/jdellithorpe/torc) 
+* [Torc](https://github.com/ellitron/torc) 
 * [TitanDB](https://github.com/thinkaurelius/titan)
+* [Neo4j](http://neo4j.com/) (in progress)
