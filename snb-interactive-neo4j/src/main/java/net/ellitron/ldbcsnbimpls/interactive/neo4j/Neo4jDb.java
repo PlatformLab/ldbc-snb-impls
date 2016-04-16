@@ -96,23 +96,9 @@ public class Neo4jDb extends Db {
 
   private BasicDbConnectionState connectionState = null;
 
-  static class BasicDbConnectionState extends DbConnectionState {
-
-    private BasicDbConnectionState(Map<String, String> properties) {
-
-    }
-
-    @Override
-    public void close() throws IOException {
-
-    }
-  }
-
   @Override
-  protected void onInit(Map<String, String> properties,
-      LoggingService loggingService) throws DbException {
-
-    connectionState = new BasicDbConnectionState(properties);
+  protected DbConnectionState getConnectionState() throws DbException {
+    return connectionState;
   }
 
   @Override
@@ -121,8 +107,10 @@ public class Neo4jDb extends Db {
   }
 
   @Override
-  protected DbConnectionState getConnectionState() throws DbException {
-    return connectionState;
+  protected void onInit(Map<String, String> properties,
+      LoggingService loggingService) throws DbException {
+
+    connectionState = new BasicDbConnectionState(properties);
   }
 
   /**
@@ -325,13 +313,13 @@ public class Neo4jDb extends Db {
 
     }
   }
-
+  
   /**
    * ------------------------------------------------------------------------
    * Short Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcShortQuery1PersonProfileHandler implements
+  public static class LdbcShortQuery1PersonProfileHandler implements 
       OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
     final static Logger logger =
@@ -439,7 +427,6 @@ public class Neo4jDb extends Db {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
-
     private final Calendar calendar;
 
     public LdbcUpdate1AddPersonHandler() {
@@ -466,6 +453,7 @@ public class Neo4jDb extends Db {
         ResultReporter reporter) throws DbException {
 
     }
+
   }
 
   public static class LdbcUpdate3AddCommentLikeHandler implements
@@ -548,6 +536,17 @@ public class Neo4jDb extends Db {
     public void executeOperation(LdbcUpdate8AddFriendship operation,
         BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+
+    }
+  }
+
+  private static class BasicDbConnectionState extends DbConnectionState {
+
+    private BasicDbConnectionState(Map<String, String> properties) {
+    }
+
+    @Override
+    public void close() throws IOException {
 
     }
   }
