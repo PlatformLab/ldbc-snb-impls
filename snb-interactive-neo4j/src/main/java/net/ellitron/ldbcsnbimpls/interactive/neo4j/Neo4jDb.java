@@ -84,21 +84,21 @@ import java.util.Map;
  * are executed against a running Neo4j server. Configuration parameters for
  * this implementation (that are supplied via the LDBC driver) are listed
  * below.
- *
+ * <p>
  * Configuration Parameters:
- *
- * @param host IP address of the Neo4j web server (default: 127.0.0.1).
- * @param port port of the Neo4j web server (default: 7473).
- *
- * @author Jonathan Ellithorpe <jde@cs.stanford.edu>
- * 
- * Citations:
- * 
+ * <ul>
+ *  <li>host - IP address of the Neo4j web server (default: 127.0.0.1).</li>
+ *  <li>port - port of the Neo4j web server (default: 7473).</li>
+ * </ul>
+ * <p>
+ * References:<br>
  * [1]: Prat, Arnau (UPC) and Boncz, Peter (VUA) and Larriba, Josep Lluís (UPC)
  * and Angles, Renzo (TALCA) and Averbuch, Alex (NEO) and Erling, Orri (OGL)
  * and Gubichev, Andrey (TUM) and Spasić, Mirko (OGL) and Pham, Minh-Duc (VUA)
  * and Martínez, Norbert (SPARSITY). "LDBC Social Network Benchmark (SNB) -
  * v0.2.2 First Public Draft Release". http://www.ldbcouncil.org/.
+ * 
+ * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class Neo4jDb extends Db {
 
@@ -128,8 +128,6 @@ public class Neo4jDb extends Db {
    */
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find up to 20 Persons with a given first name that
    * the start Person is connected to (excluding start Person) by at most 3
    * steps via Knows relationships. Return Persons, including summaries of the
@@ -153,8 +151,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find (most recent) Posts and Comments from all of
    * that Person’s friends, that were created before (and including) a given
    * date. Return the top 20 Posts/Comments, and the Person that created each
@@ -176,8 +172,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find Persons that are their friends and friends of
    * friends (excluding start Person) that have made Posts/Comments in both of
    * the given Countries, X and Y, within a given period. Only Persons that are
@@ -202,8 +196,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find Tags that are attached to Posts that were
    * created by that Person’s friends. Only include Tags that were attached to
    * friends’ Posts created within a given time interval, and that were never
@@ -227,8 +219,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find the Forums which that Person’s friends and
    * friends of friends (excluding start Person) became Members of after a
    * given date. Return top 20 Forums, and the number of Posts in each Forum
@@ -252,8 +242,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person and some Tag, find the other Tags that occur together
    * with this Tag on Posts that were created by start Person’s friends and
    * friends of friends (excluding start Person). Return top 10 Tags, and the
@@ -276,8 +264,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find (most recent) Likes on any of start Person’s
    * Posts/Comments. Return top 20 Persons that Liked any of start Person’s
    * Posts/Comments, the Post/Comment they liked most recently, creation date
@@ -303,8 +289,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find (most recent) Comments that are replies to
    * Posts/Comments of the start Person. Only consider immediate (1-hop)
    * replies, not the transitive (multi-hop) case. Return the top 20 reply
@@ -327,8 +311,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find the (most recent) Posts/Comments created by
    * that Person’s friends or friends of friends (excluding start Person). Only
    * consider the Posts/Comments created before a given date (excluding that
@@ -351,22 +333,18 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find that Person’s friends of friends (excluding
    * start Person, and immediate friends), who were born on or after the 21st
    * of a given month (in any year) and before the 22nd of the following month.
    * Calculate the similarity between each of these Persons and start Person,
    * where similarity for any Person is defined as follows:
-   *
-   * – common = number of Posts created by that Person, such that the Post has
-   * a Tag that start Person is Interested in
-   *
-   * – uncommon = number of Posts created by that Person, such that the Post
-   * has no Tag that start Person is Interested in
-   *
-   * – similarity = common - uncommon
-   *
+   * <ul>
+   *  <li>common = number of Posts created by that Person, such that the Post
+   * has a Tag that start Person is Interested in</li>
+   *  <li>uncommon = number of Posts created by that Person, such that the Post
+   * has no Tag that start Person is Interested in</li>
+   *  <li>similarity = common - uncommon</li>
+   * </ul>
    * Return top 10 Persons, their Place, and their similarity score. Sort
    * results descending by similarity score, and then ascending by Person
    * identifier.[1]
@@ -386,8 +364,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find that Person’s friends and friends of friends
    * (excluding start Person) who started Working in some Company in a given
    * Country, before a given date (year). Return top 10 Persons, the Company
@@ -410,8 +386,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, find the Comments that this Person’s friends made in
    * reply to Posts, considering only those Comments that are immediate (1-hop)
    * replies to Posts, not the transitive (multi-hop) case. Only consider Posts
@@ -437,19 +411,10 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given two Persons, find the shortest path between these two Persons in the
    * subgraph induced by the Knows relationships. Return the length of this
-   * path.
-   *
-   * – -1: no path found
-   *
-   * –  0: start person = end person
-   *
-   * – >0: regular case
-   *
-   * [1]
+   * path. -1 should be returned if no path is found, and 0 should be returned
+   * if the start person is the same as the end person.[1]
    */
   public static class LdbcQuery13Handler
       implements OperationHandler<LdbcQuery13, Neo4jDbConnectionState> {
@@ -466,8 +431,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given two Persons, find all (unweighted) shortest paths between these two
    * Persons, in the subgraph induced by the Knows relationship. Then, for each
    * path calculate a weight. The nodes in the path are Persons, and the weight
@@ -500,8 +463,6 @@ public class Neo4jDb extends Db {
    */
 
   /**
-   * Query Description:
-   *
    * Given a start Person, retrieve their first name, last name, birthday, IP
    * address, browser, and city of residence.[1]
    */
@@ -520,8 +481,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
    * created by that user. For each message, return that message, the original
    * post in its conversation, and the author of that post. If any of the
@@ -544,8 +503,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a start Person, retrieve all of their friends, and the date at which
    * they became friends. Order results descending by friendship creation date,
    * then ascending by friend identifier.[1]
@@ -565,8 +522,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a Message (Post or Comment), retrieve its content and creation
    * date.[1]
    */
@@ -585,8 +540,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a Message (Post or Comment), retrieve its author.[1]
    */
   public static class LdbcShortQuery5MessageCreatorHandler implements
@@ -604,8 +557,6 @@ public class Neo4jDb extends Db {
   }
 
   /**
-   * Query Description:
-   *
    * Given a Message (Post or Comment), retrieve the Forum that contains it and
    * the Person that moderates that forum. Since comments are not directly
    * contained in forums, for comments, return the forum containing the
@@ -626,8 +577,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Given a Message (Post or Comment), retrieve the (1-hop) Comments that
    * reply to it. In addition, return a boolean flag indicating if the author
    * of the reply knows the author of the original message. If author is same
@@ -655,8 +604,6 @@ public class Neo4jDb extends Db {
    */
   
   /**
-   * Query Description:
-   *
    * Add a Person to the social network.[1]
    */
   public static class LdbcUpdate1AddPersonHandler implements
@@ -679,8 +626,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Like to a Post of the social network.[1]
    */
   public static class LdbcUpdate2AddPostLikeHandler implements
@@ -699,8 +644,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Like to a Comment of the social network.[1]
    */
   public static class LdbcUpdate3AddCommentLikeHandler implements
@@ -718,8 +661,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Forum to the social network.[1]
    */
   public static class LdbcUpdate4AddForumHandler implements
@@ -737,8 +678,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Forum membership to the social network.[1]
    */
   public static class LdbcUpdate5AddForumMembershipHandler implements
@@ -756,8 +695,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Post to the social network.[1]
    */
   public static class LdbcUpdate6AddPostHandler implements
@@ -775,8 +712,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a Comment replying to a Post/Comment to the social network.[1]
    */
   public static class LdbcUpdate7AddCommentHandler implements
@@ -794,8 +729,6 @@ public class Neo4jDb extends Db {
   }
   
   /**
-   * Query Description:
-   *
    * Add a friendship relation to the social network.[1]
    */
   public static class LdbcUpdate8AddFriendshipHandler implements
