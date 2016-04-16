@@ -474,7 +474,7 @@ public class Neo4jDb extends Db {
       OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
 
     final static Logger logger =
-        LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+        LoggerFactory.getLogger(LdbcUpdate4AddForumHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation,
@@ -488,7 +488,7 @@ public class Neo4jDb extends Db {
       OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
 
     final static Logger logger =
-        LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+        LoggerFactory.getLogger(LdbcUpdate5AddForumMembershipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
@@ -502,7 +502,7 @@ public class Neo4jDb extends Db {
       OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
 
     final static Logger logger =
-        LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+        LoggerFactory.getLogger(LdbcUpdate6AddPostHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation,
@@ -516,7 +516,7 @@ public class Neo4jDb extends Db {
       OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
 
     final static Logger logger =
-        LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+        LoggerFactory.getLogger(LdbcUpdate7AddCommentHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation,
@@ -530,7 +530,7 @@ public class Neo4jDb extends Db {
       OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
 
     final static Logger logger =
-        LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
+        LoggerFactory.getLogger(LdbcUpdate8AddFriendshipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation,
