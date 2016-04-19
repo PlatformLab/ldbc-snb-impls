@@ -88,7 +88,7 @@ import java.util.Map;
  * Configuration Parameters:
  * <ul>
  *  <li>host - IP address of the Neo4j web server (default: 127.0.0.1).</li>
- *  <li>port - port of the Neo4j web server (default: 7473).</li>
+ *  <li>port - port of the Neo4j web server (default: 7474).</li>
  * </ul>
  * <p>
  * References:<br>
