@@ -86,9 +86,9 @@ public class Neo4jTransactionDriver {
    * call to exec, execAndCommit, or rollback will generally have the effect of
    * clearing the statement queue unless otherwise noted.
    *
-   * @param stmts Neo4jStatement(s) to enqueue for later execution.
+   * @param stmts Neo4jCypherStatement(s) to enqueue for later execution.
    */
-  public void enqueue(Neo4jStatement... stmts) {
+  public void enqueue(Neo4jCypherStatement... stmts) {
 
   }
 
@@ -125,7 +125,7 @@ public class Neo4jTransactionDriver {
    * ordering in the driver (that is, the nth result is for the nth enqueued
    * statement).
    */
-  public Neo4jStatementResult[] exec() {
+  public Neo4jCypherResult[] exec() {
     return null;
   }
 
@@ -153,7 +153,7 @@ public class Neo4jTransactionDriver {
    * ordering in the driver (that is, the nth result is for the nth enqueued
    * statement).
    */
-  public Neo4jStatementResult[] execAndCommit() {
+  public Neo4jCypherResult[] execAndCommit() {
     return null;
   }
 
