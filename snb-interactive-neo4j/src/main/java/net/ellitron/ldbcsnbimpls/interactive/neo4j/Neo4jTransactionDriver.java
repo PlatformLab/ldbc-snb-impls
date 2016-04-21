@@ -6,22 +6,19 @@
 package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
 /**
- * A class for driving the execution of transactional Cypher queries against a
- * remote Neo4j server running a transactional Cypher HTTP endpoint. The basic
- * way to use this driver is to stage one or more queries in the driver via the
- * {@link #stage(String query, String params)} method, then either call
- * {@link #commit()} immediately to execute and commit those queries in one
- * request to the server, or call {@link #exec()} to execute the staged queries
- * on the server but leave the transaction open. Subsequent calls to exec will
- * continue to execute newly staged queries in the currently open transaction
- * context, until commit or {@link #rollback()} is called. This allows the
- * client to proceed more interactively, observing the results before executing
- * more queries and eventually deciding to commit/rollback. The rollback method
- * will simply rollback the currently open transaction. After a call to either
- * commit or rollback a subsequent call to exec or commit will automatically
- * open a new transaction context (and simultaneously commit that transaction
- * in the case of commit). The driver is therefore re-usable across
- * transactions.
+ * A class for driving the execution of transactional Cypher statements against
+ * a remote Neo4j server running a transactional Cypher HTTP endpoint. The
+ * driver is designed to be used primarily in one of two ways, interactive
+ * style or batch style. In interactive style the application executes one or
+ * more statements and views the results before executing more statements and
+ * eventually committing the transaction (or rolling it back). An example may
+ * be reading a subgraph in one statement, computing page-rank, then writing
+ * page rank values to the vertices in a second statement. In batch style the
+ * application doesn't need to see intermediate results, and so opens a new
+ * transaction, executes one or more statements, and commits the transaction in
+ * a single request to the server. An example may be adding a "likes" edge in
+ * the graph between a specific user and a specific post, which can be
+ * expressed in a single cypher statement.
  * <p>
  *
  * Failure Scenarios:<br>
@@ -45,6 +42,9 @@ package net.ellitron.ldbcsnbimpls.interactive.neo4j;
  * a driver can have only one thread using it.</li>
  * <li>The driver does not currently support authentication with the server.
  * Authentication must be turned off (see Neo4j documentation).</li>
+ * <li>Open transactions on the Neo4j server are automatically rolled back
+ * after a timeout period. Be sure to adjust your timeout configuration value
+ * to meet your application needs.</li>
  * </ul>
  * <p>
  *
@@ -72,46 +72,72 @@ public class Neo4jTransactionDriver {
   }
 
   /**
-   * Stage a cypher query for later execution. Many queries can be staged for
-   * execution, in which case they are executed in the same order in which they
-   * were staged.
+   * Execute statements in the current transaction context and return the
+   * results. If there is no currently open transaction context, a new one is
+   * started on the server. Subsequent calls will continue to execute
+   * statements in the same transaction. Result ordering in the returned array
+   * matches the statement ordering in the arguments.
+   * <p>
+   * Usage Notes:<br>
+   * This method is used to execute statements in an interactive fashion where
+   * the results can be viewed before executing more statements and eventually
+   * deciding whether to commit the transaction or roll it back. Note, however,
+   * that Neo4j transactions have a timeout value configured on the server, and
+   * if enough time passes without activity then the transaction is
+   * automatically rolled back. The timeout is reset each time statement(s) are
+   * executed.
    *
-   * @param query String representation of a cypher query.<br>
-   * Ex: "CREATE (n {props}) RETURN n"
-   * @param params JSON formatted String of the parameters to the query. If the
-   * query takes no parameters, this argument should be null.<br>
-   * Ex: "{ \"props\": { \"name\": \"Bob\" } }"
+   * @param stmts Neo4jStatement(s) to execute. Statements are executed in the
+   * order they appear in the arguments.
+   *
+   * @return Array of results, where the ordering matches with the statement
+   * ordering in the arguments. That is, the ith result is for the ith
+   * statement in the argument.
    */
-  public void stage(String query, String params) {
+  public Neo4jStatementResult[] exec(Neo4jStatement... stmts) {
 
   }
 
   /**
-   * Execute staged queries in the order that they were staged. If there is an
-   * open transaction context, these queries are executed within that context.
-   * Otherwise a new transaction is opened on the server. The results for each
-   * query are returned in an array of JSON formatted Strings, where their
-   * order in the array matches their execution order.
+   * Execute statements in the current transaction context, commit the
+   * transaction, and return the results. If there is no currently open
+   * transaction context, a new one is started on the server (and subsequently
+   * committed before returning). Result ordering in the returned array matches
+   * the statement ordering in the arguments.
    * <p>
-   * Example:<br>
-   * <code>
-   * driver.stage("CREATE (n) RETURN id(n)");
-   * driver.stage("CREATE (n {props}) RETURN n",
-   *              "{ \"props\": { \"name\": \"Bob\" } }");
-   * String[] results = driver.exec();
-   * </code>
+   * Usage Notes:<br>
+   * This method is most commonly used to open a new transaction, execute one
+   * or more statements, and (blindly) commit the transaction all in one-shot.
+   * The Neo4j HTTP endpoint supports this combined execute and commit
+   * operation in a single request to the server, affording efficiency gains
+   * when the application does not need to see the execution results before
+   * deciding to commit. Of course, this method can be called during a running
+   * transaction as well to "top it off" with a few more statements and commit
+   * the whole transaction in one request.
    *
-   * @return Array of JSON formatted Strings where the ith String represents
-   * the execution result of the ith staged query.
+   * @param stmts Neo4jStatement(s) to execute. Statements are executed in the
+   * order they appear in the arguments.
+   *
+   * @return Array of results, where the ordering matches with the statement
+   * ordering in the arguments. That is, the ith result is for the ith
+   * statement in the argument.
    */
-  public String[] exec() {
-    return null;
+  public Neo4jStatementResult[] execAndCommit(Neo4jStatement... stmts) {
+
   }
 
-  public String[] commit() {
-    return null;
+  /**
+   * Commit the currently open transaction. If there is no open transaction
+   * then the method returns immediately.
+   */
+  public void commit() {
+
   }
 
+  /**
+   * Roll back the currently open transaction. If there is no open transaction
+   * then the method returns immediately.
+   */
   public void rollback() {
 
   }
