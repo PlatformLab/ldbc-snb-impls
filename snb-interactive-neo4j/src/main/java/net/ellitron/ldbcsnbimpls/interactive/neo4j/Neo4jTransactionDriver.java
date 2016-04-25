@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.StringReader;
 import java.net.ConnectException;
+import java.util.Collections;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
@@ -159,158 +160,152 @@ public class Neo4jTransactionDriver {
    *
    * @return List of results, where the ordering matches the statement enqueue
    * ordering in the driver (that is, the nth result is for the nth enqueued
-   * statement).
+   * statement). Each result is a 2d array of Strings where the 0th row stores
+   * the column headers.
    *
    * @throws Neo4jCommunicationException If there is a communication problem
    * with the server.
    * @throws Neo4jTransactionException If there was a problem with executing
    * one or more statements on the server.
    */
-  public List<Neo4jCypherResult> exec() {
-    List<Neo4jCypherResult> results = new ArrayList<>(statementQueue.size());
-
+  public List<String[][]> exec() {
+    /*
+     * If the user called exec without anything in the statement queue then
+     * just return with an empty results list.
+     */
     if (statementQueue.isEmpty()) {
-      /*
-       * If the user called exec without anything in the statement queue then
-       * just return with an empty results list.
-       */
-      return results;
+      return Collections.emptyList();
+    }
+
+    // Figure out what the URI should be based on whether or not we have a 
+    // currently open transaction context.
+    String uri;
+    if (currentTxLocation == null) {
+      // Open a new transaction.
+      uri = serverRootURI + "/transaction";
     } else {
-      // Figure out what the URI should be based on whether or not we have a 
-      // currently open transaction context.
-      String uri;
-      if (currentTxLocation == null) {
-        // Open a new transaction.
-        uri = serverRootURI + "/transaction";
-      } else {
-        // Use the current transaction.
-        uri = currentTxLocation;
+      // Use the current transaction.
+      uri = currentTxLocation;
+    }
+
+    // Construct the payload body from statements in the queue.
+    String requestPayload = makeTxReqPayload();
+
+    /*
+     * We don't actually need the statements in the queue beyond this point. If
+     * the execution fails for any reason, the specified behavior of the driver
+     * is to be in a clean "reset" state.
+     */
+    statementQueue.clear();
+
+    /*
+     * Build and send HTTP request. In the event of any error, reset the driver
+     * and throw a Neo4jCommunicationException.
+     */
+    ClientResponse response;
+    try {
+      response = client.resource(uri)
+          .accept(MediaType.APPLICATION_JSON)
+          .type(MediaType.APPLICATION_JSON)
+          .entity(requestPayload)
+          .post(ClientResponse.class);
+    } catch (Exception e) { // Pokemon Exception Handling
+        /*
+       * If sending/recieving the HTTP request/reponse encountered a failure,
+       * although the transaction may be left open on the server, the driver's
+       * specified behavior is to be left in a clean "reset" state, and so we
+       * forget about the transaction in this case. The Neo4j server itself
+       * will eventually timeout and rollback any accidentally left open
+       * transactions.
+       */
+      currentTxLocation = null;
+
+      throw new Neo4jCommunicationException(e);
+    }
+
+    // If this request opened a new transaction, capture the transaction URI
+    // from the response. 
+    if (currentTxLocation == null) {
+      currentTxLocation = response.getLocation().toString();
+    }
+
+    // Parse the JSON-formatted response.
+    String responsePayload = response.getEntity(String.class);
+    JsonReader reader = Json.createReader(new StringReader(responsePayload));
+    JsonObject responseJsonObj = reader.readObject();
+    reader.close();
+
+    // Finished with the response, can close it now.
+    response.close();
+
+    // Grab the array of results and array of errors.
+    JsonArray resultsArray = responseJsonObj.getJsonArray("results");
+    JsonArray errorsArray = responseJsonObj.getJsonArray("errors");
+
+    if (!errorsArray.isEmpty()) {
+      /*
+       * Log all errors that are of the "ClientNotification" classification.
+       * These are informational warnings and typically relate to performance,
+       * but do not indicate an actual error. These are also unlikely to be
+       * things a client application can be reasonably expected to respond to.
+       * If there are errors of any other classification, these are interpreted
+       * to be actual errors and are collected together and put into the
+       * message of a Neo4jTransactionException. These errors do indicate a
+       * failure of some kind and an inability to proceed normally without the
+       * client application taking action (if it can, although for many such
+       * errors the client application may not have the ability to respond).
+       * See Neo4j documentation on "status codes" for more information.
+       */
+
+      JsonArrayBuilder actualErrorsBldr = Json.createArrayBuilder();
+      boolean errorsDetected = false;
+      for (int i = 0; i < errorsArray.size(); i++) {
+        /*
+         * Get the status code and parse its format. Status codes have the
+         * following format: Neo.[Classification].[Category].[Title]
+         */
+        JsonObject errorObject = errorsArray.getJsonObject(i);
+        String statusCode = errorObject.getString("code");
+        String[] statusCodeComp = statusCode.split(".");
+
+        // Log a warning if the classification is a client notification.
+        if (statusCodeComp[1].equals("ClientNotification")) {
+          logger.warn(String.format("Received notification message from "
+              + "server: %s", errorObject.toString()));
+        } else {
+          logger.error(String.format("Received error message from "
+              + "server: %s", errorObject.toString()));
+          // Add this to the list of actual errors.
+          actualErrorsBldr.add(errorObject);
+          errorsDetected = true;
+        }
       }
 
-      // Construct the payload body from statements in the queue.
-      String requestPayload = makeTxReqPayload();
-
       /*
-       * We don't actually need the statements in the queue beyond this point.
-       * If the execution fails for any reason, the specified behavior of the
-       * driver is to be in a clean "reset" state.
+       * If there were any errors other than ClientNotifications then we need
+       * to throw an exception. Something has gone terribly wrong :(
        */
-      statementQueue.clear();
-
-      /*
-       * Build and send HTTP request. In the event of any error, reset the
-       * driver and throw a Neo4jCommunicationException.
-       */
-      ClientResponse response;
-      try {
-        response = client.resource(uri)
-            .accept(MediaType.APPLICATION_JSON)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(requestPayload)
-            .post(ClientResponse.class);
-      } catch (Exception e) { // Pokemon Exception Handling
+      if (errorsDetected) {
         /*
-         * If sending/recieving the HTTP request/reponse encountered a failure,
-         * although the transaction may be left open on the server, the
-         * driver's specified behavior is to be left in a clean "reset" state,
-         * and so we forget about the transaction in this case. The Neo4j
-         * server itself will eventually timeout and rollback any accidentally
-         * left open transactions.
+         * Errors reported by the server indicate that the transaction has been
+         * rolled back.
          */
         currentTxLocation = null;
 
-        throw new Neo4jCommunicationException(e);
-      }
-
-      // If this request opened a new transaction, capture the transaction URI
-      // from the response. 
-      if (currentTxLocation == null) {
-        currentTxLocation = response.getLocation().toString();
-      }
-
-      // Parse the JSON-formatted response.
-      String responsePayload = response.getEntity(String.class);
-      JsonReader reader = Json.createReader(new StringReader(responsePayload));
-      JsonObject responseJsonObj = reader.readObject();
-      reader.close();
-
-      // Finished with the response, can close it now.
-      response.close();
-
-      // Grab the array of results and array of errors.
-      JsonArray resultsArray = responseJsonObj.getJsonArray("results");
-      JsonArray errorsArray = responseJsonObj.getJsonArray("errors");
-
-      if (!errorsArray.isEmpty()) {
-        /*
-         * Log all errors that are of the "ClientNotification" classification.
-         * These are informational warnings and typically relate to
-         * performance, but do not indicate an actual error. These are also
-         * unlikely to be things a client application can be reasonably
-         * expected to respond to. If there are errors of any other
-         * classification, these are interpreted to be actual errors and are
-         * collected together and put into the message of a
-         * Neo4jTransactionException. These errors do indicate a failure of
-         * some kind and an inability to proceed normally without the client
-         * application taking action (if it can, although for many such errors
-         * the client application may not have the ability to respond). See
-         * Neo4j documentation on "status codes" for more information.
-         */
-
-        JsonArrayBuilder actualErrorsBldr = Json.createArrayBuilder();
-        boolean errorsDetected = false;
-        for (int i = 0; i < errorsArray.size(); i++) {
-          /*
-           * Get the status code and parse its format. Status codes have the
-           * following format: Neo.[Classification].[Category].[Title]
-           */
-          JsonObject errorObject = errorsArray.getJsonObject(i);
-          String statusCode = errorObject.getString("code");
-          String[] statusCodeComp = statusCode.split(".");
-
-          // Log a warning if the classification is a client notification.
-          if (statusCodeComp[1].equals("ClientNotification")) {
-            logger.warn(String.format("Received notification message from "
-                + "server: %s", errorObject.toString()));
-          } else {
-            logger.error(String.format("Received error message from "
-                + "server: %s", errorObject.toString()));
-            // Add this to the list of actual errors.
-            actualErrorsBldr.add(errorObject);
-            errorsDetected = true;
-          }
-        }
-
-        /*
-         * If there were any errors other than ClientNotifications then we need
-         * to throw an exception. Something has gone terribly wrong :(
-         */
-        if (errorsDetected) {
-          /*
-           * Errors reported by the server indicate that the transaction has
-           * been rolled back.
-           */
-          currentTxLocation = null;
-
-          throw new Neo4jTransactionException(
-              Json.createObjectBuilder()
-              .add("errors", actualErrorsBldr)
-              .build()
-              .toString());
-        }
-      }
-
-      /*
-       * If we've made it this far it means all statements have executed
-       * successfully and returned results.
-       */
-      for (int i = 0; i < resultsArray.size(); i++) {
-        JsonObject resultObject = resultsArray.getJsonObject(i);
-        results.add(new Neo4jCypherResult(resultObject.toString(), false));
+        throw new Neo4jTransactionException(
+            Json.createObjectBuilder()
+            .add("errors", actualErrorsBldr)
+            .build()
+            .toString());
       }
     }
 
-    return results;
+    /*
+     * If we've made it this far it means all statements have executed
+     * successfully and returned results without errors. Parse the array of
+     * results and return.
+     */
+    return parseResults(resultsArray);
   }
 
   /**
@@ -343,16 +338,15 @@ public class Neo4jTransactionDriver {
    *
    * @return List of results, where the ordering matches the statement enqueue
    * ordering in the driver (that is, the nth result is for the nth enqueued
-   * statement).
+   * statement). Each result is a 2d array of Strings where the 0th row stores
+   * the column headers.
    *
    * @throws Neo4jCommunicationException If there is a communication problem
    * with the server.
    * @throws Neo4jTransactionException If there was a problem with executing
    * one or more statements on the server.
    */
-  public List<Neo4jCypherResult> execAndCommit() {
-    List<Neo4jCypherResult> results = new ArrayList<>(statementQueue.size());
-
+  public List<String[][]> execAndCommit() {
     /*
      * Special behavior in the case that the statement queue is empty. This
      * probably represents a misuse of the driver, but instead of throwing an
@@ -362,144 +356,140 @@ public class Neo4jTransactionDriver {
       if (currentTxLocation != null) {
         // Behavior in this case is the same as commit.
         commit();
-        return results; // Didn't execute anything, return empty results list.
+        // Didn't execute any statements, return empty results list.
+        return Collections.emptyList();
       } else {
         /*
          * The statement queue is empty and there's no open transaction. In
          * this case the correct behavior is the same as the successfull commit
          * of an empty transaction (a nop transaction).
          */
-        return results; // Return empty results list.
-      }
-    } else {
-      // Figure out what the URI should be based on whether or not we have a 
-      // currently open transaction context.
-      String uri;
-      if (currentTxLocation == null) {
-        // Open a new transaction for immediate committing.
-        uri = serverRootURI + "/transaction/commit";
-      } else {
-        // Use the current transaction commit location.
-        uri = currentTxLocation + "/commit";
-      }
-
-      // Construct the payload body from statements in the queue.
-      String requestPayload = makeTxReqPayload();
-
-      /*
-       * We don't actually need the statements in the queue beyond this point.
-       * If the execution fails for any reason, the specified behavior of the
-       * driver is to be in a clean "reset" state.
-       */
-      statementQueue.clear();
-
-      /*
-       * Build and send HTTP request. In the event of any error, reset the
-       * driver and throw a Neo4jCommunicationException.
-       */
-      ClientResponse response;
-      try {
-        response = client.resource(uri)
-            .accept(MediaType.APPLICATION_JSON)
-            .type(MediaType.APPLICATION_JSON)
-            .entity(requestPayload)
-            .post(ClientResponse.class);
-      } catch (Exception e) { // Pokemon Exception Handling
-        throw new Neo4jCommunicationException(e);
-      } finally {
-        /*
-         * If sending/recieving the HTTP request/reponse encountered a failure,
-         * although the transaction may be left open on the server, the
-         * driver's specified behavior is to be left in a clean "reset" state,
-         * and so we forget about the transaction in this case. The Neo4j
-         * server itself will eventually timeout and rollback any accidentally
-         * left open transactions.
-         *
-         * If the request got through OK, then the transaction has either been
-         * successfully committed, or there was an error and it was rolled back
-         * by the Neo4j server. Either way, we can forget about the transaction
-         * at this point.
-         */
-        currentTxLocation = null;
-      }
-
-      // Parse the JSON-formatted response.
-      String responsePayload = response.getEntity(String.class);
-      JsonReader reader = Json.createReader(new StringReader(responsePayload));
-      JsonObject responseJsonObj = reader.readObject();
-      reader.close();
-
-      // Finished with the response, can close it now.
-      response.close();
-
-      // Grab the array of results and array of errors.
-      JsonArray resultsArray = responseJsonObj.getJsonArray("results");
-      JsonArray errorsArray = responseJsonObj.getJsonArray("errors");
-
-      if (!errorsArray.isEmpty()) {
-        /*
-         * Log all errors that are of the "ClientNotification" classification.
-         * These are informational warnings and typically relate to
-         * performance, but do not indicate an actual error. These are also
-         * unlikely to be things a client application can be reasonably
-         * expected to respond to. If there are errors of any other
-         * classification, these are interpreted to be actual errors and are
-         * collected together and put into the message of a
-         * Neo4jTransactionException. These errors do indicate a failure of
-         * some kind and an inability to proceed normally without the client
-         * application taking action (if it can, although for many such errors
-         * the client application may not have the ability to respond). See
-         * Neo4j documentation on "status codes" for more information.
-         */
-
-        JsonArrayBuilder actualErrorsBldr = Json.createArrayBuilder();
-        boolean errorsDetected = false;
-        for (int i = 0; i < errorsArray.size(); i++) {
-          /*
-           * Get the status code and parse its format. Status codes have the
-           * following format: Neo.[Classification].[Category].[Title]
-           */
-          JsonObject errorObject = errorsArray.getJsonObject(i);
-          String statusCode = errorObject.getString("code");
-          String[] statusCodeComp = statusCode.split(".");
-
-          // Log a warning if the classification is a client notification.
-          if (statusCodeComp[1].equals("ClientNotification")) {
-            logger.warn(String.format("Received notification message from "
-                + "server: %s", errorObject.toString()));
-          } else {
-            logger.error(String.format("Received error message from "
-                + "server: %s", errorObject.toString()));
-            // Add this to the list of actual errors.
-            actualErrorsBldr.add(errorObject);
-            errorsDetected = true;
-          }
-        }
-
-        /*
-         * If there were any errors other than ClientNotifications then we need
-         * to throw an exception. Something has gone terribly wrong :(
-         */
-        if (errorsDetected) {
-          throw new Neo4jTransactionException(
-              Json.createObjectBuilder()
-              .add("errors", actualErrorsBldr)
-              .build()
-              .toString());
-        }
-      }
-
-      /*
-       * If we've made it this far it means all statements have executed
-       * successfully and returned results.
-       */
-      for (int i = 0; i < resultsArray.size(); i++) {
-        JsonObject resultObject = resultsArray.getJsonObject(i);
-        results.add(new Neo4jCypherResult(resultObject.toString(), false));
+        return Collections.emptyList(); // Return empty results list.
       }
     }
 
-    return results;
+    // Figure out what the URI should be based on whether or not we have a 
+    // currently open transaction context.
+    String uri;
+    if (currentTxLocation == null) {
+      // Open a new transaction for immediate committing.
+      uri = serverRootURI + "/transaction/commit";
+    } else {
+      // Use the current transaction commit location.
+      uri = currentTxLocation + "/commit";
+    }
+
+    // Construct the payload body from statements in the queue.
+    String requestPayload = makeTxReqPayload();
+
+    /*
+     * We don't actually need the statements in the queue beyond this point. If
+     * the execution fails for any reason, the specified behavior of the driver
+     * is to be in a clean "reset" state.
+     */
+    statementQueue.clear();
+
+    /*
+     * Build and send HTTP request. In the event of any error, reset the driver
+     * and throw a Neo4jCommunicationException.
+     */
+    ClientResponse response;
+    try {
+      response = client.resource(uri)
+          .accept(MediaType.APPLICATION_JSON)
+          .type(MediaType.APPLICATION_JSON)
+          .entity(requestPayload)
+          .post(ClientResponse.class);
+    } catch (Exception e) { // Pokemon Exception Handling
+      throw new Neo4jCommunicationException(e);
+    } finally {
+      /*
+       * If sending/recieving the HTTP request/reponse encountered a failure,
+       * although the transaction may be left open on the server, the driver's
+       * specified behavior is to be left in a clean "reset" state, and so we
+       * forget about the transaction in this case. The Neo4j server itself
+       * will eventually timeout and rollback any accidentally left open
+       * transactions.
+       *
+       * If the request got through OK, then the transaction has either been
+       * successfully committed, or there was an error and it was rolled back
+       * by the Neo4j server. Either way, we can forget about the transaction
+       * at this point.
+       */
+      currentTxLocation = null;
+    }
+
+    // Parse the JSON-formatted response.
+    String responsePayload = response.getEntity(String.class);
+    JsonReader reader = Json.createReader(new StringReader(responsePayload));
+    JsonObject responseJsonObj = reader.readObject();
+    reader.close();
+
+    // Finished with the response, can close it now.
+    response.close();
+
+    // Grab the array of results and array of errors.
+    JsonArray resultsArray = responseJsonObj.getJsonArray("results");
+    JsonArray errorsArray = responseJsonObj.getJsonArray("errors");
+
+    if (!errorsArray.isEmpty()) {
+      /*
+       * Log all errors that are of the "ClientNotification" classification.
+       * These are informational warnings and typically relate to performance,
+       * but do not indicate an actual error. These are also unlikely to be
+       * things a client application can be reasonably expected to respond to.
+       * If there are errors of any other classification, these are interpreted
+       * to be actual errors and are collected together and put into the
+       * message of a Neo4jTransactionException. These errors do indicate a
+       * failure of some kind and an inability to proceed normally without the
+       * client application taking action (if it can, although for many such
+       * errors the client application may not have the ability to respond).
+       * See Neo4j documentation on "status codes" for more information.
+       */
+
+      JsonArrayBuilder actualErrorsBldr = Json.createArrayBuilder();
+      boolean errorsDetected = false;
+      for (int i = 0; i < errorsArray.size(); i++) {
+        /*
+         * Get the status code and parse its format. Status codes have the
+         * following format: Neo.[Classification].[Category].[Title]
+         */
+        JsonObject errorObject = errorsArray.getJsonObject(i);
+        String statusCode = errorObject.getString("code");
+        String[] statusCodeComp = statusCode.split(".");
+
+        // Log a warning if the classification is a client notification.
+        if (statusCodeComp[1].equals("ClientNotification")) {
+          logger.warn(String.format("Received notification message from "
+              + "server: %s", errorObject.toString()));
+        } else {
+          logger.error(String.format("Received error message from "
+              + "server: %s", errorObject.toString()));
+          // Add this to the list of actual errors.
+          actualErrorsBldr.add(errorObject);
+          errorsDetected = true;
+        }
+      }
+
+      /*
+       * If there were any errors other than ClientNotifications then we need
+       * to throw an exception. Something has gone terribly wrong :(
+       */
+      if (errorsDetected) {
+        throw new Neo4jTransactionException(
+            Json.createObjectBuilder()
+            .add("errors", actualErrorsBldr)
+            .build()
+            .toString());
+      }
+    }
+
+    /*
+     * If we've made it this far it means all statements have executed
+     * successfully and returned results without errors. Parse the array of
+     * results and return.
+     */
+    return parseResults(resultsArray);
   }
 
   /**
@@ -631,12 +621,12 @@ public class Neo4jTransactionDriver {
    * itself in a "reset" state (cleared statement queue, cleared transaction
    * state). Future operations will execute in a new transaction.
    * <p>
-   * Note that although normally errors indicate that the transaction has been 
-   * automatically rolled back on the server anyway, one particular error is an 
-   * exception: Neo.DatabaseError.Transaction.CouldNotRollback. Although the 
-   * driver will reset itself so that future operations will open a new 
-   * transaction, if the user needs to know about this kind of error, they 
-   * should parse the message in the Neo4jTransactionException, or check the 
+   * Note that although normally errors indicate that the transaction has been
+   * automatically rolled back on the server anyway, one particular error is an
+   * exception: Neo.DatabaseError.Transaction.CouldNotRollback. Although the
+   * driver will reset itself so that future operations will open a new
+   * transaction, if the user needs to know about this kind of error, they
+   * should parse the message in the Neo4jTransactionException, or check the
    * logs.
    *
    * @throws Neo4jCommunicationException If there is a communication problem
@@ -677,8 +667,8 @@ public class Neo4jTransactionDriver {
          *
          * If the request got through OK, then the transaction has been
          * successfully rolled back, unless the server responds with a
-         * Neo.DatabaseError.Transaction.CouldNotRollback error. In that case 
-         * an exception will be thrown. We reset the driver state in this case 
+         * Neo.DatabaseError.Transaction.CouldNotRollback error. In that case
+         * an exception will be thrown. We reset the driver state in this case
          * so that new transactions can be executed.
          */
         currentTxLocation = null;
@@ -785,5 +775,45 @@ public class Neo4jTransactionDriver {
     payloadBody += "]}";
 
     return payloadBody;
+  }
+
+  /**
+   * Parses a JSON array of statement execution results received from the
+   * server. Each element of the JSON array is a JSON object that represents
+   * execution results represented as a table with rows and columns. This table
+   * is parsed from the JSON object as a 2d String array, where the 0th row of
+   * the array stores the column headers, and rows 1 to N-1 store the column
+   * values.
+   *
+   * @param results JSON array received from the server, where each element of
+   * the array represents the execution results of a statement. (see Neo4j
+   * documentation).
+   *
+   * @return List of 2d String arrays. The 0th row of the array stores the
+   * column headers, and rows 1 to N-1 store the column values.
+   */
+  private List<String[][]> parseResults(JsonArray resultsArray) {
+    List<String[][]> results = new ArrayList<>();
+    for (int i = 0; i < resultsArray.size(); i++) {
+      JsonObject resultObject = resultsArray.getJsonObject(i);
+      JsonArray columns = resultObject.getJsonArray("columns");
+      JsonArray rows = resultObject.getJsonArray("data");
+      String[][] result = new String[rows.size() + 1][columns.size()];
+
+      for (int c = 0; c < columns.size(); c++) {
+        result[0][c] = columns.getString(c);
+      }
+
+      for (int r = 0; r < rows.size(); r++) {
+        JsonArray row = rows.getJsonObject(r).getJsonArray("row");
+        for (int c = 0; c < columns.size(); c++) {
+          result[r + 1][c] = row.getString(c);
+        }
+      }
+
+      results.add(result);
+    }
+
+    return results;
   }
 }
