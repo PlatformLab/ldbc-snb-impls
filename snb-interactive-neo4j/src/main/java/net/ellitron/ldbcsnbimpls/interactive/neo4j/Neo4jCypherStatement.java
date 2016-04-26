@@ -64,4 +64,13 @@ public class Neo4jCypherStatement {
   public String getParameters() {
     return parameters;
   }
+  
+  /**
+   * Reports existence of parameters.
+   * 
+   * @return True if this statement has parameters, false otherwise.
+   */
+  public boolean hasParameters() {
+    return (parameters != null);
+  }
 }
