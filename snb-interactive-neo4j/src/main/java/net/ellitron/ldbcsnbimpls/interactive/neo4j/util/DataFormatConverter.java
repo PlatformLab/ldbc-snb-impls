@@ -209,13 +209,13 @@ public class DataFormatConverter {
             outFile.append("|" + property);
           }
           
-          outFile.append("\n");
+          outFile.append("|:LABEL\n");
           
           firstLine = false;
         } else {
-          // The rest of the file is the same.
+          // Append the label to the end of the line.
           outFile.append(line);
-          outFile.append("\n");
+          outFile.append(node.getNeoLabel() + "\n");
         }
       }
       
