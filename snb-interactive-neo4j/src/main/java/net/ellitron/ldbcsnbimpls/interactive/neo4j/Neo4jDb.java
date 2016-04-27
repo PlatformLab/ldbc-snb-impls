@@ -744,20 +744,4 @@ public class Neo4jDb extends Db {
 
     }
   }
-
-  /**
-   * Encapsulates the state of a connection to a Neo4j database. An instance of
-   * this object is created on benchmark initialization, and then subsequently
-   * passed to each query on execution.
-   */
-  private static class Neo4jDbConnectionState extends DbConnectionState {
-
-    private Neo4jDbConnectionState(Map<String, String> properties) {
-    }
-
-    @Override
-    public void close() throws IOException {
-
-    }
-  }
 }
