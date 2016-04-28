@@ -29,11 +29,18 @@ import java.util.Map;
  */
 public class Neo4jDbConnectionState extends DbConnectionState {
 
-  private Neo4jDbConnectionState(Map<String, String> properties) {
+  private Neo4jTransactionDriver driver;
+  
+  public Neo4jDbConnectionState(String host, String port) {
+    this.driver = new Neo4jTransactionDriver(host, port);
   }
 
   @Override
   public void close() throws IOException {
-
+    
+  }
+  
+  public Neo4jTransactionDriver getTxDriver() {
+    return driver;
   }
 }
