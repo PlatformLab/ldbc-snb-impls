@@ -27,12 +27,16 @@ import java.util.List;
 import java.io.StringReader;
 import java.net.ConnectException;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
 import javax.json.JsonReader;
+import javax.json.JsonValue;
+import javax.json.JsonValue.ValueType;
 import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -160,15 +164,14 @@ public class Neo4jTransactionDriver {
    *
    * @return List of results, where the ordering matches the statement enqueue
    * ordering in the driver (that is, the nth result is for the nth enqueued
-   * statement). Each result is a 2d array of Strings where the 0th row stores
-   * the column headers.
+   * statement). Each result is a map from column titles to columns.
    *
    * @throws Neo4jCommunicationException If there is a communication problem
    * with the server.
    * @throws Neo4jTransactionException If there was a problem with executing
    * one or more statements on the server.
    */
-  public List<String[][]> exec() {
+  public List<Map<String, String[]>> exec() {
     /*
      * If the user called exec without anything in the statement queue then
      * just return with an empty results list.
@@ -338,15 +341,14 @@ public class Neo4jTransactionDriver {
    *
    * @return List of results, where the ordering matches the statement enqueue
    * ordering in the driver (that is, the nth result is for the nth enqueued
-   * statement). Each result is a 2d array of Strings where the 0th row stores
-   * the column headers.
+   * statement). Each result is a map from column titles to columns.
    *
    * @throws Neo4jCommunicationException If there is a communication problem
    * with the server.
    * @throws Neo4jTransactionException If there was a problem with executing
    * one or more statements on the server.
    */
-  public List<String[][]> execAndCommit() {
+  public List<Map<String, String[]>> execAndCommit() {
     /*
      * Special behavior in the case that the statement queue is empty. This
      * probably represents a misuse of the driver, but instead of throwing an
@@ -780,38 +782,45 @@ public class Neo4jTransactionDriver {
   /**
    * Parses a JSON array of statement execution results received from the
    * server. Each element of the JSON array is a JSON object that represents
-   * execution results represented as a table with rows and columns. This table
-   * is parsed from the JSON object as a 2d String array, where the 0th row of
-   * the array stores the column headers, and rows 1 to N-1 store the column
-   * values.
+   * execution results of a single statement. Results are in the format of a
+   * table with rows and columns. This table is parsed from the JSON object as
+   * a map from column titles to columns.
    *
    * @param results JSON array received from the server, where each element of
    * the array represents the execution results of a statement. (see Neo4j
    * documentation).
    *
-   * @return List of 2d String arrays. The 0th row of the array stores the
-   * column headers, and rows 1 to N-1 store the column values.
+   * @return Map of columns, where the map key is the column title.
    */
-  private List<String[][]> parseResults(JsonArray resultsArray) {
-    List<String[][]> results = new ArrayList<>();
+  private List<Map<String, String[]>> parseResults(JsonArray resultsArray) {
+    List<Map<String, String[]>> results =
+        new ArrayList<>(resultsArray.size());
     for (int i = 0; i < resultsArray.size(); i++) {
       JsonObject resultObject = resultsArray.getJsonObject(i);
       JsonArray columns = resultObject.getJsonArray("columns");
       JsonArray rows = resultObject.getJsonArray("data");
-      String[][] result = new String[rows.size() + 1][columns.size()];
-      
+
+      Map<String, String[]> table = new HashMap<>();
+
+      List<String> colNames = new ArrayList<>(columns.size());
       for (int c = 0; c < columns.size(); c++) {
-        result[0][c] = columns.get(c).toString();
+        String colName = columns.getString(c);
+        table.put(colName, new String[rows.size()]);
+        colNames.add(colName);
       }
 
       for (int r = 0; r < rows.size(); r++) {
         JsonArray row = rows.getJsonObject(r).getJsonArray("row");
         for (int c = 0; c < columns.size(); c++) {
-          result[r + 1][c] = row.get(c).toString();
+          if (row.get(c).getValueType() == ValueType.STRING) {
+            table.get(colNames.get(c))[r] = row.getString(c);
+          } else {
+            table.get(colNames.get(c))[r] = row.get(c).toString();
+          }
         }
       }
 
-      results.add(result);
+      results.add(table);
     }
 
     return results;
