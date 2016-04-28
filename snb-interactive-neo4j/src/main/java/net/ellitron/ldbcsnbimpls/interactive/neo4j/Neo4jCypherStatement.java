@@ -39,7 +39,8 @@ public class Neo4jCypherStatement {
    * Constructor for a Neo4jCypherStatement.
    *
    * @param statement String containing cypher statement.
-   * @param parameters Parameters for cypher statement.
+   * @param parameters Parameters for cypher statement, formatted as a JSON
+   * object.
    */
   public Neo4jCypherStatement(String statement, String parameters) {
     this.statement = statement;
@@ -64,10 +65,10 @@ public class Neo4jCypherStatement {
   public String getParameters() {
     return parameters;
   }
-  
+
   /**
    * Reports existence of parameters.
-   * 
+   *
    * @return True if this statement has parameters, false otherwise.
    */
   public boolean hasParameters() {
