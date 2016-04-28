@@ -118,7 +118,24 @@ public class Neo4jDb extends Db {
   protected void onInit(Map<String, String> properties,
       LoggingService loggingService) throws DbException {
 
-    connectionState = new Neo4jDbConnectionState(properties);
+    /*
+     * Extract parameters from properties map.
+     */
+    String host;
+    if (properties.containsKey("host")) {
+      host = properties.get("host");
+    } else {
+      host = "127.0.0.1";
+    }
+    
+    String port;
+    if (properties.containsKey("port")) {
+      port = properties.get("port");
+    } else {
+      port = "7474";
+    }
+    
+    connectionState = new Neo4jDbConnectionState(host, port);
   }
 
   /**
@@ -476,7 +493,8 @@ public class Neo4jDb extends Db {
     public void executeOperation(LdbcShortQuery1PersonProfile operation,
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-
+      
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
     }
   }
   
