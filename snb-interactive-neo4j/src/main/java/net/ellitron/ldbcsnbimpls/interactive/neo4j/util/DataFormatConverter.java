@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,26 +57,24 @@ public class DataFormatConverter {
   private enum Node {
 
     COMMENT("MESSAGE_ID", "id", "Comment", "comment",
-        new String[]{"creationDate:string", "locationIP:string",
-          "browserUsed:string", "content:string", "length:int"}),
+        new String[]{"creationDate", "locationIP", "browserUsed", "content",
+          "length"}),
     FORUM("FORUM_ID", "id", "Forum", "forum",
-        new String[]{"title:string", "creationDate:string"}),
+        new String[]{"title", "creationDate"}),
     ORGANISATION("ORGANISATION_ID", "id", "Organisation", "organisation",
-        new String[]{"type:string", "name:string", "url:string"}),
+        new String[]{"type", "name", "url"}),
     PERSON("PERSON_ID", "id", "Person", "person",
-        new String[]{"firstName:string", "lastName:string", "gender:string",
-          "birthday:string", "creationDate:string", "locationIP:string",
-          "browserUsed:string", "email:string[]", "speaks:string[]"}),
+        new String[]{"firstName", "lastName", "gender", "birthday",
+          "creationDate", "locationIP", "browserUsed", "email", "speaks"}),
     PLACE("PLACE_ID", "id", "Place", "place",
-        new String[]{"name:string", "url:string", "type:string"}),
+        new String[]{"name", "url", "type"}),
     POST("MESSAGE_ID", "id", "Post", "post",
-        new String[]{"imageFile:string", "creationDate:string",
-          "locationIP:string", "browserUsed:string", "language:string",
-          "content:string", "length:int"}),
+        new String[]{"imageFile", "creationDate", "locationIP", "browserUsed",
+          "language", "content", "length"}),
     TAG("TAG_ID", "id", "Tag", "tag",
-        new String[]{"name:string", "url:string"}),
+        new String[]{"name", "url"}),
     TAGCLASS("TAGCLASS_ID", "id", "TagClass", "tagclass",
-        new String[]{"name:string", "url:string"});
+        new String[]{"name", "url"});
 
     /*
      * "ID space" for the node (see Neo4j Import Tool documentation). IDs
@@ -174,6 +173,31 @@ public class DataFormatConverter {
     }
   }
 
+  private static final Map<String, String> propDataTypes;
+
+  static {
+    Map<String, String> dataTypeMap = new HashMap<>();
+    dataTypeMap.put("birthday", "string");
+    dataTypeMap.put("browserUsed", "string");
+    dataTypeMap.put("content", "string");
+    dataTypeMap.put("creationDate", "string");
+    dataTypeMap.put("email", "string[]");
+    dataTypeMap.put("firstName", "string");
+    dataTypeMap.put("gender", "string");
+    dataTypeMap.put("imageFile", "string");
+    dataTypeMap.put("language", "string");
+    dataTypeMap.put("lastName", "string");
+    dataTypeMap.put("length", "int");
+    dataTypeMap.put("locationIP", "string");
+    dataTypeMap.put("name", "string");
+    dataTypeMap.put("speaks", "string[]");
+    dataTypeMap.put("title", "string");
+    dataTypeMap.put("type", "string");
+    dataTypeMap.put("url", "string");
+
+    propDataTypes = Collections.unmodifiableMap(dataTypeMap);
+  }
+
   /**
    * Print usage information.
    */
@@ -216,7 +240,7 @@ public class DataFormatConverter {
       }
     }
     propFile.close();
-    
+
     return propMap;
   }
 
@@ -240,7 +264,7 @@ public class DataFormatConverter {
       sb.append(propList.get(i));
     }
     sb.append("\"");
-    
+
     return sb.toString();
   }
 
@@ -286,7 +310,7 @@ public class DataFormatConverter {
               "%s:ID(%s)", node.getNeoIdPropKey(), node.getNeoIdSpace()));
 
           for (String property : node.getProps()) {
-            outFile.append("|" + property);
+            outFile.append("|" + property + ":" + propDataTypes.get(property));
           }
 
           outFile.append("|:LABEL\n");
@@ -304,7 +328,7 @@ public class DataFormatConverter {
              * relationship files.
              */
             String id = line.split("\\|")[0];
-            
+
             // First append emails.
             if (personEmail.containsKey(id)) {
               String email = serializePropertyValueList(personEmail.get(id));
