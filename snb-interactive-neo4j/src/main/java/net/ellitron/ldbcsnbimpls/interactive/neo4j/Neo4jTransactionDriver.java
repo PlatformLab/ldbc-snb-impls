@@ -266,7 +266,7 @@ public class Neo4jTransactionDriver {
          */
         JsonObject errorObject = errorsArray.getJsonObject(i);
         String statusCode = errorObject.getString("code");
-        String[] statusCodeComp = statusCode.split(".");
+        String[] statusCodeComp = statusCode.split("\\.");
 
         // Log a warning if the classification is a client notification.
         if (statusCodeComp[1].equals("ClientNotification")) {
@@ -456,7 +456,7 @@ public class Neo4jTransactionDriver {
          */
         JsonObject errorObject = errorsArray.getJsonObject(i);
         String statusCode = errorObject.getString("code");
-        String[] statusCodeComp = statusCode.split(".");
+        String[] statusCodeComp = statusCode.split("\\.");
 
         // Log a warning if the classification is a client notification.
         if (statusCodeComp[1].equals("ClientNotification")) {
@@ -583,7 +583,7 @@ public class Neo4jTransactionDriver {
            */
           JsonObject errorObject = errorsArray.getJsonObject(i);
           String statusCode = errorObject.getString("code");
-          String[] statusCodeComp = statusCode.split(".");
+          String[] statusCodeComp = statusCode.split("\\.");
 
           // Log a warning if the classification is a client notification.
           if (statusCodeComp[1].equals("ClientNotification")) {
@@ -711,7 +711,7 @@ public class Neo4jTransactionDriver {
            */
           JsonObject errorObject = errorsArray.getJsonObject(i);
           String statusCode = errorObject.getString("code");
-          String[] statusCodeComp = statusCode.split(".");
+          String[] statusCodeComp = statusCode.split("\\.");
 
           // Log a warning if the classification is a client notification.
           if (statusCodeComp[1].equals("ClientNotification")) {
@@ -799,15 +799,15 @@ public class Neo4jTransactionDriver {
       JsonArray columns = resultObject.getJsonArray("columns");
       JsonArray rows = resultObject.getJsonArray("data");
       String[][] result = new String[rows.size() + 1][columns.size()];
-
+      
       for (int c = 0; c < columns.size(); c++) {
-        result[0][c] = columns.getString(c);
+        result[0][c] = columns.get(c).toString();
       }
 
       for (int r = 0; r < rows.size(); r++) {
         JsonArray row = rows.getJsonObject(r).getJsonArray("row");
         for (int c = 0; c < columns.size(); c++) {
-          result[r + 1][c] = row.getString(c);
+          result[r + 1][c] = row.get(c).toString();
         }
       }
 
