@@ -60,7 +60,7 @@ public class DataFormatConverter {
    */
   private enum Node {
 
-    COMMENT("MESSAGE_ID", "id", "Comment", "comment",
+    COMMENT("COMMENT_ID", "id", "Message", "comment",
         new String[]{"creationDate", "locationIP", "browserUsed", "content",
           "length"}),
     FORUM("FORUM_ID", "id", "Forum", "forum",
@@ -72,7 +72,7 @@ public class DataFormatConverter {
           "creationDate", "locationIP", "browserUsed", "email", "speaks"}),
     PLACE("PLACE_ID", "id", "Place", "place",
         new String[]{"name", "url", "type"}),
-    POST("MESSAGE_ID", "id", "Post", "post",
+    POST("POST_ID", "id", "Message", "post",
         new String[]{"imageFile", "creationDate", "locationIP", "browserUsed",
           "language", "content", "length"}),
     TAG("TAG_ID", "id", "Tag", "tag",
