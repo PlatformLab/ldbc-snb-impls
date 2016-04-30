@@ -495,36 +495,39 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "MATCH (n:Person {id:{id}})-[:IS_LOCATED_IN]-(p:Place) "
-          + "RETURN"
-          + " n.firstName AS firstName,"
-          + " n.lastName AS lastName,"
-          + " n.birthday AS birthday,"
-          + " n.locationIP AS locationIp,"
-          + " n.browserUsed AS browserUsed,"
-          + " n.gender AS gender,"
-          + " n.creationDate AS creationDate,"
-          + " p.id AS cityId";
+          "   MATCH (n:Person {id:{id}})-[:IS_LOCATED_IN]-(p:Place)"
+          + " RETURN"
+          + "   n.firstName AS firstName,"
+          + "   n.lastName AS lastName,"
+          + "   n.birthday AS birthday,"
+          + "   n.locationIP AS locationIp,"
+          + "   n.browserUsed AS browserUsed,"
+          + "   n.gender AS gender,"
+          + "   n.creationDate AS creationDate,"
+          + "   p.id AS cityId";
       String parameters = "{ \"id\" : \"" + operation.personId() + "\" }";
 
+      // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-
       List<Map<String, String[]>> results = driver.execAndCommit();
 
       Map<String, String[]> table = results.get(0);
-      
-      LdbcShortQuery1PersonProfileResult result =
-          new LdbcShortQuery1PersonProfileResult(
-              table.get("firstName")[0],
-              table.get("lastName")[0],
-              Long.decode(table.get("birthday")[0]), 
-              table.get("locationIp")[0],
-              table.get("browserUsed")[0],
-              Long.decode(table.get("cityId")[0]),
-              table.get("gender")[0],
-              Long.decode(table.get("creationDate")[0])); 
-      
-      resultReporter.report(0, result, operation);
+      if (table.get("firstName").length > 0) {
+        LdbcShortQuery1PersonProfileResult result =
+            new LdbcShortQuery1PersonProfileResult(
+                table.get("firstName")[0],
+                table.get("lastName")[0],
+                Long.decode(table.get("birthday")[0]),
+                table.get("locationIp")[0],
+                table.get("browserUsed")[0],
+                Long.decode(table.get("cityId")[0]),
+                table.get("gender")[0],
+                Long.decode(table.get("creationDate")[0]));
+
+        resultReporter.report(0, result, operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
@@ -547,6 +550,44 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (:Person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:Post)-[:HAS_CREATOR]->(c)"
+          + " RETURN"
+          + "   m.id as messageId,"
+          + "   CASE has(m.content)"
+          + "     WHEN true THEN m.content"
+          + "     ELSE m.imageFile"
+          + "   END AS messageContent,"
+          + "   m.creationDate AS messageCreationDate,"
+          + "   p.id AS originalPostId,"
+          + "   c.id AS originalPostAuthorId,"
+          + "   c.firstName as originalPostAuthorFirstName,"
+          + "   c.lastName as originalPostAuthorLastName"
+          + " ORDER BY messageCreationDate DESC LIMIT {limit}";
+      String parameters = "{ "
+          + "\"id\" : \"" + operation.personId() + "\", "
+          + "\"limit\" : " + operation.limit() + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
+      for (int i = 0; i < table.get("messageId").length; i++) {
+        result.add(new LdbcShortQuery2PersonPostsResult(
+            Long.decode(table.get("messageId")[i]),
+            table.get("messageContent")[i],
+            Long.decode(table.get("messageCreationDate")[i]),
+            Long.decode(table.get("originalPostId")[i]),
+            Long.decode(table.get("originalPostAuthorId")[i]),
+            table.get("originalPostAuthorFirstName")[i],
+            table.get("originalPostAuthorLastName")[i]));
+      }
+
+      resultReporter.report(0, result, operation);
     }
   }
 
@@ -566,6 +607,33 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (n:Person {id:{id}})-[r:KNOWS]->(friend)"
+          + " RETURN"
+          + "   friend.id AS personId,"
+          + "   friend.firstName AS firstName,"
+          + "   friend.lastName AS lastName,"
+          + "   r.creationDate AS friendshipCreationDate"
+          + " ORDER BY friendshipCreationDate DESC, personId ASC";
+      String parameters = "{ \"id\" : \"" + operation.personId() + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
+      for (int i = 0; i < table.get("personId").length; i++) {
+        result.add(new LdbcShortQuery3PersonFriendsResult(
+            Long.decode(table.get("personId")[i]),
+            table.get("firstName")[i],
+            table.get("lastName")[i],
+            Long.decode(table.get("friendshipCreationDate")[i])));
+      }
+
+      resultReporter.report(0, result, operation);
     }
   }
 
@@ -584,6 +652,34 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (m {id:{id}})"
+          + " WHERE (m:Post OR m:Comment)"
+          + " RETURN"
+          + "   CASE has(m.content)"
+          + "     WHEN true THEN m.content"
+          + "     ELSE m.imageFile"
+          + "   END AS messageContent,"
+          + "   m.creationDate as messageCreationDate";
+      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      if (table.get("messageContent").length > 0) {
+        LdbcShortQuery4MessageContentResult result =
+            new LdbcShortQuery4MessageContentResult(
+                table.get("messageContent")[0],
+                Long.decode(table.get("messageCreationDate")[0]));
+
+        resultReporter.report(0, result, operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
@@ -601,6 +697,33 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (m {id:{id}})-[:HAS_CREATOR]->(p:Person)"
+          + " WHERE (m:Post OR m:Comment)"
+          + " RETURN"
+          + "   p.id AS personId,"
+          + "   p.firstName AS firstName,"
+          + "   p.lastName AS lastName";
+      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      if (table.get("personId").length > 0) {
+        LdbcShortQuery5MessageCreatorResult result =
+            new LdbcShortQuery5MessageCreatorResult(
+                Long.decode(table.get("personId")[0]),
+                table.get("firstName")[0],
+                table.get("lastName")[0]);
+
+        resultReporter.report(0, result, operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
@@ -621,6 +744,37 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (m {id:{id}})-[:REPLY_OF*0..]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)"
+          + " WHERE (m:Post OR m:Comment)"
+          + " RETURN"
+          + "   f.id AS forumId,"
+          + "   f.title AS forumTitle,"
+          + "   mod.id AS moderatorId,"
+          + "   mod.firstName AS moderatorFirstName,"
+          + "   mod.lastName AS moderatorLastName";
+      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      if (table.get("forumId").length > 0) {
+        LdbcShortQuery6MessageForumResult result =
+            new LdbcShortQuery6MessageForumResult(
+                Long.decode(table.get("forumId")[0]),
+                table.get("forumTitle")[0],
+                Long.decode(table.get("moderatorId")[0]),
+                table.get("moderatorFirstName")[0],
+                table.get("moderatorLastName")[0]);
+
+        resultReporter.report(0, result, operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
@@ -642,6 +796,44 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (m {id:{id}})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)"
+          + " WHERE (m:Post OR m:Comment)"
+          + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)"
+          + " RETURN"
+          + "   c.id AS commentId,"
+          + "   c.content AS commentContent,"
+          + "   c.creationDate AS commentCreationDate,"
+          + "   p.id AS replyAuthorId,"
+          + "   p.firstName AS replyAuthorFirstName,"
+          + "   p.lastName AS replyAuthorLastName,"
+          + "   CASE r"
+          + "     WHEN null THEN false"
+          + "     ELSE true"
+          + "   END AS replyAuthorKnowsOriginalMessageAuthor";
+      String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Map<String, String[]>> results = driver.execAndCommit();
+
+      Map<String, String[]> table = results.get(0);
+      List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
+      for (int i = 0; i < table.get("commentId").length; i++) {
+        result.add(new LdbcShortQuery7MessageRepliesResult(
+            Long.decode(table.get("commentId")[i]),
+            table.get("commentContent")[i],
+            Long.decode(table.get("commentCreationDate")[i]),
+            Long.decode(table.get("replyAuthorId")[i]),
+            table.get("replyAuthorFirstName")[i],
+            table.get("replyAuthorLastName")[i],
+            Boolean.valueOf(
+                table.get("replyAuthorKnowsOriginalMessageAuthor")[i])));
+      }
+
+      resultReporter.report(0, result, operation);
     }
   }
 
