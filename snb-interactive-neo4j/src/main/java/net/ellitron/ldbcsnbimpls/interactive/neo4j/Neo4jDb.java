@@ -55,6 +55,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForu
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageReplies;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageRepliesResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson.Organization;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate2AddPostLike;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate3AddCommentLike;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate4AddForum;
@@ -78,6 +79,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.Map;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for Neo4j. Queries
@@ -843,7 +845,15 @@ public class Neo4jDb extends Db {
    * ------------------------------------------------------------------------
    */
   /**
-   * Add a Person to the social network.[1]
+   * Add a Person to the social network. [1]
+   * <p>
+   * TODO:
+   * <ul>
+   * <li>This query involves creating many relationships of different types.
+   * This is currently done using multiple cypher queries, but it may be
+   * possible to combine them in some way to amortize per query overhead and
+   * thus increase performance.</li>
+   * </ul>
    */
   public static class LdbcUpdate1AddPersonHandler implements
       OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> {
@@ -861,6 +871,119 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      // Create the person node.
+      String statement =
+          "   CREATE (p:Person {props})";
+      String parameters = "{ \"props\" : {"
+          + " \"id\" : \"" + operation.personId() + "\","
+          + " \"firstName\" : \"" + operation.personFirstName() + "\","
+          + " \"lastName\" : \"" + operation.personLastName() + "\","
+          + " \"gender\" : \"" + operation.gender() + "\","
+          + " \"birthday\" : " + operation.birthday().getTime() + ","
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
+          + " \"locationIP\" : \"" + operation.locationIp() + "\","
+          + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
+          + " \"speaks\" : "
+          + DbHelper.listToJsonArray(operation.languages()) + ","
+          + " \"emails\" : "
+          + DbHelper.listToJsonArray(operation.emails())
+          + " } }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      // Add isLocatedIn and hasInterest relationships.
+      statement =
+          "   MATCH (p:Person {id:{personId}}),"
+          + "       (c:Place {id:{cityId}}),"
+          + "       (t:Tag)"
+          + " WHERE t.id IN {tagIds}"
+          + " CREATE (p)-[:IS_LOCATED_IN]->(c),"
+          + "        (p)-[:HAS_INTEREST]->(t)";
+      parameters = "{ "
+          + " \"personId\" : \"" + operation.personId() + "\","
+          + " \"cityId\" : \"" + operation.cityId() + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      // Add studyAt relationships.
+      if (operation.studyAt().size() > 0) {
+        StringBuilder matchBldr = new StringBuilder();
+        StringBuilder createBldr = new StringBuilder();
+        StringBuilder paramBldr = new StringBuilder();
+
+        matchBldr.append("MATCH (p:Person {id:{personId}}), ");
+        createBldr.append("CREATE ");
+        paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
+
+        for (int i = 0; i < operation.studyAt().size(); i++) {
+          Organization org = operation.studyAt().get(i);
+          if (i > 0) {
+            matchBldr.append(", ");
+            createBldr.append(", ");
+            paramBldr.append(", ");
+          }
+          matchBldr.append(
+              String.format("(u%d:Organisation {id:{uId%d}})", i, i));
+          createBldr.append(
+              String.format("(p)-[:STUDY_AT {classYear:{cY%d}}]->(u%d)", i, i));
+          paramBldr.append(
+              String.format("\"uId%d\" : \"%d\"", i, org.organizationId()));
+          paramBldr.append(", ");
+          paramBldr.append(
+              String.format("\"cY%d\" : %d", i, org.year()));
+        }
+
+        paramBldr.append("}");
+
+        statement = matchBldr.toString() + " " + createBldr.toString();
+        parameters = paramBldr.toString();
+
+        driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      }
+
+      // Add workAt relationships.
+      if (operation.workAt().size() > 0) {
+        StringBuilder matchBldr = new StringBuilder();
+        StringBuilder createBldr = new StringBuilder();
+        StringBuilder paramBldr = new StringBuilder();
+
+        matchBldr.append("MATCH (p:Person {id:{personId}}), ");
+        createBldr.append("CREATE ");
+        paramBldr.append("{\"personId\" : \"" + operation.personId() + "\", ");
+
+        for (int i = 0; i < operation.workAt().size(); i++) {
+          Organization org = operation.workAt().get(i);
+          if (i > 0) {
+            matchBldr.append(", ");
+            createBldr.append(", ");
+            paramBldr.append(", ");
+          }
+          matchBldr.append(
+              String.format("(c%d:Organisation {id:{cId%d}})", i, i));
+          createBldr.append(
+              String.format("(p)-[:WORK_AT {workFrom:{wF%d}}]->(c%d)", i, i));
+          paramBldr.append(
+              String.format("\"cId%d\" : \"%d\"", i, org.organizationId()));
+          paramBldr.append(", ");
+          paramBldr.append(
+              String.format("\"wF%d\" : %d", i, org.year()));
+        }
+
+        paramBldr.append("}");
+
+        statement = matchBldr.toString() + " " + createBldr.toString();
+        parameters = paramBldr.toString();
+
+        driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      }
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
