@@ -17,8 +17,11 @@
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
 import com.ldbc.driver.DbException;
+import com.ldbc.driver.Operation;
+import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.runtime.ConcurrentErrorReporter;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
@@ -75,7 +78,14 @@ public class QueryTester {
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery5 <messageId>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery6 <messageId>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery7 <messageId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update1 <updateNumber>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update1 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update2 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update3 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update4 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update5 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update6 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update7 <nth>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update8 <nth>\n"
       + "  QueryTester (-h | --help)\n"
       + "  QueryTester --version\n"
       + "\n"
@@ -214,14 +224,15 @@ public class QueryTester {
 
   /**
    * Parses a line of an LDBC SNB interactive workload update stream file into
-   * an instance of the class that represents updates of this type.
+   * an instance of the operation that represents it.
    *
    * @param line Line of update stream file.
    *
-   * @return Instance of the update operation class that represented by this
-   * line in the update stream file. The returned object will be an instance of
-   * one of:<br>
+   * @return Instance of the update operation that represented by this line in
+   * the update stream file. The returned object will be an instance of one
+   * of:<br>
    * <ul>
+   * <li>LdbcUpdate1AddPerson</li>
    * <li>LdbcUpdate2AddPostLike</li>
    * <li>LdbcUpdate3AddCommentLike</li>
    * <li>LdbcUpdate4AddForum</li>
@@ -231,9 +242,9 @@ public class QueryTester {
    * <li>LdbcUpdate8AddFriendship</li>
    * </ul>
    */
-  private static Object parseUpdate(String line) throws InstantiationException,
-      IllegalAccessException, IllegalArgumentException,
-      InvocationTargetException {
+  private static Operation<LdbcNoResult> parseUpdate(String line)
+      throws InstantiationException, IllegalAccessException,
+      IllegalArgumentException, InvocationTargetException {
     List<String> colVals = new ArrayList<>(Arrays.asList(line.split("\\|")));
 
     Update update = Update.getValueByNumber(Integer.decode(colVals.get(2)));
@@ -292,7 +303,7 @@ public class QueryTester {
     }
 
     Constructor ctor = update.getOpClass().getDeclaredConstructors()[0];
-    return ctor.newInstance(pList.toArray());
+    return (Operation<LdbcNoResult>) ctor.newInstance(pList.toArray());
   }
 
   public static void main(String[] args) throws DbException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -433,43 +444,137 @@ public class QueryTester {
 
       System.out.println(String.format("Query time: %dus",
           (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("update1")) {
-      String fileName = "updateStream_0_0_person.csv";
+    } else if ((Boolean) opts.get("update1") || (Boolean) opts.get("update2")
+        || (Boolean) opts.get("update3") || (Boolean) opts.get("update4")
+        || (Boolean) opts.get("update5") || (Boolean) opts.get("update6")
+        || (Boolean) opts.get("update7") || (Boolean) opts.get("update8")) {
+      // Extract the numerber of the update operation we want to perform.
+      int updateOpNumber = 0;
+      for (int i = 1; i <= 8; i++) {
+        if ((Boolean) opts.get("update" + i)) {
+          updateOpNumber = i;
+          break;
+        }
+      }
+
+      String fileName;
+      if (updateOpNumber == 1) {
+        fileName = "updateStream_0_0_person.csv";
+      } else {
+        fileName = "updateStream_0_0_forum.csv";
+      }
+
       Path path = Paths.get(inputDir + "/" + fileName);
       BufferedReader inFile =
           Files.newBufferedReader(path, StandardCharsets.UTF_8);
 
-      Long updateNumber = Long.decode((String) opts.get("<updateNumber>"));
+      Long nth = Long.decode((String) opts.get("<nth>"));
 
+      // Track how many update ops of this type we have read from the file.
+      long readCount = 0;
       String line;
-      long lineNumber = 0;
       while ((line = inFile.readLine()) != null) {
-        lineNumber++;
+        if (Integer.decode(line.split("\\|")[2]) == updateOpNumber) {
+          readCount++;
 
-        if (lineNumber == updateNumber) {
-          Object op = parseUpdate(line);
+          if (readCount == nth) {
+            Operation<LdbcNoResult> op = parseUpdate(line);
 
-          System.out.println(op.toString());
+            System.out.println(op.toString());
 
-          long startTime = System.nanoTime();
-          new Neo4jDb.LdbcUpdate1AddPersonHandler()
-              .executeOperation((LdbcUpdate1AddPerson) op,
-                  dbConnectionState, resultReporter);
-          long endTime = System.nanoTime();
+            long startTime, endTime;
+            switch (updateOpNumber) {
+              case 1: {
+                OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate1AddPersonHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate1AddPerson) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 2: {
+                OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate2AddPostLikeHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate2AddPostLike) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 3: {
+                OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate3AddCommentLikeHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate3AddCommentLike) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 4: {
+                OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate4AddForumHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate4AddForum) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 5: {
+                OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate5AddForumMembershipHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate5AddForumMembership) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 6: {
+                OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate6AddPostHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate6AddPost) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 7: {
+                OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate7AddCommentHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate7AddComment) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              case 8: {
+                OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> opHandler =
+                    new Neo4jDb.LdbcUpdate8AddFriendshipHandler();
+                startTime = System.nanoTime();
+                opHandler.executeOperation((LdbcUpdate8AddFriendship) op,
+                    dbConnectionState, resultReporter);
+                endTime = System.nanoTime();
+                break;
+              }
+              default:
+                throw new RuntimeException("ERROR: Encountered unknown update "
+                    + "operation number " + updateOpNumber + "!");
+            }
 
-          System.out.println(String.format("Query time: %dus",
-              (endTime - startTime) / 1000l));
+            System.out.println(String.format("Query time: %dus",
+                (endTime - startTime) / 1000l));
 
-          break;
+            break;
+          }
         }
       }
 
       inFile.close();
 
-      if (lineNumber < updateNumber) {
-        System.out.println(String.format("ERROR: File %s only contains %d "
-            + "updates, but user requested execution of update %d.",
-            path.toAbsolutePath(), lineNumber, updateNumber));
+      if (readCount < nth) {
+        System.out.println(String.format("ERROR: File %s only contains %d"
+            + " update%d ops, but user requested execution of update #%d.",
+            path.toAbsolutePath(), readCount, updateOpNumber, nth));
       }
     }
   }
