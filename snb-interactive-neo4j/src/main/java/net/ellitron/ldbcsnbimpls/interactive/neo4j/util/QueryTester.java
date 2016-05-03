@@ -16,6 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
+import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
 import com.ldbc.driver.Operation;
 import com.ldbc.driver.OperationHandler;
@@ -56,6 +57,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery1PersonProfileHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery2PersonPostsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery3PersonFriendsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery4MessageContentHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery5MessageCreatorHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6MessageForumHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
 import org.docopt.Docopt;
 
@@ -98,10 +106,75 @@ public class QueryTester {
       + "\n";
 
   /**
+   * Represents all the types of short read queries on the graph in the LDBC
+   * SNB interactive workload and their parameters. The order in the enum
+   * matches the numbering of the short read ops.
+   */
+  private enum ShortReadOp {
+
+    PERSONPROFILE(new String[]{"personId", "Long"},
+        LdbcShortQuery1PersonProfile.class,
+        LdbcShortQuery1PersonProfileHandler.class),
+    PERSONPOSTS(new String[]{"personId", "Long", "limit", "Integer"},
+        LdbcShortQuery2PersonPosts.class,
+        LdbcShortQuery2PersonPostsHandler.class),
+    PERSONFRIENDS(new String[]{"personId", "Long"},
+        LdbcShortQuery3PersonFriends.class,
+        LdbcShortQuery3PersonFriendsHandler.class),
+    MESSAGECONTENT(new String[]{"messageId", "Long"},
+        LdbcShortQuery4MessageContent.class,
+        LdbcShortQuery4MessageContentHandler.class),
+    MESSAGECREATOR(new String[]{"messageId", "Long"},
+        LdbcShortQuery5MessageCreator.class,
+        LdbcShortQuery5MessageCreatorHandler.class),
+    MESSAGEFORUM(new String[]{"messageId", "Long"},
+        LdbcShortQuery6MessageForum.class,
+        LdbcShortQuery6MessageForumHandler.class),
+    MESSAGEREPLIES(new String[]{"messageId", "Long"},
+        LdbcShortQuery7MessageReplies.class,
+        LdbcShortQuery7MessageRepliesHandler.class);
+
+    /*
+     * Ordered array of the constructor arguments and their corresponding types
+     * for the class that represents operations of this type.
+     */
+    private final String[] ctorArgsAndTypes;
+
+    /*
+     * The class that represents operations of this type.
+     */
+    private final Class<?> opClass;
+
+    /*
+     * The class that represents the handler for operations of this type.
+     */
+    private final Class<?> opHandlerClass;
+
+    private ShortReadOp(String[] ctorArgsAndTypes, Class<?> opClass,
+        Class<?> opHandlerClass) {
+      this.ctorArgsAndTypes = ctorArgsAndTypes;
+      this.opClass = opClass;
+      this.opHandlerClass = opHandlerClass;
+    }
+
+    public String[] getOpCtorArgsAndTypes() {
+      return this.ctorArgsAndTypes;
+    }
+
+    public Class<?> getOpClass() {
+      return this.opClass;
+    }
+
+    public Class<?> getOpHandlerClass() {
+      return this.opHandlerClass;
+    }
+  }
+
+  /**
    * Represents all the types of updates on the graph in the LDBC SNB
    * interactive workload and their parameters.
    */
-  private enum Update {
+  private enum UpdateOp {
 
     ADDPERSON(1, new String[]{"personId", "firstName", "lastName", "gender",
       "birthday", "creationDate", "locationIP", "browserUsed", "cityId",
@@ -144,7 +217,7 @@ public class QueryTester {
      */
     private final Class<?> opClass;
 
-    private Update(int number, String[] params, Class<?> opClass) {
+    private UpdateOp(int number, String[] params, Class<?> opClass) {
       this.number = number;
       this.params = params;
       this.opClass = opClass;
@@ -167,9 +240,9 @@ public class QueryTester {
      *
      * @return Update that has the given number.
      */
-    public static Update getValueByNumber(int number) {
-      Update update = null;
-      for (Update u : Update.values()) {
+    public static UpdateOp getValueByNumber(int number) {
+      UpdateOp update = null;
+      for (UpdateOp u : UpdateOp.values()) {
         if (u.getNumber() == number) {
           update = u;
         }
@@ -247,7 +320,7 @@ public class QueryTester {
       IllegalArgumentException, InvocationTargetException {
     List<String> colVals = new ArrayList<>(Arrays.asList(line.split("\\|")));
 
-    Update update = Update.getValueByNumber(Integer.decode(colVals.get(2)));
+    UpdateOp update = UpdateOp.getValueByNumber(Integer.decode(colVals.get(2)));
     String[] params = update.getParams();
 
     // If there are any left-off fields at the end, fill them in with blanks.
@@ -255,15 +328,15 @@ public class QueryTester {
       colVals.add("");
     }
 
-    List<Object> pList = new ArrayList<>();
+    List<Object> argList = new ArrayList<>();
     for (int i = 0; i < params.length; i++) {
       String fieldValue = colVals.get(3 + i);
       switch (paramDataTypes.get(params[i])) {
         case "Date":
-          pList.add(new Date(Long.decode(fieldValue)));
+          argList.add(new Date(Long.decode(fieldValue)));
           break;
         case "Integer":
-          pList.add(Integer.decode(fieldValue));
+          argList.add(Integer.decode(fieldValue));
           break;
         case "List<Long>":
           List<Long> numList = new ArrayList<>();
@@ -272,7 +345,7 @@ public class QueryTester {
               numList.add(Long.decode(num));
             }
           }
-          pList.add(numList);
+          argList.add(numList);
           break;
         case "List<Organization>":
           List<Organization> orgList = new ArrayList<>();
@@ -284,16 +357,16 @@ public class QueryTester {
               orgList.add(new Organization(orgId, year));
             }
           }
-          pList.add(orgList);
+          argList.add(orgList);
           break;
         case "List<String>":
-          pList.add(Arrays.asList(fieldValue.split(";")));
+          argList.add(Arrays.asList(fieldValue.split(";")));
           break;
         case "Long":
-          pList.add(Long.decode(fieldValue));
+          argList.add(Long.decode(fieldValue));
           break;
         case "String":
-          pList.add(fieldValue);
+          argList.add(fieldValue);
           break;
         default:
           throw new RuntimeException(String.format("Don't know how to parse "
@@ -303,7 +376,7 @@ public class QueryTester {
     }
 
     Constructor ctor = update.getOpClass().getDeclaredConstructors()[0];
-    return (Operation<LdbcNoResult>) ctor.newInstance(pList.toArray());
+    return (Operation<LdbcNoResult>) ctor.newInstance(argList.toArray());
   }
 
   public static void main(String[] args) throws DbException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -338,127 +411,135 @@ public class QueryTester {
         new ResultReporter.SimpleResultReporter(
             new ConcurrentErrorReporter());
 
-    if ((Boolean) opts.get("shortquery1")) {
-      Long id = Long.decode((String) opts.get("<personId>"));
+    if ((Boolean) opts.get("shortquery1")
+        || (Boolean) opts.get("shortquery2")
+        || (Boolean) opts.get("shortquery3")
+        || (Boolean) opts.get("shortquery4")
+        || (Boolean) opts.get("shortquery5")
+        || (Boolean) opts.get("shortquery6")
+        || (Boolean) opts.get("shortquery7")) {
+      // Extract the number of the short query operation we want to perform.
+      int opNumber = 0;
+      for (int i = 1; i <= 7; i++) {
+        if ((Boolean) opts.get("shortquery" + i)) {
+          opNumber = i;
+          break;
+        }
+      }
 
-      LdbcShortQuery1PersonProfile operation =
-          new LdbcShortQuery1PersonProfile(id);
+      ShortReadOp srOp = ShortReadOp.values()[opNumber - 1];
 
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery1PersonProfileHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      String[] opCtorArgsAndTypes = srOp.getOpCtorArgsAndTypes();
+      List<Object> argList = new ArrayList<>();
+      for (int i = 0; i < opCtorArgsAndTypes.length; i += 2) {
+        String argOpt = "<" + opCtorArgsAndTypes[i] + ">";
+        String type = opCtorArgsAndTypes[i + 1];
+
+        String argValue = (String) opts.get(argOpt);
+        switch (type) {
+          case "Long":
+            argList.add(Long.decode(argValue));
+            break;
+          case "Integer":
+            argList.add(Integer.decode(argValue));
+            break;
+          default:
+            throw new RuntimeException(String.format("Don't know how to parse "
+                + "arg of type %s for short read type %s",
+                type, srOp.name()));
+        }
+      }
+
+      Object opHandler = srOp.getOpHandlerClass().newInstance();
+      Object op = srOp.getOpClass().getDeclaredConstructors()[0]
+          .newInstance(argList.toArray());
+
+      System.out.println(op.toString());
+
+      long startTime = 0;
+      long endTime = 0;
+      switch (opNumber) {
+        case 1: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery1PersonProfileHandler) opHandler).executeOperation(
+              (LdbcShortQuery1PersonProfile) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 2: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery2PersonPostsHandler) opHandler).executeOperation(
+              (LdbcShortQuery2PersonPosts) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 3: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery3PersonFriendsHandler) opHandler).executeOperation(
+              (LdbcShortQuery3PersonFriends) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 4: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery4MessageContentHandler) opHandler).executeOperation(
+              (LdbcShortQuery4MessageContent) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 5: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery5MessageCreatorHandler) opHandler).executeOperation(
+              (LdbcShortQuery5MessageCreator) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 6: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery6MessageForumHandler) opHandler).executeOperation(
+              (LdbcShortQuery6MessageForum) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        case 7: {
+          startTime = System.nanoTime();
+          ((LdbcShortQuery7MessageRepliesHandler) opHandler).executeOperation(
+              (LdbcShortQuery7MessageReplies) op, dbConnectionState,
+              resultReporter);
+          endTime = System.nanoTime();
+          break;
+        }
+        default:
+          throw new RuntimeException("ERROR: Encountered unknown short read "
+              + "operation number " + opNumber + "!");
+      }
 
       printResult(resultReporter.result());
 
       System.out.println(String.format("Query time: %dus",
           (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery2")) {
-      Long id = Long.decode((String) opts.get("<personId>"));
-      int limit = Integer.decode((String) opts.get("<limit>"));
 
-      LdbcShortQuery2PersonPosts operation =
-          new LdbcShortQuery2PersonPosts(id, limit);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery2PersonPostsHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery3")) {
-      Long id = Long.decode((String) opts.get("<personId>"));
-
-      LdbcShortQuery3PersonFriends operation =
-          new LdbcShortQuery3PersonFriends(id);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery3PersonFriendsHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery4")) {
-      Long id = Long.decode((String) opts.get("<messageId>"));
-
-      LdbcShortQuery4MessageContent operation =
-          new LdbcShortQuery4MessageContent(id);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery4MessageContentHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery5")) {
-      Long id = Long.decode((String) opts.get("<messageId>"));
-
-      LdbcShortQuery5MessageCreator operation =
-          new LdbcShortQuery5MessageCreator(id);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery5MessageCreatorHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery6")) {
-      Long id = Long.decode((String) opts.get("<messageId>"));
-
-      LdbcShortQuery6MessageForum operation =
-          new LdbcShortQuery6MessageForum(id);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery6MessageForumHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
-    } else if ((Boolean) opts.get("shortquery7")) {
-      Long id = Long.decode((String) opts.get("<messageId>"));
-
-      LdbcShortQuery7MessageReplies operation =
-          new LdbcShortQuery7MessageReplies(id);
-
-      long startTime = System.nanoTime();
-      new Neo4jDb.LdbcShortQuery7MessageRepliesHandler()
-          .executeOperation(operation, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("update1") || (Boolean) opts.get("update2")
         || (Boolean) opts.get("update3") || (Boolean) opts.get("update4")
         || (Boolean) opts.get("update5") || (Boolean) opts.get("update6")
         || (Boolean) opts.get("update7") || (Boolean) opts.get("update8")) {
-      // Extract the numerber of the update operation we want to perform.
-      int updateOpNumber = 0;
+      // Extract the number of the update operation we want to perform.
+      int opNumber = 0;
       for (int i = 1; i <= 8; i++) {
         if ((Boolean) opts.get("update" + i)) {
-          updateOpNumber = i;
+          opNumber = i;
           break;
         }
       }
 
       String fileName;
-      if (updateOpNumber == 1) {
+      if (opNumber == 1) {
         fileName = "updateStream_0_0_person.csv";
       } else {
         fileName = "updateStream_0_0_forum.csv";
@@ -474,7 +555,7 @@ public class QueryTester {
       long readCount = 0;
       String line;
       while ((line = inFile.readLine()) != null) {
-        if (Integer.decode(line.split("\\|")[2]) == updateOpNumber) {
+        if (Integer.decode(line.split("\\|")[2]) == opNumber) {
           readCount++;
 
           if (readCount == nth) {
@@ -483,7 +564,7 @@ public class QueryTester {
             System.out.println(op.toString());
 
             long startTime, endTime;
-            switch (updateOpNumber) {
+            switch (opNumber) {
               case 1: {
                 OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate1AddPersonHandler();
@@ -558,7 +639,7 @@ public class QueryTester {
               }
               default:
                 throw new RuntimeException("ERROR: Encountered unknown update "
-                    + "operation number " + updateOpNumber + "!");
+                    + "operation number " + opNumber + "!");
             }
 
             System.out.println(String.format("Query time: %dus",
@@ -574,7 +655,7 @@ public class QueryTester {
       if (readCount < nth) {
         System.out.println(String.format("ERROR: File %s only contains %d"
             + " update%d ops, but user requested execution of update #%d.",
-            path.toAbsolutePath(), readCount, updateOpNumber, nth));
+            path.toAbsolutePath(), readCount, opNumber, nth));
       }
     }
   }
