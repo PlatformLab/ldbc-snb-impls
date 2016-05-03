@@ -1001,6 +1001,23 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      
+      String statement =
+          "   MATCH (p:Person {id:{personId}}),"
+          + "       (m:Post {id:{postId}})"
+          + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
+      String parameters = "{ "
+          + " \"personId\" : \"" + operation.personId() + "\","
+          + " \"postId\" : \"" + operation.postId() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime()
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
 
   }
