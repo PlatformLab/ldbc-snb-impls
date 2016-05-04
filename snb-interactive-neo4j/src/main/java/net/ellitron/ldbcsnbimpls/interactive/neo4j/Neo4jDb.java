@@ -590,7 +590,8 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (:Person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:Post)-[:HAS_CREATOR]->(c)"
+          "   MATCH (:Person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:Post)"
+          + " MATCH (p)-[:HAS_CREATOR]->(c)"
           + " RETURN"
           + "   m.id as messageId,"
           + "   CASE has(m.content)"
