@@ -47,6 +47,7 @@ import java.util.logging.Logger;
  * <li>Add specific instructions.</li>
  * <li>Join language and e-mails into person node.</li>
  * <li>More flexible file searching for multipart files.</li>
+ * <li>Change ids to longs instead of strings.</li>
  * </ul>
  * <p>
  * [1]: git@github.com:ldbc/ldbc_snb_datagen.git<br>
