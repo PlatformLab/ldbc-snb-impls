@@ -612,7 +612,7 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (n:Person {id:{id}})-[r:KNOWS]->(friend)"
+          "   MATCH (n:Person {id:{id}})-[r:KNOWS]-(friend)"
           + " RETURN"
           + "   friend.id AS personId,"
           + "   friend.firstName AS firstName,"
@@ -657,8 +657,7 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (m {id:{id}})"
-          + " WHERE (m:Post OR m:Comment)"
+          "   MATCH (m:Message {id:{id}})"
           + " RETURN"
           + "   CASE has(m.content)"
           + "     WHEN true THEN m.content"
@@ -702,8 +701,7 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (m {id:{id}})-[:HAS_CREATOR]->(p:Person)"
-          + " WHERE (m:Post OR m:Comment)"
+          "   MATCH (m:Message {id:{id}})-[:HAS_CREATOR]->(p:Person)"
           + " RETURN"
           + "   p.id AS personId,"
           + "   p.firstName AS firstName,"
@@ -749,8 +747,7 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (m {id:{id}})-[:REPLY_OF*0..]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)"
-          + " WHERE (m:Post OR m:Comment)"
+          "   MATCH (m:Message {id:{id}})-[:REPLY_OF*0..]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)"
           + " RETURN"
           + "   f.id AS forumId,"
           + "   f.title AS forumTitle,"
@@ -801,8 +798,7 @@ public class Neo4jDb extends Db {
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
 
       String statement =
-          "   MATCH (m {id:{id}})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)"
-          + " WHERE (m:Post OR m:Comment)"
+          "   MATCH (m:Message {id:{id}})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)"
           + " OPTIONAL MATCH (m)-[:HAS_CREATOR]->(a:Person)-[r:KNOWS]-(p)"
           + " RETURN"
           + "   c.id AS commentId,"
@@ -1002,7 +998,7 @@ public class Neo4jDb extends Db {
         ResultReporter reporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
+
       String statement =
           "   MATCH (p:Person {id:{personId}}),"
           + "       (m:Post {id:{postId}})"
@@ -1014,7 +1010,7 @@ public class Neo4jDb extends Db {
           + " }";
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      
+
       driver.execAndCommit();
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
@@ -1036,6 +1032,23 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (p:Person {id:{personId}}),"
+          + "       (m:Comment {id:{commentId}})"
+          + " CREATE (p)-[:LIKES {creationDate:{creationDate}}]->(m)";
+      String parameters = "{ "
+          + " \"personId\" : \"" + operation.personId() + "\","
+          + " \"commentId\" : \"" + operation.commentId() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime()
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
@@ -1053,6 +1066,38 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      // Create the forum node.
+      String statement =
+          "   CREATE (f:Forum {props})";
+      String parameters = "{ \"props\" : {"
+          + " \"id\" : \"" + operation.forumId() + "\","
+          + " \"title\" : \"" + operation.forumTitle() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime()
+          + " } }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      // Add hasModerator and hasTag relationships.
+      statement =
+          "   MATCH (f:Forum {id:{forumId}}),"
+          + "       (p:Person {id:{moderatorId}}),"
+          + "       (t:Tag)"
+          + " WHERE t.id IN {tagIds}"
+          + " CREATE (f)-[:HAS_MODERATOR]->(p),"
+          + "        (f)-[:HAS_TAG]->(t)";
+      parameters = "{ "
+          + " \"forumId\" : \"" + operation.forumId() + "\","
+          + " \"moderatorId\" : \"" + operation.moderatorPersonId() + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
@@ -1070,6 +1115,23 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (f:Forum {id:{forumId}}),"
+          + "       (p:Person {id:{personId}})"
+          + " CREATE (f)-[:HAS_MEMBER {joinDate:{joinDate}}]->(p)";
+      String parameters = "{ "
+          + " \"forumId\" : \"" + operation.forumId() + "\","
+          + " \"personId\" : \"" + operation.personId() + "\","
+          + " \"joinDate\" : " + operation.joinDate().getTime()
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
@@ -1087,6 +1149,49 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      
+      // Create the post node.
+      String statement =
+          "   CREATE (m:Post:Message {props})";
+      String parameters = "{ \"props\" : {"
+          + " \"id\" : \"" + operation.postId() + "\","
+          + " \"imageFile\" : \"" + operation.imageFile() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
+          + " \"locationIP\" : \"" + operation.locationIp() + "\","
+          + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
+          + " \"language\" : \"" + operation.language() + "\","
+          + " \"content\" : \"" + operation.content() + "\","
+          + " \"length\" : " + operation.length()
+          + " } }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
+      statement =
+          "   MATCH (m:Post {id:{postId}}),"
+          + "       (p:Person {id:{authorId}}),"
+          + "       (f:Forum {id:{forumId}}),"
+          + "       (c:Place {id:{countryId}}),"
+          + "       (t:Tag)"
+          + " WHERE t.id IN {tagIds}"
+          + " CREATE (m)-[:HAS_CREATOR]->(p),"
+          + "        (m)<-[:CONTAINER_OF]-(f),"
+          + "        (m)-[:IS_LOCATED_IN]->(c),"
+          + "        (m)-[:HAS_TAG]->(t)";
+      parameters = "{ "
+          + " \"postId\" : \"" + operation.postId() + "\","
+          + " \"authorId\" : \"" + operation.authorPersonId() + "\","
+          + " \"forumId\" : \"" + operation.forumId() + "\","
+          + " \"countryId\" : \"" + operation.countryId() + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
@@ -1104,6 +1209,54 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      
+      // Create the comment node.
+      String statement =
+          "   CREATE (c:Comment:Message {props})";
+      String parameters = "{ \"props\" : {"
+          + " \"id\" : \"" + operation.commentId() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
+          + " \"locationIP\" : \"" + operation.locationIp() + "\","
+          + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
+          + " \"content\" : \"" + operation.content() + "\","
+          + " \"length\" : " + operation.length()
+          + " } }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      Long replyOfId;
+      if (operation.replyToCommentId() != -1) {
+        replyOfId = operation.replyToCommentId();
+      } else {
+        replyOfId = operation.replyToPostId();
+      }
+      
+      // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
+      statement =
+          "   MATCH (m:Comment {id:{commentId}}),"
+          + "       (p:Person {id:{authorId}}),"
+          + "       (r:Message {id:{replyOfId}}),"
+          + "       (c:Place {id:{countryId}}),"
+          + "       (t:Tag)"
+          + " WHERE t.id IN {tagIds}"
+          + " CREATE (m)-[:HAS_CREATOR]->(p),"
+          + "        (m)-[:REPLY_OF]->(r),"
+          + "        (m)-[:IS_LOCATED_IN]->(c),"
+          + "        (m)-[:HAS_TAG]->(t)";
+      parameters = "{ "
+          + " \"commentId\" : \"" + operation.commentId() + "\","
+          + " \"authorId\" : \"" + operation.authorPersonId() + "\","
+          + " \"replyOfId\" : \"" + replyOfId + "\","
+          + " \"countryId\" : \"" + operation.countryId() + "\","
+          + " \"tagIds\" : " + DbHelper.listToJsonArray(operation.tagIds())
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 
@@ -1121,6 +1274,23 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (p1:Person {id:{person1Id}}),"
+          + "       (p2:Person {id:{person2Id}})"
+          + " CREATE (p1)-[:KNOWS {creationDate:{creationDate}}]->(p2)";
+      String parameters = "{ "
+          + " \"person1Id\" : \"" + operation.person1Id() + "\","
+          + " \"person2Id\" : \"" + operation.person2Id() + "\","
+          + " \"creationDate\" : " + operation.creationDate().getTime()
+          + " }";
+
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+
+      driver.execAndCommit();
+
+      reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
 }
