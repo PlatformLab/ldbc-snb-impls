@@ -99,7 +99,13 @@ import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
  * and Gubichev, Andrey (TUM) and Spasić, Mirko (OGL) and Pham, Minh-Duc (VUA)
  * and Martínez, Norbert (SPARSITY). "LDBC Social Network Benchmark (SNB) -
  * v0.2.2 First Public Draft Release". http://www.ldbcouncil.org/.
- *
+ * <p>
+ * TODO:<br>
+ * <ul>
+ * <li>Change ids to longs instead of strings.</li>
+ * </ul>
+ * <p>
+ * 
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class Neo4jDb extends Db {
@@ -138,40 +144,40 @@ public class Neo4jDb extends Db {
     }
 
     connectionState = new Neo4jDbConnectionState(host, port);
-    
-    /* 
+
+    /*
      * Register operation handlers with the benchmark.
      */
-    registerOperationHandler(LdbcShortQuery1PersonProfile.class, 
+    registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
-    registerOperationHandler(LdbcShortQuery2PersonPosts.class, 
+    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
         LdbcShortQuery2PersonPostsHandler.class);
-    registerOperationHandler(LdbcShortQuery3PersonFriends.class, 
+    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
         LdbcShortQuery3PersonFriendsHandler.class);
-    registerOperationHandler(LdbcShortQuery4MessageContent.class, 
+    registerOperationHandler(LdbcShortQuery4MessageContent.class,
         LdbcShortQuery4MessageContentHandler.class);
-    registerOperationHandler(LdbcShortQuery5MessageCreator.class, 
+    registerOperationHandler(LdbcShortQuery5MessageCreator.class,
         LdbcShortQuery5MessageCreatorHandler.class);
-    registerOperationHandler(LdbcShortQuery6MessageForum.class, 
+    registerOperationHandler(LdbcShortQuery6MessageForum.class,
         LdbcShortQuery6MessageForumHandler.class);
-    registerOperationHandler(LdbcShortQuery7MessageReplies.class, 
+    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
         LdbcShortQuery7MessageRepliesHandler.class);
-    
-    registerOperationHandler(LdbcUpdate1AddPerson.class, 
+
+    registerOperationHandler(LdbcUpdate1AddPerson.class,
         LdbcUpdate1AddPersonHandler.class);
-    registerOperationHandler(LdbcUpdate2AddPostLike.class, 
+    registerOperationHandler(LdbcUpdate2AddPostLike.class,
         LdbcUpdate2AddPostLikeHandler.class);
-    registerOperationHandler(LdbcUpdate3AddCommentLike.class, 
+    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
         LdbcUpdate3AddCommentLikeHandler.class);
-    registerOperationHandler(LdbcUpdate4AddForum.class, 
+    registerOperationHandler(LdbcUpdate4AddForum.class,
         LdbcUpdate4AddForumHandler.class);
-    registerOperationHandler(LdbcUpdate5AddForumMembership.class, 
+    registerOperationHandler(LdbcUpdate5AddForumMembership.class,
         LdbcUpdate5AddForumMembershipHandler.class);
-    registerOperationHandler(LdbcUpdate6AddPost.class, 
+    registerOperationHandler(LdbcUpdate6AddPost.class,
         LdbcUpdate6AddPostHandler.class);
-    registerOperationHandler(LdbcUpdate7AddComment.class, 
+    registerOperationHandler(LdbcUpdate7AddComment.class,
         LdbcUpdate7AddCommentHandler.class);
-    registerOperationHandler(LdbcUpdate8AddFriendship.class, 
+    registerOperationHandler(LdbcUpdate8AddFriendship.class,
         LdbcUpdate8AddFriendshipHandler.class);
   }
 
@@ -654,7 +660,7 @@ public class Neo4jDb extends Db {
           + "   friend.firstName AS firstName,"
           + "   friend.lastName AS lastName,"
           + "   r.creationDate AS friendshipCreationDate"
-          + " ORDER BY friendshipCreationDate DESC, personId ASC";
+          + " ORDER BY friendshipCreationDate DESC, toInt(personId) ASC";
       String parameters = "{ \"id\" : \"" + operation.personId() + "\" }";
 
       // Execute the query and get the results.
@@ -846,7 +852,8 @@ public class Neo4jDb extends Db {
           + "   CASE r"
           + "     WHEN null THEN false"
           + "     ELSE true"
-          + "   END AS replyAuthorKnowsOriginalMessageAuthor";
+          + "   END AS replyAuthorKnowsOriginalMessageAuthor"
+          + " ORDER BY commentCreationDate DESC, replyAuthorId ASC";
       String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
 
       // Execute the query and get the results.
@@ -928,11 +935,12 @@ public class Neo4jDb extends Db {
       // Add isLocatedIn and hasInterest relationships.
       statement =
           "   MATCH (p:Person {id:{personId}}),"
-          + "       (c:Place {id:{cityId}}),"
-          + "       (t:Tag)"
+          + "       (c:Place {id:{cityId}})"
+          + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
-          + " CREATE (p)-[:IS_LOCATED_IN]->(c),"
-          + "        (p)-[:HAS_INTEREST]->(t)";
+          + " WITH p, c, collect(t) AS tagSet"
+          + " CREATE (p)-[:IS_LOCATED_IN]->(c)"
+          + " FOREACH(t IN tagSet| CREATE (p)-[:HAS_INTEREST]->(t))";
       parameters = "{ "
           + " \"personId\" : \"" + operation.personId() + "\","
           + " \"cityId\" : \"" + operation.cityId() + "\","
@@ -1118,11 +1126,12 @@ public class Neo4jDb extends Db {
       // Add hasModerator and hasTag relationships.
       statement =
           "   MATCH (f:Forum {id:{forumId}}),"
-          + "       (p:Person {id:{moderatorId}}),"
-          + "       (t:Tag)"
+          + "       (p:Person {id:{moderatorId}})"
+          + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
-          + " CREATE (f)-[:HAS_MODERATOR]->(p),"
-          + "        (f)-[:HAS_TAG]->(t)";
+          + " WITH f, p, collect(t) as tagSet"
+          + " CREATE (f)-[:HAS_MODERATOR]->(p)"
+          + " FOREACH (t IN tagSet| CREATE (f)-[:HAS_TAG]->(t))";
       parameters = "{ "
           + " \"forumId\" : \"" + operation.forumId() + "\","
           + " \"moderatorId\" : \"" + operation.moderatorPersonId() + "\","
@@ -1186,20 +1195,32 @@ public class Neo4jDb extends Db {
         ResultReporter reporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
+
       // Create the post node.
       String statement =
           "   CREATE (m:Post:Message {props})";
-      String parameters = "{ \"props\" : {"
-          + " \"id\" : \"" + operation.postId() + "\","
-          + " \"imageFile\" : \"" + operation.imageFile() + "\","
-          + " \"creationDate\" : " + operation.creationDate().getTime() + ","
-          + " \"locationIP\" : \"" + operation.locationIp() + "\","
-          + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
-          + " \"language\" : \"" + operation.language() + "\","
-          + " \"content\" : \"" + operation.content() + "\","
-          + " \"length\" : " + operation.length()
-          + " } }";
+      String parameters;
+      if (operation.imageFile().length() > 0) {
+        parameters = "{ \"props\" : {"
+            + " \"id\" : \"" + operation.postId() + "\","
+            + " \"imageFile\" : \"" + operation.imageFile() + "\","
+            + " \"creationDate\" : " + operation.creationDate().getTime() + ","
+            + " \"locationIP\" : \"" + operation.locationIp() + "\","
+            + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
+            + " \"language\" : \"" + operation.language() + "\","
+            + " \"length\" : " + operation.length()
+            + " } }";
+      } else {
+        parameters = "{ \"props\" : {"
+            + " \"id\" : \"" + operation.postId() + "\","
+            + " \"creationDate\" : " + operation.creationDate().getTime() + ","
+            + " \"locationIP\" : \"" + operation.locationIp() + "\","
+            + " \"browserUsed\" : \"" + operation.browserUsed() + "\","
+            + " \"language\" : \"" + operation.language() + "\","
+            + " \"content\" : \"" + operation.content() + "\","
+            + " \"length\" : " + operation.length()
+            + " } }";
+      }
 
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
 
@@ -1208,13 +1229,14 @@ public class Neo4jDb extends Db {
           "   MATCH (m:Post {id:{postId}}),"
           + "       (p:Person {id:{authorId}}),"
           + "       (f:Forum {id:{forumId}}),"
-          + "       (c:Place {id:{countryId}}),"
-          + "       (t:Tag)"
+          + "       (c:Place {id:{countryId}})"
+          + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
+          + " WITH m, p, f, c, collect(t) as tagSet"
           + " CREATE (m)-[:HAS_CREATOR]->(p),"
           + "        (m)<-[:CONTAINER_OF]-(f),"
-          + "        (m)-[:IS_LOCATED_IN]->(c),"
-          + "        (m)-[:HAS_TAG]->(t)";
+          + "        (m)-[:IS_LOCATED_IN]->(c)"
+          + " FOREACH (t IN tagSet| CREATE (m)-[:HAS_TAG]->(t))";
       parameters = "{ "
           + " \"postId\" : \"" + operation.postId() + "\","
           + " \"authorId\" : \"" + operation.authorPersonId() + "\","
@@ -1246,7 +1268,7 @@ public class Neo4jDb extends Db {
         ResultReporter reporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
+
       // Create the comment node.
       String statement =
           "   CREATE (c:Comment:Message {props})";
@@ -1267,19 +1289,20 @@ public class Neo4jDb extends Db {
       } else {
         replyOfId = operation.replyToPostId();
       }
-      
+
       // Add hasCreator, containerOf, isLocatedIn, and hasTag relationships.
       statement =
           "   MATCH (m:Comment {id:{commentId}}),"
           + "       (p:Person {id:{authorId}}),"
           + "       (r:Message {id:{replyOfId}}),"
-          + "       (c:Place {id:{countryId}}),"
-          + "       (t:Tag)"
+          + "       (c:Place {id:{countryId}})"
+          + " OPTIONAL MATCH (t:Tag)"
           + " WHERE t.id IN {tagIds}"
+          + " WITH m, p, r, c, collect(t) as tagSet"
           + " CREATE (m)-[:HAS_CREATOR]->(p),"
           + "        (m)-[:REPLY_OF]->(r),"
-          + "        (m)-[:IS_LOCATED_IN]->(c),"
-          + "        (m)-[:HAS_TAG]->(t)";
+          + "        (m)-[:IS_LOCATED_IN]->(c)"
+          + " FOREACH (t IN tagSet| CREATE (m)-[:HAS_TAG]->(t))";
       parameters = "{ "
           + " \"commentId\" : \"" + operation.commentId() + "\","
           + " \"authorId\" : \"" + operation.authorPersonId() + "\","
