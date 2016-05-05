@@ -42,6 +42,10 @@ public class Neo4jCypherResult {
   public JsonArray getColumns() {
     return result.getJsonArray("columns");
   }
+  
+  public int rows() {
+    return result.getJsonArray("data").size();
+  }
 
   public JsonArray getRow(int i) {
     return result.getJsonArray("data").getJsonObject(i).getJsonArray("row");
