@@ -102,7 +102,6 @@ import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
  * <p>
  * TODO:<br>
  * <ul>
- * <li>Change ids to longs instead of strings.</li>
  * </ul>
  * <p>
  * 
