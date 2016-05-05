@@ -16,7 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
-import net.ellitron.ldbcsnbimpls.snb.Entity;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -31,7 +31,6 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
@@ -64,22 +63,15 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
-import org.apache.commons.configuration.BaseConfiguration;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.Map;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for Neo4j. Queries

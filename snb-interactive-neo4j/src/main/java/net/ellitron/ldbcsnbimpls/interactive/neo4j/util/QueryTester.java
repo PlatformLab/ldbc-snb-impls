@@ -16,7 +16,16 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
-import com.ldbc.driver.DbConnectionState;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery1PersonProfileHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery2PersonPostsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery3PersonFriendsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery4MessageContentHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery5MessageCreatorHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6MessageForumHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
+
 import com.ldbc.driver.DbException;
 import com.ldbc.driver.Operation;
 import com.ldbc.driver.OperationHandler;
@@ -39,6 +48,9 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate5AddForumMembers
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
+
+import org.docopt.Docopt;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -47,7 +59,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -55,17 +66,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery1PersonProfileHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery2PersonPostsHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery3PersonFriendsHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery4MessageContentHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery5MessageCreatorHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6MessageForumHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
-import org.docopt.Docopt;
 
 /**
  * A utility for running individual queries for testing purposes.

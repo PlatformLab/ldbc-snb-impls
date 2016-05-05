@@ -17,8 +17,8 @@
 package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
 import com.ldbc.driver.DbConnectionState;
+
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * Encapsulates the state of a connection to a Neo4j database. An instance of
