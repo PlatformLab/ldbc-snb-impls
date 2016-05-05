@@ -16,6 +16,8 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
+import org.docopt.Docopt;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
@@ -51,6 +53,25 @@ import java.util.TimeZone;
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class DataFormatConverter {
+
+  private static final String doc =
+      "DataFormatConverter: A utility for converting dataset files generated "
+      + "by the LDBC SNB Data Generator to the file format expected by the "
+      + "Neo4j import tool."
+      + "\n"
+      + "Usage:\n"
+      + "  DataFormatConverter SOURCE DEST\n"
+      + "  DataFormatConverter (-h | --help)\n"
+      + "  DataFormatConverter --version\n"
+      + "\n"
+      + "Arguments:\n"
+      + "  SOURCE  Directory containing SNB dataset files.\n"
+      + "  DEST    Destination directory for output files.\n"
+      + "\n"
+      + "Options:\n"
+      + "  -h --help         Show this screen.\n"
+      + "  --version         Show version.\n"
+      + "\n";
 
   /**
    * Represents all the types of nodes in the graph and their various
@@ -244,15 +265,6 @@ public class DataFormatConverter {
   }
 
   /**
-   * Print usage information.
-   */
-  private static void printUsage() {
-    System.out.println("Usage: DataFormatConverter inputDir outputDir");
-    System.out.println("  inputDir  Directory containing SNB dataset files.");
-    System.out.println("  outputDir Destination directory for output files.");
-  }
-
-  /**
    * Parse a property file to coalesce multiple properties for a single id into
    * a list of those properties for the id. Used for parsing the email and
    * speaks property files for person nodes, but can be used on any node
@@ -316,11 +328,9 @@ public class DataFormatConverter {
 
   public static void main(String[] args)
       throws FileNotFoundException, IOException, ParseException {
-    if (args.length != 2) {
-      printUsage();
-      return;
-    }
-
+    Map<String, Object> opts =
+        new Docopt(doc).withVersion("DataFormatConverter 1.0").parse(args);
+    
     /*
      * Save the output file names. We'll use this later to output a script
      * containing the full neo4j-import command to import all the files
@@ -329,8 +339,8 @@ public class DataFormatConverter {
     List<String> outputNodeFiles = new ArrayList<>();
     List<String> outputRelFiles = new ArrayList<>();
 
-    String inputDir = args[0];
-    String outputDir = args[1];
+    String inputDir = (String) opts.get("SOURCE");
+    String outputDir = (String) opts.get("DEST");
 
     System.out.println(String.format("Processing person properties..."));
 
@@ -561,17 +571,17 @@ public class DataFormatConverter {
 
     outFile.append("#!/bin/sh\n");
     outFile.append("$NEO4J_HOME/bin/neo4j-import --into graph.db");
-    
+
     for (String nodeFile : outputNodeFiles) {
       outFile.append(" --nodes " + nodeFile);
     }
-    
+
     for (String relFile : outputRelFiles) {
       outFile.append(" --relationships " + relFile);
     }
-    
+
     outFile.append(" --delimiter \"|\" --array-delimiter \";\"\n");
-    
+
     outFile.close();
   }
 }
