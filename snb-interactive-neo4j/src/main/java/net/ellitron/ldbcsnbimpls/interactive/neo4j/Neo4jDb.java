@@ -72,6 +72,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
+import javax.json.JsonArray;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for Neo4j. Queries
@@ -543,9 +544,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       if (table.get("firstName").length > 0) {
         LdbcShortQuery1PersonProfileResult result =
             new LdbcShortQuery1PersonProfileResult(
@@ -607,9 +608,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("messageId").length; i++) {
         result.add(new LdbcShortQuery2PersonPostsResult(
@@ -656,9 +657,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("personId").length; i++) {
         result.add(new LdbcShortQuery3PersonFriendsResult(
@@ -701,9 +702,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       if (table.get("messageContent").length > 0) {
         LdbcShortQuery4MessageContentResult result =
             new LdbcShortQuery4MessageContentResult(
@@ -743,9 +744,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       if (table.get("personId").length > 0) {
         LdbcShortQuery5MessageCreatorResult result =
             new LdbcShortQuery5MessageCreatorResult(
@@ -791,9 +792,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       if (table.get("forumId").length > 0) {
         LdbcShortQuery6MessageForumResult result =
             new LdbcShortQuery6MessageForumResult(
@@ -849,9 +850,9 @@ public class Neo4jDb extends Db {
 
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
-      List<Map<String, String[]>> results = driver.execAndCommit();
+      List<Neo4jCypherResult> results = driver.execAndCommit();
 
-      Map<String, String[]> table = results.get(0);
+      Map<String, String[]> table = results.get(0).toMap();
       List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
       for (int i = 0; i < table.get("commentId").length; i++) {
         result.add(new LdbcShortQuery7MessageRepliesResult(
