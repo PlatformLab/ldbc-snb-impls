@@ -32,6 +32,7 @@ import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.runtime.ConcurrentErrorReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
@@ -66,6 +67,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery1Handler;
 
 /**
  * A utility for running individual queries for testing purposes.
@@ -79,6 +81,7 @@ public class QueryTester {
       + "purposes.\n"
       + "\n"
       + "Usage:\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query1 <personId> <firstName> <limit>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery1 <personId>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery2 <personId> <limit>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery3 <personId>\n"
@@ -411,7 +414,23 @@ public class QueryTester {
         new ResultReporter.SimpleResultReporter(
             new ConcurrentErrorReporter());
 
-    if ((Boolean) opts.get("shortquery1")
+    if ((Boolean) opts.get("query1")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      String firstName = (String) opts.get("<firstName>");
+      int limit = Integer.decode((String) opts.get("<limit>"));
+
+      LdbcQuery1Handler opHandler = new LdbcQuery1Handler();
+      LdbcQuery1 op = new LdbcQuery1(personId, firstName, limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("shortquery1")
         || (Boolean) opts.get("shortquery2")
         || (Boolean) opts.get("shortquery3")
         || (Boolean) opts.get("shortquery4")
