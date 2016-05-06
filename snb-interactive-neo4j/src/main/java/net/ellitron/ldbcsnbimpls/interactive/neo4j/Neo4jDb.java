@@ -35,6 +35,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
@@ -148,6 +149,8 @@ public class Neo4jDb extends Db {
         LdbcQuery1Handler.class);
     registerOperationHandler(LdbcQuery2.class,
         LdbcQuery2Handler.class);
+    registerOperationHandler(LdbcQuery3.class,
+        LdbcQuery3Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -407,7 +410,71 @@ public class Neo4jDb extends Db {
     public void executeOperation(LdbcQuery3 operation,
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
       
+      long periodStart = operation.startDate().getTime();
+      long periodEnd = periodStart 
+          + ((long) operation.durationDays())*24l*60l*60l*1000l;
+      
+      String statement = 
+          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(messageX),"
+          + " (messageX)-[:IS_LOCATED_IN]->(countryX:Place)"
+          + " WHERE"
+          + "   not(person=friend)"
+          + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryX))"
+          + "   AND countryX.name={2} AND messageX.creationDate>={4}"
+          + "   AND messageX.creationDate<{5}"
+          + " WITH friend, count(DISTINCT messageX) AS xCount"
+          + " MATCH (friend)<-[:HAS_CREATOR]-(messageY)-[:IS_LOCATED_IN]->(countryY:Place)"
+          + " WHERE"
+          + "   countryY.name={3}"
+          + "   AND not((friend)-[:IS_LOCATED_IN]->()-[:IS_PART_OF]->(countryY))"
+          + "   AND messageY.creationDate>={4}"
+          + "   AND messageY.creationDate<{5}"
+          + " WITH"
+          + "   friend.id AS friendId,"
+          + "   friend.firstName AS friendFirstName,"
+          + "   friend.lastName AS friendLastName,"
+          + "   xCount,"
+          + "   count(DISTINCT messageY) AS yCount"
+          + " RETURN"
+          + "   friendId,"
+          + "   friendFirstName,"
+          + "   friendLastName,"
+          + "   xCount,"
+          + "   yCount,"
+          + "   xCount + yCount AS xyCount"
+          + " ORDER BY xyCount DESC, toInt(friendId) ASC"
+          + " LIMIT {6}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : \"" + operation.countryXName() + "\", "
+          + "\"3\" : \"" + operation.countryYName() + "\", "
+          + "\"4\" : " + periodStart + ", "
+          + "\"5\" : " + periodEnd + ", "
+          + "\"6\" : " + operation.limit()
+          + " }";
+      
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+      
+      List<LdbcQuery3Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery3Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                row.getInt(3),
+                row.getInt(4),
+                row.getInt(5)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
