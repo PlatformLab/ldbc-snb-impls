@@ -37,6 +37,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
@@ -151,6 +152,8 @@ public class Neo4jDb extends Db {
         LdbcQuery2Handler.class);
     registerOperationHandler(LdbcQuery3.class,
         LdbcQuery3Handler.class);
+    registerOperationHandler(LdbcQuery4.class,
+        LdbcQuery4Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -498,6 +501,46 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      
+      long periodStart = operation.startDate().getTime();
+      long periodEnd = periodStart 
+          + ((long) operation.durationDays())*24l*60l*60l*1000l;
+      
+      String statement = 
+          "   MATCH (person:Person {id:{1}})-[:KNOWS]-(:Person)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag:Tag)"
+          + " WHERE post.creationDate >= {2} AND post.creationDate < {3}"
+          + " OPTIONAL MATCH (tag)<-[:HAS_TAG]-(oldPost:Post)-[:HAS_CREATOR]->(:Person)-[:KNOWS]-(person)"
+          + " WHERE oldPost.creationDate < {2}"
+          + " WITH tag, post, length(collect(oldPost)) AS oldPostCount"
+          + " WHERE oldPostCount=0"
+          + " RETURN"
+          + "   tag.name AS tagName,"
+          + "   length(collect(post)) AS postCount"
+          + " ORDER BY postCount DESC, tagName ASC"
+          + " LIMIT {4}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + periodStart + ", "
+          + "\"3\" : " + periodEnd + ", "
+          + "\"4\" : " + operation.limit()
+          + " }";
+      
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+      
+      List<LdbcQuery4Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery4Result(
+                row.getString(0),
+                row.getInt(1)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
