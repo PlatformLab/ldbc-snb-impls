@@ -83,4 +83,9 @@ public class Neo4jCypherResult {
 
     return map;
   }
+  
+  @Override
+  public String toString() {
+    return result.toString();
+  }
 }
