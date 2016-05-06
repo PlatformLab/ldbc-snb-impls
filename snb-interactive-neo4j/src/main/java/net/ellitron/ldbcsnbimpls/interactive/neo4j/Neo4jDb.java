@@ -31,6 +31,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
@@ -73,6 +74,8 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import javax.json.JsonArray;
+import javax.json.JsonString;
+import javax.json.JsonValue;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for Neo4j. Queries
@@ -97,7 +100,7 @@ import javax.json.JsonArray;
  * <ul>
  * </ul>
  * <p>
- * 
+ *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class Neo4jDb extends Db {
@@ -140,6 +143,9 @@ public class Neo4jDb extends Db {
     /*
      * Register operation handlers with the benchmark.
      */
+    registerOperationHandler(LdbcQuery1.class,
+        LdbcQuery1Handler.class);
+
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
     registerOperationHandler(LdbcShortQuery2PersonPosts.class,
@@ -198,6 +204,120 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (:Person {id:{1}})-[path:KNOWS*1..3]-(friend:Person)"
+          + " WHERE friend.firstName = {2}"
+          + " WITH friend, min(length(path)) AS distance"
+          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.id) ASC"
+          + " LIMIT {3}"
+          + " MATCH (friend)-[:IS_LOCATED_IN]->(friendCity:Place)"
+          + " OPTIONAL MATCH (friend)-[studyAt:STUDY_AT]->(uni:Organisation)-[:IS_LOCATED_IN]->(uniCity:Place)"
+          + " WITH"
+          + "   friend,"
+          + "   collect("
+          + "     CASE uni.name"
+          + "       WHEN null THEN null"
+          + "       ELSE [uni.name, studyAt.classYear, uniCity.name]"
+          + "     END"
+          + "   ) AS unis,"
+          + "   friendCity,"
+          + "   distance"
+          + " OPTIONAL MATCH (friend)-[worksAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(companyCountry:Place)"
+          + " WITH"
+          + "   friend,"
+          + "   collect("
+          + "     CASE company.name"
+          + "       WHEN null THEN null"
+          + "       ELSE [company.name, worksAt.workFrom, companyCountry.name]"
+          + "     END"
+          + "   ) AS companies,"
+          + "   unis,"
+          + "   friendCity,"
+          + "   distance"
+          + " RETURN"
+          + "   friend.id AS id,"
+          + "   friend.lastName AS lastName,"
+          + "   distance,"
+          + "   friend.birthday AS birthday,"
+          + "   friend.creationDate AS creationDate,"
+          + "   friend.gender AS gender,"
+          + "   friend.browserUsed AS browser,"
+          + "   friend.locationIP AS locationIp,"
+          + "   friend.email AS emails,"
+          + "   friend.speaks AS languages,"
+          + "   friendCity.name AS cityName,"
+          + "   unis,"
+          + "   companies"
+          + " ORDER BY distance ASC, friend.lastName ASC, toInt(friend.id) ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : \"" + operation.firstName() + "\", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery1Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        List<String> emails = new ArrayList<>();
+        if (row.get(8).getValueType() != JsonValue.ValueType.NULL) {
+          row.getJsonArray(8).forEach((e) ->
+              emails.add(((JsonString) e).getString()));
+        }
+
+        List<String> languages = new ArrayList<>();
+        if (row.get(9).getValueType() != JsonValue.ValueType.NULL) {
+          row.getJsonArray(9).forEach((e) ->
+              languages.add(((JsonString) e).getString()));
+        }
+
+        List<List<Object>> universities = new ArrayList<>();
+        row.getJsonArray(11).forEach((u) -> {
+          if (u.getValueType() != JsonValue.ValueType.NULL) {
+            List<Object> props = new ArrayList<>(3);
+            props.add(((JsonArray) u).getString(0));
+            props.add(((JsonArray) u).getInt(1));
+            props.add(((JsonArray) u).getString(2));
+            universities.add(props);
+          }
+        });
+
+        List<List<Object>> companies = new ArrayList<>();
+        row.getJsonArray(12).forEach((c) -> {
+          if (c.getValueType() != JsonValue.ValueType.NULL) {
+            List<Object> props = new ArrayList<>(3);
+            props.add(((JsonArray) c).getString(0));
+            props.add(((JsonArray) c).getInt(1));
+            props.add(((JsonArray) c).getString(2));
+            companies.add(props);
+          }
+        });
+
+        resultList.add(
+            new LdbcQuery1Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getInt(2),
+                row.getJsonNumber(3).longValue(),
+                row.getJsonNumber(4).longValue(),
+                row.getString(5),
+                row.getString(6),
+                row.getString(7),
+                emails,
+                languages,
+                row.getString(10),
+                universities,
+                companies));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
