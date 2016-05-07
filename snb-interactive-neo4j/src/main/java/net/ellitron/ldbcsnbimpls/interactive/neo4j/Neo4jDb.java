@@ -27,10 +27,15 @@ import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
@@ -39,10 +44,15 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
@@ -154,6 +164,26 @@ public class Neo4jDb extends Db {
         LdbcQuery3Handler.class);
     registerOperationHandler(LdbcQuery4.class,
         LdbcQuery4Handler.class);
+    registerOperationHandler(LdbcQuery5.class,
+        LdbcQuery5Handler.class);
+    registerOperationHandler(LdbcQuery6.class,
+        LdbcQuery6Handler.class);
+    registerOperationHandler(LdbcQuery7.class,
+        LdbcQuery7Handler.class);
+    registerOperationHandler(LdbcQuery8.class,
+        LdbcQuery8Handler.class);
+    registerOperationHandler(LdbcQuery9.class,
+        LdbcQuery9Handler.class);
+    //registerOperationHandler(LdbcQuery10.class,
+    //    LdbcQuery10Handler.class);
+    registerOperationHandler(LdbcQuery11.class,
+        LdbcQuery11Handler.class);
+    registerOperationHandler(LdbcQuery12.class,
+        LdbcQuery12Handler.class);
+    registerOperationHandler(LdbcQuery13.class,
+        LdbcQuery13Handler.class);
+    registerOperationHandler(LdbcQuery14.class,
+        LdbcQuery14Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -349,8 +379,8 @@ public class Neo4jDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
-      String statement = 
+
+      String statement =
           "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message)"
           + " WHERE message.creationDate <= {2} AND (message:Post OR message:Comment)"
           + " RETURN"
@@ -370,11 +400,11 @@ public class Neo4jDb extends Db {
           + "\"2\" : " + operation.maxDate().getTime() + ", "
           + "\"3\" : " + operation.limit()
           + " }";
-      
+
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
-      
+
       List<LdbcQuery2Result> resultList = new ArrayList<>();
       for (int i = 0; i < results.get(0).rows(); i++) {
         JsonArray row = results.get(0).getRow(i);
@@ -415,12 +445,12 @@ public class Neo4jDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
+
       long periodStart = operation.startDate().getTime();
-      long periodEnd = periodStart 
-          + ((long) operation.durationDays())*24l*60l*60l*1000l;
-      
-      String statement = 
+      long periodEnd = periodStart
+          + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
+
+      String statement =
           "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(messageX),"
           + " (messageX)-[:IS_LOCATED_IN]->(countryX:Place)"
           + " WHERE"
@@ -458,11 +488,11 @@ public class Neo4jDb extends Db {
           + "\"5\" : " + periodEnd + ", "
           + "\"6\" : " + operation.limit()
           + " }";
-      
+
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
-      
+
       List<LdbcQuery3Result> resultList = new ArrayList<>();
       for (int i = 0; i < results.get(0).rows(); i++) {
         JsonArray row = results.get(0).getRow(i);
@@ -502,12 +532,12 @@ public class Neo4jDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
-      
+
       long periodStart = operation.startDate().getTime();
-      long periodEnd = periodStart 
-          + ((long) operation.durationDays())*24l*60l*60l*1000l;
-      
-      String statement = 
+      long periodEnd = periodStart
+          + ((long) operation.durationDays()) * 24l * 60l * 60l * 1000l;
+
+      String statement =
           "   MATCH (person:Person {id:{1}})-[:KNOWS]-(:Person)<-[:HAS_CREATOR]-(post:Post)-[:HAS_TAG]->(tag:Tag)"
           + " WHERE post.creationDate >= {2} AND post.creationDate < {3}"
           + " OPTIONAL MATCH (tag)<-[:HAS_TAG]-(oldPost:Post)-[:HAS_CREATOR]->(:Person)-[:KNOWS]-(person)"
@@ -525,11 +555,11 @@ public class Neo4jDb extends Db {
           + "\"3\" : " + periodEnd + ", "
           + "\"4\" : " + operation.limit()
           + " }";
-      
+
       // Execute the query and get the results.
       driver.enqueue(new Neo4jCypherStatement(statement, parameters));
       List<Neo4jCypherResult> results = driver.execAndCommit();
-      
+
       List<LdbcQuery4Result> resultList = new ArrayList<>();
       for (int i = 0; i < results.get(0).rows(); i++) {
         JsonArray row = results.get(0).getRow(i);
@@ -564,6 +594,40 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[membership:HAS_MEMBER]-(forum:Forum)"
+          + " WHERE membership.joinDate>{2} AND not(person=friend)"
+          + " WITH DISTINCT friend, forum"
+          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)<-[:CONTAINER_OF]-(forum)"
+          + " WITH forum, count(post) AS postCount"
+          + " RETURN"
+          + "   forum.title AS forumName,"
+          + "   postCount"
+          + " ORDER BY postCount DESC, toInt(forum.id) ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.minDate().getTime() + ", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery5Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery5Result(
+                row.getString(0),
+                row.getInt(1)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -586,6 +650,44 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH"
+          + "   (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person),"
+          + "   (friend)<-[:HAS_CREATOR]-(friendPost:Post)-[:HAS_TAG]->(knownTag:Tag {name:{2}})"
+          + " WHERE not(person=friend)"
+          + " MATCH (friendPost)-[:HAS_TAG]->(commonTag:Tag)"
+          + " WHERE not(commonTag=knownTag)"
+          + " WITH DISTINCT commonTag, knownTag, friend"
+          + " MATCH (commonTag)<-[:HAS_TAG]-(commonPost:Post)-[:HAS_TAG]->(knownTag)"
+          + " WHERE (commonPost)-[:HAS_CREATOR]->(friend)"
+          + " RETURN"
+          + "   commonTag.name AS tagName,"
+          + "   count(commonPost) AS postCount"
+          + " ORDER BY postCount DESC, tagName ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : \"" + operation.tagName() + "\", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery6Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery6Result(
+                row.getString(0),
+                row.getInt(1)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -611,6 +713,55 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (person:Person {id:{1}})<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:Person)"
+          + " WITH liker, message, like.creationDate AS likeTime, person"
+          + " ORDER BY likeTime DESC, toInt(message.id) ASC"
+          + " WITH"
+          + "   liker,"
+          + "   head(collect({msg: message, likeTime: likeTime})) AS latestLike,"
+          + "   person"
+          + " RETURN"
+          + "   liker.id AS personId,"
+          + "   liker.firstName AS personFirstName,"
+          + "   liker.lastName AS personLastName,"
+          + "   latestLike.likeTime AS likeTime,"
+          + "   latestLike.msg.id AS messageId,"
+          + "   CASE has(latestLike.msg.content)"
+          + "     WHEN true THEN latestLike.msg.content"
+          + "     ELSE latestLike.msg.imageFile"
+          + "   END AS messageContent,"
+          + "   latestLike.likeTime - latestLike.msg.creationDate AS latencyAsMilli,"
+          + "   not((liker)-[:KNOWS]-(person)) AS isNew"
+          + " ORDER BY likeTime DESC, toInt(personId) ASC"
+          + " LIMIT {2}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery7Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+        resultList.add(
+            new LdbcQuery7Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                row.getJsonNumber(3).longValue(),
+                Long.decode(row.getString(4)),
+                row.getString(5),
+                (int) (row.getJsonNumber(6).longValue() / (1000l * 60l)),
+                row.getBoolean(7)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -633,6 +784,44 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH"
+          + "   (start:Person {id:{1}})<-[:HAS_CREATOR]-()<-[:REPLY_OF]-(comment:Comment)-[:HAS_CREATOR]->(person:Person)"
+          + " RETURN"
+          + "   person.id AS personId,"
+          + "   person.firstName AS personFirstName,"
+          + "   person.lastName AS personLastName,"
+          + "   comment.creationDate AS commentCreationDate,"
+          + "   comment.id AS commentId,"
+          + "   comment.content AS commentContent"
+          + " ORDER BY commentCreationDate DESC, toInt(commentId) ASC"
+          + " LIMIT {2}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery8Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery8Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                row.getJsonNumber(3).longValue(),
+                Long.decode(row.getString(4)),
+                row.getString(5)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -655,6 +844,48 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(message)"
+          + " WHERE message.creationDate < {2}"
+          + " RETURN DISTINCT"
+          + "   friend.id AS personId,"
+          + "   friend.firstName AS personFirstName,"
+          + "   friend.lastName AS personLastName,"
+          + "   message.id AS messageId,"
+          + "   CASE has(message.content)"
+          + "     WHEN true THEN message.content"
+          + "     ELSE message.imageFile"
+          + "   END AS messageContent,"
+          + "   message.creationDate AS messageCreationDate"
+          + " ORDER BY message.creationDate DESC, toInt(message.id) ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.maxDate().getTime() + ", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery9Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery9Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                Long.decode(row.getString(3)),
+                row.getString(4),
+                row.getJsonNumber(5).longValue()));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -686,6 +917,57 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (person:Person {id:{1}})-[:KNOWS*2..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)"
+          + " WHERE "
+          + "   ((friend.birthday_month = {2} AND friend.birthday_day >= 21) OR"
+          + "   (friend.birthday_month = ({2}+1)%12 AND friend.birthday_day < 22))"
+          + "   AND not(friend=person)"
+          + "   AND not((friend)-[:KNOWS]-(person))"
+          + " WITH DISTINCT friend, city, person"
+          + " OPTIONAL MATCH (friend)<-[:HAS_CREATOR]-(post:Post)"
+          + " WITH friend, city, collect(post) AS posts, person"
+          + " WITH "
+          + "   friend,"
+          + "   city,"
+          + "   length(posts) AS postCount,"
+          + "   length([p IN posts WHERE (p)-[:HAS_TAG]->(:Tag)<-[:HAS_INTEREST]-(person)]) AS commonPostCount"
+          + " RETURN"
+          + "   friend.id AS personId,"
+          + "   friend.firstName AS personFirstName,"
+          + "   friend.lastName AS personLastName,"
+          + "   friend.gender AS personGender,"
+          + "   city.name AS personCityName,"
+          + "   commonPostCount - (postCount - commonPostCount) AS commonInterestScore"
+          + " ORDER BY commonInterestScore DESC, toInt(personId) ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.month() + ", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery10Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery10Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                row.getInt(5),
+                row.getString(3),
+                row.getString(4)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -708,6 +990,47 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)"
+          + " WHERE not(person=friend)"
+          + " WITH DISTINCT friend"
+          + " MATCH (friend)-[worksAt:WORK_AT]->(company:Organisation)-[:IS_LOCATED_IN]->(:Place {name:{3}})"
+          + " WHERE worksAt.workFrom < {2}"
+          + " RETURN"
+          + "   friend.id AS friendId,"
+          + "   friend.firstName AS friendFirstName,"
+          + "   friend.lastName AS friendLastName,"
+          + "   company.name AS companyName,"
+          + "   worksAt.workFrom AS workFromYear"
+          + " ORDER BY workFromYear ASC, toInt(friendId) ASC, companyName DESC"
+          + " LIMIT {4}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : " + operation.workFromYear() + ", "
+          + "\"3\" : \"" + operation.countryName() + "\", "
+          + "\"4\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery11Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        resultList.add(
+            new LdbcQuery11Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                row.getString(3),
+                row.getInt(4)));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -733,6 +1056,52 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)"
+          + " OPTIONAL MATCH"
+          + "   (friend)<-[:HAS_CREATOR]-(comment:Comment)-[:REPLY_OF]->(:Post)-[:HAS_TAG]->(tag:Tag),"
+          + "   (tag)-[:HAS_TYPE]->(tagClass:TagClass)-[:IS_SUBCLASS_OF*0..]->(baseTagClass:TagClass)"
+          + " WHERE tagClass.name = {2} OR baseTagClass.name = {2}"
+          + " RETURN"
+          + "   friend.id AS friendId,"
+          + "   friend.firstName AS friendFirstName,"
+          + "   friend.lastName AS friendLastName,"
+          + "   collect(DISTINCT tag.name) AS tagNames,"
+          + "   count(DISTINCT comment) AS count"
+          + " ORDER BY count DESC, toInt(friendId) ASC"
+          + " LIMIT {3}";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.personId() + "\", "
+          + "\"2\" : \"" + operation.tagClassName() + "\", "
+          + "\"3\" : " + operation.limit()
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery12Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+
+        if (row.getInt(4) > 0) {
+          List<String> tagNames = new ArrayList<>();
+          row.getJsonArray(3).forEach((e) ->
+              tagNames.add(((JsonString) e).getString()));
+          
+          resultList.add(
+            new LdbcQuery12Result(
+                Long.decode(row.getString(0)),
+                row.getString(1),
+                row.getString(2),
+                tagNames,
+                row.getInt(4)));
+        }
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -753,6 +1122,30 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH (person1:Person {id:{1}}), (person2:Person {id:{2}})"
+          + " OPTIONAL MATCH path = shortestPath((person1)-[:KNOWS*..15]-(person2))"
+          + " RETURN"
+          + " CASE path IS NULL"
+          + "   WHEN true THEN -1"
+          + "   ELSE length(path)"
+          + " END AS pathLength";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.person1Id() + "\", "
+          + "\"2\" : \"" + operation.person2Id() + "\""
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      JsonArray row = results.get(0).getRow(0);
+
+      LdbcQuery13Result result = new LdbcQuery13Result(row.getInt(0));
+
+      resultReporter.report(0, result, operation);
     }
   }
 
@@ -779,6 +1172,41 @@ public class Neo4jDb extends Db {
         Neo4jDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
+      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+
+      String statement =
+          "   MATCH path = allShortestPaths((person1:Person {id:{1}})-[:KNOWS*..15]-(person2:Person {id:{2}}))"
+          + " WITH nodes(path) AS pathNodes"
+          + " RETURN"
+          + "   extract(n IN pathNodes | n.id) AS pathNodeIds,"
+          + "   reduce(weight=0.0, idx IN range(1,size(pathNodes)-1) | extract(prev IN [pathNodes[idx-1]] | extract(curr IN [pathNodes[idx]] | weight + length((curr)<-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]->(:Post)-[:HAS_CREATOR]->(prev))*1.0 + length((prev)<-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]->(:Post)-[:HAS_CREATOR]->(curr))*1.0 + length((prev)-[:HAS_CREATOR]-(:Comment)-[:REPLY_OF]-(:Comment)-[:HAS_CREATOR]-(curr))*0.5) )[0][0]) AS weight"
+          + " ORDER BY weight DESC";
+      String parameters = "{ "
+          + "\"1\" : \"" + operation.person1Id() + "\", "
+          + "\"2\" : \"" + operation.person2Id() + "\""
+          + " }";
+
+      // Execute the query and get the results.
+      driver.enqueue(new Neo4jCypherStatement(statement, parameters));
+      List<Neo4jCypherResult> results = driver.execAndCommit();
+
+      List<LdbcQuery14Result> resultList = new ArrayList<>();
+      for (int i = 0; i < results.get(0).rows(); i++) {
+        JsonArray row = results.get(0).getRow(i);
+        
+        List<Long> personIdsInPath = new ArrayList<>();
+        if (row.get(0).getValueType() != JsonValue.ValueType.NULL) {
+          row.getJsonArray(0).forEach((e) ->
+              personIdsInPath.add(Long.decode(((JsonString) e).getString())));
+        }
+        
+        resultList.add(
+            new LdbcQuery14Result(
+                personIdsInPath,
+                row.getJsonNumber(1).doubleValue()));
+      }
+
+      resultReporter.report(0, resultList, operation);
     }
   }
 
@@ -876,7 +1304,8 @@ public class Neo4jDb extends Db {
           + "   c.id AS originalPostAuthorId,"
           + "   c.firstName as originalPostAuthorFirstName,"
           + "   c.lastName as originalPostAuthorLastName"
-          + " ORDER BY messageCreationDate DESC LIMIT {limit}";
+          + " ORDER BY messageCreationDate DESC"
+          + " LIMIT {limit}";
       String parameters = "{ "
           + "\"id\" : \"" + operation.personId() + "\", "
           + "\"limit\" : " + operation.limit() + " }";
@@ -1120,7 +1549,7 @@ public class Neo4jDb extends Db {
           + "     WHEN null THEN false"
           + "     ELSE true"
           + "   END AS replyAuthorKnowsOriginalMessageAuthor"
-          + " ORDER BY commentCreationDate DESC, replyAuthorId ASC";
+          + " ORDER BY commentCreationDate DESC, toInt(replyAuthorId) ASC";
       String parameters = "{ \"id\" : \"" + operation.messageId() + "\" }";
 
       // Execute the query and get the results.
