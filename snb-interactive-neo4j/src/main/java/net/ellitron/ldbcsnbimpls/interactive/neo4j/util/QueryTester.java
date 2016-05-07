@@ -33,6 +33,19 @@ import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.runtime.ConcurrentErrorReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
@@ -67,7 +80,20 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery10Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery11Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery12Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery13Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery14Handler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery1Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery2Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery3Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery4Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery5Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery6Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery7Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery8Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery9Handler;
 
 /**
  * A utility for running individual queries for testing purposes.
@@ -82,6 +108,19 @@ public class QueryTester {
       + "\n"
       + "Usage:\n"
       + "  QueryTester [--host=<host>] [--port=<port>] query1 <personId> <firstName> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query2 <personId> <maxDate> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query3 <personId> <countryXName> <countryYName> <startDate> <durationDays> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query4 <personId> <startDate> <durationDays> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query5 <personId> <minDate> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query6 <personId> <tagName> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query7 <personId> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query8 <personId> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query9 <personId> <maxDate> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query10 <personId> <month> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query11 <personId> <countryName> <workFromYear> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query12 <personId> <tagClassName> <limit>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query13 <person1Id> <person2Id>\n"
+      + "  QueryTester [--host=<host>] [--port=<port>] query14 <person1Id> <person2Id>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery1 <personId>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery2 <personId> <limit>\n"
       + "  QueryTester [--host=<host>] [--port=<port>] shortquery3 <personId>\n"
@@ -421,6 +460,251 @@ public class QueryTester {
 
       LdbcQuery1Handler opHandler = new LdbcQuery1Handler();
       LdbcQuery1 op = new LdbcQuery1(personId, firstName, limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query2")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery2Handler opHandler = new LdbcQuery2Handler();
+      LdbcQuery2 op = new LdbcQuery2(personId, maxDate, limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query3")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      String countryXName = (String) opts.get("<countryXName>");
+      String countryYName = (String) opts.get("<countryYName>");
+      Date startDate = new Date(Long.decode((String) opts.get("<startDate>")));
+      int durationDays = Integer.decode((String) opts.get("<durationDays>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery3Handler opHandler = new LdbcQuery3Handler();
+      LdbcQuery3 op = new LdbcQuery3(
+          personId, 
+          countryXName, 
+          countryYName, 
+          startDate, 
+          durationDays, 
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query4")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      Date startDate = new Date(Long.decode((String) opts.get("<startDate>")));
+      int durationDays = Integer.decode((String) opts.get("<durationDays>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery4Handler opHandler = new LdbcQuery4Handler();
+      LdbcQuery4 op = new LdbcQuery4(
+          personId, 
+          startDate, 
+          durationDays, 
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query5")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      Date minDate = new Date(Long.decode((String) opts.get("<minDate>")));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery5Handler opHandler = new LdbcQuery5Handler();
+      LdbcQuery5 op = new LdbcQuery5(
+          personId, 
+          minDate,
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+//      + "  QueryTester [--host=<host>] [--port=<port>] query6 <personId> <tagName> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query7 <personId> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query8 <personId> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query9 <personId> <maxDate> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query10 <personId> <month> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query11 <personId> <countryName> <workFromYear> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query12 <personId> <tagClassName> <limit>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query13 <person1Id> <person2Id>\n"
+//      + "  QueryTester [--host=<host>] [--port=<port>] query14 <person1Id> <person2Id>\n"
+    } else if ((Boolean) opts.get("query6")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      String tagName = (String) opts.get("<tagName>");
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery6Handler opHandler = new LdbcQuery6Handler();
+      LdbcQuery6 op = new LdbcQuery6(
+          personId, 
+          tagName,
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query7")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery7Handler opHandler = new LdbcQuery7Handler();
+      LdbcQuery7 op = new LdbcQuery7(
+          personId, 
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query8")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery8Handler opHandler = new LdbcQuery8Handler();
+      LdbcQuery8 op = new LdbcQuery8(
+          personId, 
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query9")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery9Handler opHandler = new LdbcQuery9Handler();
+      LdbcQuery9 op = new LdbcQuery9(personId, maxDate, limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query10")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      int month = Integer.decode((String) opts.get("<month>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery10Handler opHandler = new LdbcQuery10Handler();
+      LdbcQuery10 op = new LdbcQuery10(personId, month, limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query11")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      String countryName = (String) opts.get("<countryName>");
+      int workFromYear = Integer.decode((String) opts.get("<workFromYear>"));
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery11Handler opHandler = new LdbcQuery11Handler();
+      LdbcQuery11 op = new LdbcQuery11(
+          personId, 
+          countryName,
+          workFromYear,
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query12")) {
+      long personId = Long.decode((String) opts.get("<personId>"));
+      String tagClassName = (String) opts.get("<tagClassName>");
+      int limit = Integer.decode((String) opts.get("<limit>"));
+      
+      LdbcQuery12Handler opHandler = new LdbcQuery12Handler();
+      LdbcQuery12 op = new LdbcQuery12(
+          personId, 
+          tagClassName,
+          limit);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query13")) {
+      long person1Id = Long.decode((String) opts.get("<person1Id>"));
+      long person2Id = Long.decode((String) opts.get("<person2Id>"));
+      
+      LdbcQuery13Handler opHandler = new LdbcQuery13Handler();
+      LdbcQuery13 op = new LdbcQuery13(person1Id, person2Id);
+
+      long startTime = System.nanoTime();
+      opHandler.executeOperation(op, dbConnectionState, resultReporter);
+      long endTime = System.nanoTime();
+
+      printResult(resultReporter.result());
+
+      System.out.println(String.format("Query time: %dus",
+          (endTime - startTime) / 1000l));
+    } else if ((Boolean) opts.get("query14")) {
+      long person1Id = Long.decode((String) opts.get("<person1Id>"));
+      long person2Id = Long.decode((String) opts.get("<person2Id>"));
+      
+      LdbcQuery14Handler opHandler = new LdbcQuery14Handler();
+      LdbcQuery14 op = new LdbcQuery14(person1Id, person2Id);
 
       long startTime = System.nanoTime();
       opHandler.executeOperation(op, dbConnectionState, resultReporter);
