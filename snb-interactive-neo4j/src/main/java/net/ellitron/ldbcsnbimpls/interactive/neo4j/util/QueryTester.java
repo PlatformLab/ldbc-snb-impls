@@ -550,15 +550,6 @@ public class QueryTester {
 
       System.out.println(String.format("Query time: %dus",
           (endTime - startTime) / 1000l));
-//      + "  QueryTester [--host=<host>] [--port=<port>] query6 <personId> <tagName> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query7 <personId> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query8 <personId> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query9 <personId> <maxDate> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query10 <personId> <month> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query11 <personId> <countryName> <workFromYear> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query12 <personId> <tagClassName> <limit>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query13 <person1Id> <person2Id>\n"
-//      + "  QueryTester [--host=<host>] [--port=<port>] query14 <person1Id> <person2Id>\n"
     } else if ((Boolean) opts.get("query6")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       String tagName = (String) opts.get("<tagName>");
