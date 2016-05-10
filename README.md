@@ -10,5 +10,17 @@ database.
 ## Current Workload Implementations ##
 ### Interactive ###
 * [Torc](https://github.com/ellitron/torc) 
+  * Implementation Status:
+    * Complex Read Queries: 1/14
+    * Short Read Queries: 7/7
+    * Update Queries: 8/8
 * [TitanDB](https://github.com/thinkaurelius/titan)
-* [Neo4j](http://neo4j.com/) (in progress)
+  * Implementation Status:
+    * Complex Read Queries: 1/14
+    * Short Read Queries: 7/7
+    * Update Queries: 8/8
+* [Neo4j](http://neo4j.com/)
+  * Implementation Status: Complete
+    * Complex Read Queries: 14/14 (passing validation)
+    * Short Read Queries: 7/7 (passing validation)
+    * Update Queries: 8/8 (passing validation)
