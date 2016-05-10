@@ -31,7 +31,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -227,7 +230,17 @@ public class DataFormatConverter {
     }
   }
 
+  /*
+   * Stores a fixed mapping between property names and their data types in the
+   * Neo4j schema.
+   */
   private static final Map<String, String> propDataTypes;
+  
+  /*
+   * Used for parsing dates in the original dataset files output by the data
+   * generator, and converting them to milliseconds since Jan. 1 9170. We store
+   * dates in this form in Neo4j.
+   */
   private static final SimpleDateFormat birthdayDateFormat;
   private static final SimpleDateFormat creationDateDateFormat;
 
@@ -330,7 +343,7 @@ public class DataFormatConverter {
       throws FileNotFoundException, IOException, ParseException {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("DataFormatConverter 1.0").parse(args);
-    
+
     /*
      * Save the output file names. We'll use this later to output a script
      * containing the full neo4j-import command to import all the files
@@ -390,6 +403,11 @@ public class DataFormatConverter {
       List<String> nodeProps = Arrays.asList(node.getProps());
       for (String property : nodeProps) {
         outFile.append("|" + property + ":" + propDataTypes.get(property));
+        
+        if (property.equals("birthday")) {
+          outFile.append("|birthday_day:int");
+          outFile.append("|birthday_month:int");
+        }
       }
 
       // And the last field is always a label for this node type.
@@ -416,8 +434,15 @@ public class DataFormatConverter {
         for (int i = 0; i < colVals.length; i++) {
           if (i > 0) {
             if (nodeProps.get(i - 1).equals("birthday")) {
-              outFile.append(String.valueOf(
-                  birthdayDateFormat.parse(colVals[i]).getTime()) + "|");
+              Date birthday = birthdayDateFormat.parse(colVals[i]);
+              Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+              cal.setTime(birthday);
+              outFile.append(
+                  String.valueOf(cal.getTimeInMillis()) + "|");
+              outFile.append(
+                  String.valueOf(cal.get(Calendar.DAY_OF_MONTH)) + "|");
+              outFile.append(
+                  String.valueOf(cal.get(Calendar.MONTH)+1) + "|");
             } else if (nodeProps.get(i - 1).equals("creationDate")) {
               outFile.append(String.valueOf(
                   creationDateDateFormat.parse(colVals[i]).getTime()) + "|");

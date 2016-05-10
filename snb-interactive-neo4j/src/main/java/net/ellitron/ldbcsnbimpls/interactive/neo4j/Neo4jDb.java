@@ -174,8 +174,8 @@ public class Neo4jDb extends Db {
         LdbcQuery8Handler.class);
     registerOperationHandler(LdbcQuery9.class,
         LdbcQuery9Handler.class);
-    //registerOperationHandler(LdbcQuery10.class,
-    //    LdbcQuery10Handler.class);
+    registerOperationHandler(LdbcQuery10.class,
+        LdbcQuery10Handler.class);
     registerOperationHandler(LdbcQuery11.class,
         LdbcQuery11Handler.class);
     registerOperationHandler(LdbcQuery12.class,
@@ -923,7 +923,7 @@ public class Neo4jDb extends Db {
           "   MATCH (person:Person {id:{1}})-[:KNOWS*2..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)"
           + " WHERE "
           + "   ((friend.birthday_month = {2} AND friend.birthday_day >= 21) OR"
-          + "   (friend.birthday_month = ({2}+1)%12 AND friend.birthday_day < 22))"
+          + "   (friend.birthday_month = ({2}%12)+1 AND friend.birthday_day < 22))"
           + "   AND not(friend=person)"
           + "   AND not((friend)-[:KNOWS]-(person))"
           + " WITH DISTINCT friend, city, person"
