@@ -23,8 +23,8 @@ import java.io.IOException;
 /**
  * Encapsulates the state of a connection to a Neo4j database. An instance of
  * this object is created on benchmark initialization, and then subsequently
- * passed to each query on execution. The encapsulated state is made 
- * thread-local, so that even if this object is shared among threads, each 
+ * passed to each query on execution. The encapsulated state is made
+ * thread-local, so that even if this object is shared among threads, each
  * thread has its own connection state to the database.
  *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
@@ -32,7 +32,7 @@ import java.io.IOException;
 public class Neo4jDbConnectionState extends DbConnectionState {
 
   private ThreadLocal<Neo4jTransactionDriver> driver;
-  
+
   public Neo4jDbConnectionState(String host, String port) {
     this.driver = ThreadLocal.withInitial(() -> {
       return new Neo4jTransactionDriver(host, port);
@@ -41,13 +41,13 @@ public class Neo4jDbConnectionState extends DbConnectionState {
 
   @Override
   public void close() throws IOException {
-    
+
   }
-  
+
   /**
-   * Returns the Neo4jTransactionDriver for the calling thread. Each thread 
+   * Returns the Neo4jTransactionDriver for the calling thread. Each thread
    * gets its own private instance of a Neo4jTransactionDriver.
-   * 
+   *
    * @return Thread-local Neo4jTransactionDriver.
    */
   public Neo4jTransactionDriver getTxDriver() {

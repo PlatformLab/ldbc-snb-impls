@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -238,7 +237,7 @@ public class DataFormatConverter {
    * Neo4j schema.
    */
   private static final Map<String, String> propDataTypes;
-  
+
   /*
    * Used for parsing dates in the original dataset files output by the data
    * generator, and converting them to milliseconds since Jan. 1 9170. We store
@@ -406,7 +405,7 @@ public class DataFormatConverter {
       List<String> nodeProps = Arrays.asList(node.getProps());
       for (String property : nodeProps) {
         outFile.append("|" + property + ":" + propDataTypes.get(property));
-        
+
         if (property.equals("birthday")) {
           outFile.append("|birthday_day:int");
           outFile.append("|birthday_month:int");
@@ -445,7 +444,7 @@ public class DataFormatConverter {
               outFile.append(
                   String.valueOf(cal.get(Calendar.DAY_OF_MONTH)) + "|");
               outFile.append(
-                  String.valueOf(cal.get(Calendar.MONTH)+1) + "|");
+                  String.valueOf(cal.get(Calendar.MONTH) + 1) + "|");
             } else if (nodeProps.get(i - 1).equals("creationDate")) {
               outFile.append(String.valueOf(
                   creationDateDateFormat.parse(colVals[i]).getTime()) + "|");

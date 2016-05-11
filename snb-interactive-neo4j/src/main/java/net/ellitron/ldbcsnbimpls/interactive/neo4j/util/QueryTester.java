@@ -17,6 +17,20 @@
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery10Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery11Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery12Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery13Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery14Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery1Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery2Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery3Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery4Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery5Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery6Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery7Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery8Handler;
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery9Handler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery1PersonProfileHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery2PersonPostsHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery3PersonFriendsHandler;
@@ -80,20 +94,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery10Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery11Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery12Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery13Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery14Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery1Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery2Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery3Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery4Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery5Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery6Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery7Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery8Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery9Handler;
 
 /**
  * A utility for running individual queries for testing purposes.
@@ -473,7 +473,7 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery2Handler opHandler = new LdbcQuery2Handler();
       LdbcQuery2 op = new LdbcQuery2(personId, maxDate, limit);
 
@@ -492,14 +492,14 @@ public class QueryTester {
       Date startDate = new Date(Long.decode((String) opts.get("<startDate>")));
       int durationDays = Integer.decode((String) opts.get("<durationDays>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery3Handler opHandler = new LdbcQuery3Handler();
       LdbcQuery3 op = new LdbcQuery3(
-          personId, 
-          countryXName, 
-          countryYName, 
-          startDate, 
-          durationDays, 
+          personId,
+          countryXName,
+          countryYName,
+          startDate,
+          durationDays,
           limit);
 
       long startTime = System.nanoTime();
@@ -515,12 +515,12 @@ public class QueryTester {
       Date startDate = new Date(Long.decode((String) opts.get("<startDate>")));
       int durationDays = Integer.decode((String) opts.get("<durationDays>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery4Handler opHandler = new LdbcQuery4Handler();
       LdbcQuery4 op = new LdbcQuery4(
-          personId, 
-          startDate, 
-          durationDays, 
+          personId,
+          startDate,
+          durationDays,
           limit);
 
       long startTime = System.nanoTime();
@@ -535,10 +535,10 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date minDate = new Date(Long.decode((String) opts.get("<minDate>")));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery5Handler opHandler = new LdbcQuery5Handler();
       LdbcQuery5 op = new LdbcQuery5(
-          personId, 
+          personId,
           minDate,
           limit);
 
@@ -554,10 +554,10 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       String tagName = (String) opts.get("<tagName>");
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery6Handler opHandler = new LdbcQuery6Handler();
       LdbcQuery6 op = new LdbcQuery6(
-          personId, 
+          personId,
           tagName,
           limit);
 
@@ -572,10 +572,10 @@ public class QueryTester {
     } else if ((Boolean) opts.get("query7")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery7Handler opHandler = new LdbcQuery7Handler();
       LdbcQuery7 op = new LdbcQuery7(
-          personId, 
+          personId,
           limit);
 
       long startTime = System.nanoTime();
@@ -589,10 +589,10 @@ public class QueryTester {
     } else if ((Boolean) opts.get("query8")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery8Handler opHandler = new LdbcQuery8Handler();
       LdbcQuery8 op = new LdbcQuery8(
-          personId, 
+          personId,
           limit);
 
       long startTime = System.nanoTime();
@@ -607,7 +607,7 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery9Handler opHandler = new LdbcQuery9Handler();
       LdbcQuery9 op = new LdbcQuery9(personId, maxDate, limit);
 
@@ -623,7 +623,7 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       int month = Integer.decode((String) opts.get("<month>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery10Handler opHandler = new LdbcQuery10Handler();
       LdbcQuery10 op = new LdbcQuery10(personId, month, limit);
 
@@ -640,10 +640,10 @@ public class QueryTester {
       String countryName = (String) opts.get("<countryName>");
       int workFromYear = Integer.decode((String) opts.get("<workFromYear>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery11Handler opHandler = new LdbcQuery11Handler();
       LdbcQuery11 op = new LdbcQuery11(
-          personId, 
+          personId,
           countryName,
           workFromYear,
           limit);
@@ -660,10 +660,10 @@ public class QueryTester {
       long personId = Long.decode((String) opts.get("<personId>"));
       String tagClassName = (String) opts.get("<tagClassName>");
       int limit = Integer.decode((String) opts.get("<limit>"));
-      
+
       LdbcQuery12Handler opHandler = new LdbcQuery12Handler();
       LdbcQuery12 op = new LdbcQuery12(
-          personId, 
+          personId,
           tagClassName,
           limit);
 
@@ -678,7 +678,7 @@ public class QueryTester {
     } else if ((Boolean) opts.get("query13")) {
       long person1Id = Long.decode((String) opts.get("<person1Id>"));
       long person2Id = Long.decode((String) opts.get("<person2Id>"));
-      
+
       LdbcQuery13Handler opHandler = new LdbcQuery13Handler();
       LdbcQuery13 op = new LdbcQuery13(person1Id, person2Id);
 
@@ -693,7 +693,7 @@ public class QueryTester {
     } else if ((Boolean) opts.get("query14")) {
       long person1Id = Long.decode((String) opts.get("<person1Id>"));
       long person2Id = Long.decode((String) opts.get("<person2Id>"));
-      
+
       LdbcQuery14Handler opHandler = new LdbcQuery14Handler();
       LdbcQuery14 op = new LdbcQuery14(person1Id, person2Id);
 

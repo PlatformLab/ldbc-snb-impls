@@ -46,7 +46,7 @@ public class DbHelper {
       }
     }
     sb.append("]");
-    
+
     return sb.toString();
   }
 }

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
@@ -42,7 +43,7 @@ public class Neo4jCypherResult {
   public JsonArray getColumns() {
     return result.getJsonArray("columns");
   }
-  
+
   public int rows() {
     return result.getJsonArray("data").size();
   }
@@ -52,8 +53,8 @@ public class Neo4jCypherResult {
   }
 
   /**
-   * Converts this result into a map of column names to columns. Each column is 
-   * represented as an array of Strings. 
+   * Converts this result into a map of column names to columns. Each column is
+   * represented as an array of Strings.
    *
    * @return Map of columns, where the map key is the column name.
    */
@@ -83,7 +84,7 @@ public class Neo4jCypherResult {
 
     return map;
   }
-  
+
   @Override
   public String toString() {
     return result.toString();

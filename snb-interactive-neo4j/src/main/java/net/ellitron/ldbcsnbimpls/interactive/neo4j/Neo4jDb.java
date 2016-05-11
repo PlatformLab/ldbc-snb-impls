@@ -1092,14 +1092,14 @@ public class Neo4jDb extends Db {
           List<String> tagNames = new ArrayList<>();
           row.getJsonArray(3).forEach((e) ->
               tagNames.add(((JsonString) e).getString()));
-          
+
           resultList.add(
-            new LdbcQuery12Result(
-                Long.decode(row.getString(0)),
-                row.getString(1),
-                row.getString(2),
-                tagNames,
-                row.getInt(4)));
+              new LdbcQuery12Result(
+                  Long.decode(row.getString(0)),
+                  row.getString(1),
+                  row.getString(2),
+                  tagNames,
+                  row.getInt(4)));
         }
       }
 
@@ -1195,13 +1195,13 @@ public class Neo4jDb extends Db {
       List<LdbcQuery14Result> resultList = new ArrayList<>();
       for (int i = 0; i < results.get(0).rows(); i++) {
         JsonArray row = results.get(0).getRow(i);
-        
+
         List<Long> personIdsInPath = new ArrayList<>();
         if (row.get(0).getValueType() != JsonValue.ValueType.NULL) {
           row.getJsonArray(0).forEach((e) ->
               personIdsInPath.add(Long.decode(((JsonString) e).getString())));
         }
-        
+
         resultList.add(
             new LdbcQuery14Result(
                 personIdsInPath,

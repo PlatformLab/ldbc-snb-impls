@@ -74,7 +74,7 @@ public class Neo4jCypherStatement {
   public boolean hasParameters() {
     return (parameters != null);
   }
-  
+
   @Override
   public String toString() {
     return "statement: " + statement + " parameters: " + parameters;

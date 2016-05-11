@@ -26,15 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.io.StringReader;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
-import javax.json.JsonValue.ValueType;
 import javax.ws.rs.core.MediaType;
 
 /**
@@ -308,7 +305,7 @@ public class Neo4jTransactionDriver {
     for (JsonObject jsonObj : resultsArray.getValuesAs(JsonObject.class)) {
       resultList.add(new Neo4jCypherResult(jsonObj));
     }
-    
+
     return resultList;
   }
 
@@ -496,7 +493,7 @@ public class Neo4jTransactionDriver {
     for (JsonObject jsonObj : resultsArray.getValuesAs(JsonObject.class)) {
       resultList.add(new Neo4jCypherResult(jsonObj));
     }
-    
+
     return resultList;
   }
 
