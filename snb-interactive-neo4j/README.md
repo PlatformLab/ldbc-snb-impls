@@ -1,12 +1,13 @@
 Neo4j LDBC SNB Interactive Workload Implementation
 ==================================================
 
-This is an implementation of the LDBC SNB interactive workload for Neo4j. All
-queries are expressed as Cypher statements and executed transactionally over
-HTTP against a running Neo4j webserver using Neo4j's REST API. All queries
-defined in the [LDBC Social Network Benchmark Specification
-v0.2.2](https://github.com/ldbc/ldbc_snb_docs) have been implemented and have
-passed [validation](https://github.com/ldbc/ldbc_snb_interactive_validation)
+This is an implementation of the LDBC SNB interactive workload for
+[Neo4j](http://neo4j.com/). All queries are expressed as Cypher statements and
+executed transactionally over HTTP against a running Neo4j webserver using
+Neo4j's REST API. All queries defined in the [LDBC Social Network Benchmark
+Specification v0.2.2](https://github.com/ldbc/ldbc_snb_docs) have been
+implemented and have passed
+[validation](https://github.com/ldbc/ldbc_snb_interactive_validation)
 (woohoo!).
 
 In addition, the repository includes a couple of useful tools for helping with
