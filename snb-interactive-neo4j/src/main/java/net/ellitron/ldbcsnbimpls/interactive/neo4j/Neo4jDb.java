@@ -142,6 +142,7 @@ public class Neo4jDb extends Db {
       host = properties.get("host");
     } else {
       host = "127.0.0.1";
+      loggingService.info("No host parameter found, using default: " + host);
     }
 
     String port;
@@ -149,6 +150,7 @@ public class Neo4jDb extends Db {
       port = properties.get("port");
     } else {
       port = "7474";
+      loggingService.info("No port parameter found, using default: " + port);
     }
 
     connectionState = new Neo4jDbConnectionState(host, port);
