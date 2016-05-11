@@ -60,7 +60,10 @@ public class DataFormatConverter {
   private static final String doc =
       "DataFormatConverter: A utility for converting dataset files generated "
       + "by the LDBC SNB Data Generator to the file format expected by the "
-      + "Neo4j import tool."
+      + "Neo4j import tool. Output files are placed in the DEST directory, "
+      + "along with an import.sh script that runs the Neo4j Import Tool "
+      + "automatically on those files. For this script to work, please set "
+      + "your NEO4J_HOME environment variable appropriately."
       + "\n"
       + "Usage:\n"
       + "  DataFormatConverter SOURCE DEST\n"
