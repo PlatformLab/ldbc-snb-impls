@@ -24,8 +24,9 @@ LDBC:
 * LDBC driver: 0.3-SNAPSHOT
 
 ## Special Notes ##
-* The Neo4j database connector is not currently thread-safe. Therefore, it is
-  not safe to run it with the driver using multiple threads. 
+* ~~The Neo4j database connector is not currently thread-safe. Therefore, it is
+  not safe to run it with the driver using multiple threads.~~ Neo4jDb is now
+  thread safe!
 * The Neo4j database connector does not support authentication to the Neo4j
   server. Authentication must be disabled to run the workload.
 
