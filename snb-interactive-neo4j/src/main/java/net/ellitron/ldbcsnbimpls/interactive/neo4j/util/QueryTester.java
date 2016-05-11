@@ -144,7 +144,10 @@ public class QueryTester {
       + "  --host=<host>       Host IP address of Neo4j webserver\n"
       + "                      [default: 127.0.0.1].\n"
       + "  --port=<port>       Port of Neo4j webserver [default: 7474].\n"
-      + "  --repeat=<n>        How many times to repeat the query\n"
+      + "  --repeat=<n>        How many times to repeat the query. If n > 1\n"
+      + "                      then normal query result output will be\n"
+      + "                      surpressed to show only the query timing\n"
+      + "                      information\n"
       + "                      [default: 1].\n"
       + "  --input=<input>     Directory of updateStream files to use as\n"
       + "                      input for update queries (the nth update of\n"
@@ -933,7 +936,9 @@ public class QueryTester {
       }
     }
 
-    printResult(resultReporter.result());
+    if (repeatCount == 1) {
+      printResult(resultReporter.result());
+    }
   }
 
   /**
