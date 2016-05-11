@@ -40,6 +40,7 @@ import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6Messag
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
 
+import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
 import com.ldbc.driver.Operation;
 import com.ldbc.driver.OperationHandler;
@@ -107,44 +108,53 @@ public class QueryTester {
       + "purposes.\n"
       + "\n"
       + "Usage:\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query1 <personId> <firstName> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query2 <personId> <maxDate> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query3 <personId> <countryXName> <countryYName> <startDate> <durationDays> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query4 <personId> <startDate> <durationDays> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query5 <personId> <minDate> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query6 <personId> <tagName> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query7 <personId> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query8 <personId> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query9 <personId> <maxDate> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query10 <personId> <month> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query11 <personId> <countryName> <workFromYear> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query12 <personId> <tagClassName> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query13 <person1Id> <person2Id>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] query14 <person1Id> <person2Id>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery1 <personId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery2 <personId> <limit>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery3 <personId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery4 <messageId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery5 <messageId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery6 <messageId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] shortquery7 <messageId>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update1 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update2 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update3 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update4 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update5 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update6 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update7 <nth>\n"
-      + "  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update8 <nth>\n"
+      + "  QueryTester [options] query1 <personId> <firstName> <limit>\n"
+      + "  QueryTester [options] query2 <personId> <maxDate> <limit>\n"
+      + "  QueryTester [options] query3 <personId> <countryXName> <countryYName> <startDate> <durationDays> <limit>\n"
+      + "  QueryTester [options] query4 <personId> <startDate> <durationDays> <limit>\n"
+      + "  QueryTester [options] query5 <personId> <minDate> <limit>\n"
+      + "  QueryTester [options] query6 <personId> <tagName> <limit>\n"
+      + "  QueryTester [options] query7 <personId> <limit>\n"
+      + "  QueryTester [options] query8 <personId> <limit>\n"
+      + "  QueryTester [options] query9 <personId> <maxDate> <limit>\n"
+      + "  QueryTester [options] query10 <personId> <month> <limit>\n"
+      + "  QueryTester [options] query11 <personId> <countryName> <workFromYear> <limit>\n"
+      + "  QueryTester [options] query12 <personId> <tagClassName> <limit>\n"
+      + "  QueryTester [options] query13 <person1Id> <person2Id>\n"
+      + "  QueryTester [options] query14 <person1Id> <person2Id>\n"
+      + "  QueryTester [options] shortquery1 <personId>\n"
+      + "  QueryTester [options] shortquery2 <personId> <limit>\n"
+      + "  QueryTester [options] shortquery3 <personId>\n"
+      + "  QueryTester [options] shortquery4 <messageId>\n"
+      + "  QueryTester [options] shortquery5 <messageId>\n"
+      + "  QueryTester [options] shortquery6 <messageId>\n"
+      + "  QueryTester [options] shortquery7 <messageId>\n"
+      + "  QueryTester [options] update1 <nth>\n"
+      + "  QueryTester [options] update2 <nth>\n"
+      + "  QueryTester [options] update3 <nth>\n"
+      + "  QueryTester [options] update4 <nth>\n"
+      + "  QueryTester [options] update5 <nth>\n"
+      + "  QueryTester [options] update6 <nth>\n"
+      + "  QueryTester [options] update7 <nth>\n"
+      + "  QueryTester [options] update8 <nth>\n"
       + "  QueryTester (-h | --help)\n"
       + "  QueryTester --version\n"
       + "\n"
       + "Options:\n"
-      + "  --host=<host>     Host IP address of Neo4j webserver [default: 127.0.0.1].\n"
-      + "  --port=<port>     Port of Neo4j webserver [default: 7474].\n"
-      + "  --input=<input>   Directory of updateStream files to use as input [default: ./].\n"
-      + "  -h --help         Show this screen.\n"
-      + "  --version         Show version.\n"
+      + "  --host=<host>       Host IP address of Neo4j webserver\n"
+      + "                      [default: 127.0.0.1].\n"
+      + "  --port=<port>       Port of Neo4j webserver [default: 7474].\n"
+      + "  --repeat=<n>        How many times to repeat the query\n"
+      + "                      [default: 1].\n"
+      + "  --input=<input>     Directory of updateStream files to use as\n"
+      + "                      input for update queries (the nth update of\n"
+      + "                      its kind will be selected from the stream to\n"
+      + "                      execute) [default: ./].\n"
+      + "  --timeUnits=<unit>  Unit of time in which to report timings\n"
+      + "                      (SECONDS, MILLISECONDS, MICROSECONDS,\n"
+      + "                      NANOSECONDS) [default: MILLISECONDS].\n"
+      + "  -h --help           Show this screen.\n"
+      + "  --version           Show version.\n"
       + "\n";
 
   /**
@@ -421,30 +431,108 @@ public class QueryTester {
     return (Operation<LdbcNoResult>) ctor.newInstance(argList.toArray());
   }
 
-  public static void main(String[] args) throws DbException, IOException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public static <R, T extends Operation<R>, S extends DbConnectionState> void
+      execAndTimeQuery(OperationHandler<T, S> opHandler, T op,
+          S connectionState, ResultReporter resultReporter, int repeatCount,
+          String timeUnits)
+      throws DbException {
+
+    Long[] timings = new Long[repeatCount];
+
+    long startTime, endTime;
+    for (int i = 0; i < repeatCount; i++) {
+      startTime = System.nanoTime();
+      opHandler.executeOperation(op, connectionState, resultReporter);
+      endTime = System.nanoTime();
+      timings[i] = endTime - startTime;
+    }
+
+    Arrays.sort(timings);
+
+    long sum = 0;
+    long min = Long.MAX_VALUE;
+    long max = 0;
+    for (int i = 0; i < timings.length; i++) {
+      sum += timings[i];
+
+      if (timings[i] < min) {
+        min = timings[i];
+      }
+
+      if (timings[i] > max) {
+        max = timings[i];
+      }
+    }
+
+    long mean = sum / repeatCount;
+
+    int p25 = (int) (0.25 * (float) repeatCount);
+    int p50 = (int) (0.50 * (float) repeatCount);
+    int p75 = (int) (0.75 * (float) repeatCount);
+    int p90 = (int) (0.90 * (float) repeatCount);
+    int p95 = (int) (0.95 * (float) repeatCount);
+    int p99 = (int) (0.99 * (float) repeatCount);
+
+    long nanosPerTimeUnit;
+
+    switch (timeUnits) {
+      case "NANOSECONDS":
+        nanosPerTimeUnit = 1;
+        break;
+      case "MICROSECONDS":
+        nanosPerTimeUnit = 1000;
+        break;
+      case "MILLISECONDS":
+        nanosPerTimeUnit = 1000000;
+        break;
+      case "SECONDS":
+        nanosPerTimeUnit = 1000000000;
+        break;
+      default:
+        throw new RuntimeException("Unrecognized time unit: " + timeUnits);
+    }
+
+    System.out.println(String.format(
+        "Query Stats:\n"
+        + "  Units:            %s\n"
+        + "  Count:            %d\n"
+        + "  Min:              %d\n"
+        + "  Max:              %d\n"
+        + "  Mean:             %d\n"
+        + "  25th Percentile:  %d\n"
+        + "  50th Percentile:  %d\n"
+        + "  75th Percentile:  %d\n"
+        + "  90th Percentile:  %d\n"
+        + "  95th Percentile:  %d\n"
+        + "  99th Percentile:  %d\n",
+        timeUnits,
+        repeatCount,
+        min / nanosPerTimeUnit,
+        max / nanosPerTimeUnit,
+        mean / nanosPerTimeUnit,
+        timings[p25] / nanosPerTimeUnit,
+        timings[p50] / nanosPerTimeUnit,
+        timings[p75] / nanosPerTimeUnit,
+        timings[p90] / nanosPerTimeUnit,
+        timings[p95] / nanosPerTimeUnit,
+        timings[p99] / nanosPerTimeUnit));
+  }
+
+  public static void main(String[] args) throws DbException, IOException,
+      InstantiationException, IllegalAccessException, IllegalArgumentException,
+      InvocationTargetException {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
 
-    String host;
-    if (opts.containsKey("--host")) {
-      host = (String) opts.get("--host");
-    } else {
-      host = "127.0.0.1";
-    }
+    String host = (String) opts.get("--host");
 
-    String port;
-    if (opts.containsKey("--port")) {
-      port = (String) opts.get("--port");
-    } else {
-      port = "7474";
-    }
+    String port = (String) opts.get("--port");
 
-    String inputDir;
-    if (opts.containsKey("--input")) {
-      inputDir = (String) opts.get("--input");
-    } else {
-      inputDir = "./";
-    }
+    String inputDir = (String) opts.get("--input");
+
+    int repeatCount = Integer.decode((String) opts.get("--repeat"));
+
+    String timeUnits = (String) opts.get("--timeUnits");
 
     Neo4jDbConnectionState dbConnectionState =
         new Neo4jDbConnectionState(host, port);
@@ -461,14 +549,9 @@ public class QueryTester {
       LdbcQuery1Handler opHandler = new LdbcQuery1Handler();
       LdbcQuery1 op = new LdbcQuery1(personId, firstName, limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query2")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
@@ -477,14 +560,9 @@ public class QueryTester {
       LdbcQuery2Handler opHandler = new LdbcQuery2Handler();
       LdbcQuery2 op = new LdbcQuery2(personId, maxDate, limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query3")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       String countryXName = (String) opts.get("<countryXName>");
@@ -502,14 +580,9 @@ public class QueryTester {
           durationDays,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query4")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date startDate = new Date(Long.decode((String) opts.get("<startDate>")));
@@ -523,14 +596,9 @@ public class QueryTester {
           durationDays,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query5")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date minDate = new Date(Long.decode((String) opts.get("<minDate>")));
@@ -542,14 +610,9 @@ public class QueryTester {
           minDate,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query6")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       String tagName = (String) opts.get("<tagName>");
@@ -561,14 +624,9 @@ public class QueryTester {
           tagName,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query7")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
@@ -578,14 +636,9 @@ public class QueryTester {
           personId,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query8")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       int limit = Integer.decode((String) opts.get("<limit>"));
@@ -595,14 +648,9 @@ public class QueryTester {
           personId,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query9")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       Date maxDate = new Date(Long.decode((String) opts.get("<maxDate>")));
@@ -611,14 +659,9 @@ public class QueryTester {
       LdbcQuery9Handler opHandler = new LdbcQuery9Handler();
       LdbcQuery9 op = new LdbcQuery9(personId, maxDate, limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query10")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       int month = Integer.decode((String) opts.get("<month>"));
@@ -627,14 +670,9 @@ public class QueryTester {
       LdbcQuery10Handler opHandler = new LdbcQuery10Handler();
       LdbcQuery10 op = new LdbcQuery10(personId, month, limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query11")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       String countryName = (String) opts.get("<countryName>");
@@ -648,14 +686,9 @@ public class QueryTester {
           workFromYear,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query12")) {
       long personId = Long.decode((String) opts.get("<personId>"));
       String tagClassName = (String) opts.get("<tagClassName>");
@@ -667,14 +700,9 @@ public class QueryTester {
           tagClassName,
           limit);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query13")) {
       long person1Id = Long.decode((String) opts.get("<person1Id>"));
       long person2Id = Long.decode((String) opts.get("<person2Id>"));
@@ -682,14 +710,9 @@ public class QueryTester {
       LdbcQuery13Handler opHandler = new LdbcQuery13Handler();
       LdbcQuery13 op = new LdbcQuery13(person1Id, person2Id);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("query14")) {
       long person1Id = Long.decode((String) opts.get("<person1Id>"));
       long person2Id = Long.decode((String) opts.get("<person2Id>"));
@@ -697,14 +720,9 @@ public class QueryTester {
       LdbcQuery14Handler opHandler = new LdbcQuery14Handler();
       LdbcQuery14 op = new LdbcQuery14(person1Id, person2Id);
 
-      long startTime = System.nanoTime();
-      opHandler.executeOperation(op, dbConnectionState, resultReporter);
-      long endTime = System.nanoTime();
+      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+          repeatCount, timeUnits);
 
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
     } else if ((Boolean) opts.get("shortquery1")
         || (Boolean) opts.get("shortquery2")
         || (Boolean) opts.get("shortquery3")
@@ -754,70 +772,51 @@ public class QueryTester {
       long endTime = 0;
       switch (opNumber) {
         case 1: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery1PersonProfileHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery1PersonProfileHandler) opHandler,
               (LdbcShortQuery1PersonProfile) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 2: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery2PersonPostsHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery2PersonPostsHandler) opHandler,
               (LdbcShortQuery2PersonPosts) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 3: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery3PersonFriendsHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery3PersonFriendsHandler) opHandler,
               (LdbcShortQuery3PersonFriends) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 4: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery4MessageContentHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery4MessageContentHandler) opHandler,
               (LdbcShortQuery4MessageContent) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 5: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery5MessageCreatorHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery5MessageCreatorHandler) opHandler,
               (LdbcShortQuery5MessageCreator) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 6: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery6MessageForumHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery6MessageForumHandler) opHandler,
               (LdbcShortQuery6MessageForum) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         case 7: {
-          startTime = System.nanoTime();
-          ((LdbcShortQuery7MessageRepliesHandler) opHandler).executeOperation(
+          execAndTimeQuery((LdbcShortQuery7MessageRepliesHandler) opHandler,
               (LdbcShortQuery7MessageReplies) op, dbConnectionState,
-              resultReporter);
-          endTime = System.nanoTime();
+              resultReporter, repeatCount, timeUnits);
           break;
         }
         default:
           throw new RuntimeException("ERROR: Encountered unknown short read "
               + "operation number " + opNumber + "!");
       }
-
-      printResult(resultReporter.result());
-
-      System.out.println(String.format("Query time: %dus",
-          (endTime - startTime) / 1000l));
 
     } else if ((Boolean) opts.get("update1") || (Boolean) opts.get("update2")
         || (Boolean) opts.get("update3") || (Boolean) opts.get("update4")
@@ -862,82 +861,63 @@ public class QueryTester {
               case 1: {
                 OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate1AddPersonHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate1AddPerson) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate1AddPerson) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 2: {
                 OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate2AddPostLikeHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate2AddPostLike) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate2AddPostLike) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 3: {
                 OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate3AddCommentLikeHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate3AddCommentLike) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate3AddCommentLike) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 4: {
                 OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate4AddForumHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate4AddForum) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate4AddForum) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 5: {
                 OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate5AddForumMembershipHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate5AddForumMembership) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate5AddForumMembership) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 6: {
                 OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate6AddPostHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate6AddPost) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate6AddPost) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 7: {
                 OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate7AddCommentHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate7AddComment) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate7AddComment) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 8: {
                 OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> opHandler =
                     new Neo4jDb.LdbcUpdate8AddFriendshipHandler();
-                startTime = System.nanoTime();
-                opHandler.executeOperation((LdbcUpdate8AddFriendship) op,
-                    dbConnectionState, resultReporter);
-                endTime = System.nanoTime();
+                execAndTimeQuery(opHandler, (LdbcUpdate8AddFriendship) op,
+                    dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               default:
                 throw new RuntimeException("ERROR: Encountered unknown update "
                     + "operation number " + opNumber + "!");
             }
-
-            System.out.println(String.format("Query time: %dus",
-                (endTime - startTime) / 1000l));
 
             break;
           }
@@ -952,6 +932,8 @@ public class QueryTester {
             path.toAbsolutePath(), readCount, opNumber, nth));
       }
     }
+
+    printResult(resultReporter.result());
   }
 
   /**
