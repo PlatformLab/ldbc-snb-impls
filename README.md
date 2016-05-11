@@ -19,7 +19,7 @@ database.
     * Complex Read Queries: 1/14
     * Short Read Queries: 7/7
     * Update Queries: 8/8
-* [Neo4j](http://neo4j.com/)
+* [Neo4j](https://github.com/ellitron/ldbc-snb-impls/tree/master/snb-interactive-neo4j)
   * Implementation Status: Complete
     * Complex Read Queries: 14/14 (passing validation)
     * Short Read Queries: 7/7 (passing validation)
