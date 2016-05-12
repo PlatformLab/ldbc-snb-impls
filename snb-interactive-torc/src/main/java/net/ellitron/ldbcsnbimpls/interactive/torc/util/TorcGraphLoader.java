@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.ellitron.ldbcsnbimpls.interactive.torc;
+package net.ellitron.ldbcsnbimpls.interactive.torc.util;
 
 import net.ellitron.ldbcsnbimpls.snb.Entity;
 
