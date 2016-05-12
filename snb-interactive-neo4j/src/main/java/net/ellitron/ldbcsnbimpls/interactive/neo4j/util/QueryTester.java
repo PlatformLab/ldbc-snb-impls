@@ -495,6 +495,9 @@ public class QueryTester {
         throw new RuntimeException("Unrecognized time unit: " + timeUnits);
     }
 
+    System.out.println("Query:");
+    System.out.println(op.toString());
+    System.out.println();
     System.out.println(String.format(
         "Query Stats:\n"
         + "  Units:            %s\n"
@@ -769,8 +772,6 @@ public class QueryTester {
       Object op = srOp.getOpClass().getDeclaredConstructors()[0]
           .newInstance(argList.toArray());
 
-      System.out.println(op.toString());
-
       long startTime = 0;
       long endTime = 0;
       switch (opNumber) {
@@ -856,8 +857,6 @@ public class QueryTester {
 
           if (readCount == nth) {
             Operation<LdbcNoResult> op = parseUpdate(line);
-
-            System.out.println(op.toString());
 
             long startTime, endTime;
             switch (opNumber) {
