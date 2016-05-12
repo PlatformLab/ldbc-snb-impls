@@ -151,13 +151,13 @@ public class TorcDb extends Db {
       BaseConfiguration config = new BaseConfiguration();
       config.setDelimiterParsingDisabled(true);
       config.setProperty(
-          TorcGraph.CONFIG_GRAPH_NAME, 
+          TorcGraph.CONFIG_GRAPH_NAME,
           properties.get("graphName"));
       config.setProperty(
-          TorcGraph.CONFIG_COORD_LOCATOR, 
+          TorcGraph.CONFIG_COORD_LOCATOR,
           properties.get("coordinatorLocator"));
       config.setProperty(
-          TorcGraph.CONFIG_NUM_MASTER_SERVERS, 
+          TorcGraph.CONFIG_NUM_MASTER_SERVERS,
           properties.get("numMasterServers"));
 
       client = TorcGraph.open(config);
@@ -180,7 +180,7 @@ public class TorcDb extends Db {
   }
 
   @Override
-  protected void onInit(Map<String, String> properties, 
+  protected void onInit(Map<String, String> properties,
       LoggingService loggingService) throws DbException {
 
     /*
@@ -190,43 +190,43 @@ public class TorcDb extends Db {
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
     }
-    
+
     /*
      * Register operation handlers with the benchmark.
-     */ 
-    registerOperationHandler(LdbcQuery1.class, 
+     */
+    registerOperationHandler(LdbcQuery1.class,
         LdbcQuery1Handler.class);
 
-    registerOperationHandler(LdbcShortQuery1PersonProfile.class, 
+    registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
-    registerOperationHandler(LdbcShortQuery2PersonPosts.class, 
+    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
         LdbcShortQuery2PersonPostsHandler.class);
-    registerOperationHandler(LdbcShortQuery3PersonFriends.class, 
+    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
         LdbcShortQuery3PersonFriendsHandler.class);
-    registerOperationHandler(LdbcShortQuery4MessageContent.class, 
+    registerOperationHandler(LdbcShortQuery4MessageContent.class,
         LdbcShortQuery4MessageContentHandler.class);
-    registerOperationHandler(LdbcShortQuery5MessageCreator.class, 
+    registerOperationHandler(LdbcShortQuery5MessageCreator.class,
         LdbcShortQuery5MessageCreatorHandler.class);
-    registerOperationHandler(LdbcShortQuery6MessageForum.class, 
+    registerOperationHandler(LdbcShortQuery6MessageForum.class,
         LdbcShortQuery6MessageForumHandler.class);
-    registerOperationHandler(LdbcShortQuery7MessageReplies.class, 
+    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
         LdbcShortQuery7MessageRepliesHandler.class);
- 
-    registerOperationHandler(LdbcUpdate1AddPerson.class, 
+
+    registerOperationHandler(LdbcUpdate1AddPerson.class,
         LdbcUpdate1AddPersonHandler.class);
-    registerOperationHandler(LdbcUpdate2AddPostLike.class, 
+    registerOperationHandler(LdbcUpdate2AddPostLike.class,
         LdbcUpdate2AddPostLikeHandler.class);
-    registerOperationHandler(LdbcUpdate3AddCommentLike.class, 
+    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
         LdbcUpdate3AddCommentLikeHandler.class);
-    registerOperationHandler(LdbcUpdate4AddForum.class, 
+    registerOperationHandler(LdbcUpdate4AddForum.class,
         LdbcUpdate4AddForumHandler.class);
-    registerOperationHandler(LdbcUpdate5AddForumMembership.class, 
+    registerOperationHandler(LdbcUpdate5AddForumMembership.class,
         LdbcUpdate5AddForumMembershipHandler.class);
-    registerOperationHandler(LdbcUpdate6AddPost.class, 
+    registerOperationHandler(LdbcUpdate6AddPost.class,
         LdbcUpdate6AddPostHandler.class);
-    registerOperationHandler(LdbcUpdate7AddComment.class, 
+    registerOperationHandler(LdbcUpdate7AddComment.class,
         LdbcUpdate7AddCommentHandler.class);
-    registerOperationHandler(LdbcUpdate8AddFriendship.class, 
+    registerOperationHandler(LdbcUpdate8AddFriendship.class,
         LdbcUpdate8AddFriendshipHandler.class);
   }
 
@@ -254,21 +254,21 @@ public class TorcDb extends Db {
    * ascending by their last name, and for Persons with same last name
    * ascending by their identifier.[1]
    */
-   public static class LdbcQuery1Handler 
-        implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+  public static class LdbcQuery1Handler
+      implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery1 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       executeOperationGremlin2(operation, dbConnectionState, resultReporter);
     }
 
-    public void executeOperationGremlin2(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperationGremlin2(final LdbcQuery1 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -303,7 +303,7 @@ public class TorcDb extends Db {
                 .select("x").by(count(Scope.local)).is(lt(resultLimit))
                 .store("x").by(select("person"))
             ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-            .store("d")).unfold().aggregate("done").out("knows")
+                .store("d")).unfold().aggregate("done").out("knows")
             .where(without("done")).dedup().fold().sideEffect(
                 unfold().has("firstName", firstName).order()
                 .by("lastName", incr).by(id(), incr).limit(resultLimit)
@@ -311,7 +311,7 @@ public class TorcDb extends Db {
                 .select("x").by(count(Scope.local)).is(lt(resultLimit))
                 .store("x").by(select("person"))
             ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-            .store("d")).unfold().aggregate("done").out("knows")
+                .store("d")).unfold().aggregate("done").out("knows")
             .where(without("done")).dedup().fold().sideEffect(
                 unfold().has("firstName", firstName).order()
                 .by("lastName", incr).by(id(), incr).limit(resultLimit)
@@ -321,14 +321,14 @@ public class TorcDb extends Db {
             ).select("x").count(Scope.local)
             .store("d").iterate();
 
-        Map<Vertex, Map<String, List<String>>> propertiesMap = 
+        Map<Vertex, Map<String, List<String>>> propertiesMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .<List<String>>valueMap().as("props")
             .select("person", "props")
             .forEachRemaining(map -> {
-              propertiesMap.put((Vertex)map.get("person"), 
-                  (Map<String,List<String>>)map.get("props"));
+              propertiesMap.put((Vertex) map.get("person"),
+                  (Map<String, List<String>>) map.get("props"));
             });
 
         Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
@@ -338,11 +338,11 @@ public class TorcDb extends Db {
             .as("placeName")
             .select("person", "placeName")
             .forEachRemaining(map -> {
-              placeNameMap.put((Vertex)map.get("person"), 
-                  (String)map.get("placeName"));
+              placeNameMap.put((Vertex) map.get("person"),
+                  (String) map.get("placeName"));
             });
 
-        Map<Vertex, List<List<Object>>> universityInfoMap = 
+        Map<Vertex, List<List<Object>>> universityInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("studyAt").as("classYear")
@@ -365,7 +365,7 @@ public class TorcDb extends Db {
               }
             });
 
-        Map<Vertex, List<List<Object>>> companyInfoMap = 
+        Map<Vertex, List<List<Object>>> companyInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("workAt").as("workFrom")
@@ -392,36 +392,40 @@ public class TorcDb extends Db {
 
         for (int i = 0; i < matchList.size(); i++) {
           Vertex match = matchList.get(i);
-          int distance = (i < distList.get(0)) ? 1 : 
-              (i < distList.get(1)) ? 2 : 3;
+          int distance = (i < distList.get(0)) ? 1
+              : (i < distList.get(1)) ? 2 : 3;
           Map<String, List<String>> properties = propertiesMap.get(match);
           List<String> emails = properties.get("email");
-          if (emails == null)
+          if (emails == null) {
             emails = new ArrayList<>();
+          }
           List<String> languages = properties.get("language");
-          if (languages == null)
+          if (languages == null) {
             languages = new ArrayList<>();
+          }
           String placeName = placeNameMap.get(match);
           List<List<Object>> universityInfo = universityInfoMap.get(match);
-          if (universityInfo == null)
+          if (universityInfo == null) {
             universityInfo = new ArrayList<>();
+          }
           List<List<Object>> companyInfo = companyInfoMap.get(match);
-          if (companyInfo == null)
+          if (companyInfo == null) {
             companyInfo = new ArrayList<>();
+          }
           result.add(new LdbcQuery1Result(
-                ((UInt128) match.id()).getLowerLong(),
-                properties.get("lastName").get(0),
-                distance,
-                Long.decode(properties.get("birthday").get(0)),
-                Long.decode(properties.get("creationDate").get(0)),
-                properties.get("gender").get(0),
-                properties.get("browserUsed").get(0),
-                properties.get("locationIP").get(0),
-                emails,
-                languages,
-                placeName,
-                universityInfo,
-                companyInfo));
+              ((UInt128) match.id()).getLowerLong(),
+              properties.get("lastName").get(0),
+              distance,
+              Long.decode(properties.get("birthday").get(0)),
+              Long.decode(properties.get("creationDate").get(0)),
+              properties.get("gender").get(0),
+              properties.get("browserUsed").get(0),
+              properties.get("locationIP").get(0),
+              emails,
+              languages,
+              placeName,
+              universityInfo,
+              companyInfo));
         }
 
         if (doTransactionalReads) {
@@ -444,8 +448,8 @@ public class TorcDb extends Db {
       //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
     }
 
-    public void executeOperationGremlin1(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperationGremlin1(final LdbcQuery1 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -484,7 +488,7 @@ public class TorcDb extends Db {
                 distList.add(1);
               }
             })
-        .iterate();
+            .iterate();
 
         if (matchList.size() < resultLimit && l1Friends.size() > 0) {
           List<Vertex> l2Friends = new ArrayList<>();
@@ -504,7 +508,7 @@ public class TorcDb extends Db {
                   distList.add(2);
                 }
               })
-          .iterate();
+              .iterate();
 
           if (matchList.size() < resultLimit && l2Friends.size() > 0) {
             g.V(l2Friends.toArray())
@@ -522,18 +526,18 @@ public class TorcDb extends Db {
                     distList.add(3);
                   }
                 })
-            .iterate();
+                .iterate();
           }
         }
 
-        Map<Vertex, Map<String, List<String>>> propertiesMap = 
+        Map<Vertex, Map<String, List<String>>> propertiesMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .<List<String>>valueMap().as("props")
             .select("person", "props")
             .forEachRemaining(map -> {
-              propertiesMap.put((Vertex)map.get("person"), 
-                  (Map<String,List<String>>)map.get("props"));
+              propertiesMap.put((Vertex) map.get("person"),
+                  (Map<String, List<String>>) map.get("props"));
             });
 
         Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
@@ -543,11 +547,11 @@ public class TorcDb extends Db {
             .as("placeName")
             .select("person", "placeName")
             .forEachRemaining(map -> {
-              placeNameMap.put((Vertex)map.get("person"), 
-                  (String)map.get("placeName"));
+              placeNameMap.put((Vertex) map.get("person"),
+                  (String) map.get("placeName"));
             });
 
-        Map<Vertex, List<List<Object>>> universityInfoMap = 
+        Map<Vertex, List<List<Object>>> universityInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("studyAt").as("classYear")
@@ -570,7 +574,7 @@ public class TorcDb extends Db {
               }
             });
 
-        Map<Vertex, List<List<Object>>> companyInfoMap = 
+        Map<Vertex, List<List<Object>>> companyInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("workAt").as("workFrom")
@@ -599,32 +603,36 @@ public class TorcDb extends Db {
           Vertex match = matchList.get(i);
           Map<String, List<String>> properties = propertiesMap.get(match);
           List<String> emails = properties.get("email");
-          if (emails == null)
+          if (emails == null) {
             emails = new ArrayList<>();
+          }
           List<String> languages = properties.get("language");
-          if (languages == null)
+          if (languages == null) {
             languages = new ArrayList<>();
+          }
           String placeName = placeNameMap.get(match);
           List<List<Object>> universityInfo = universityInfoMap.get(match);
-          if (universityInfo == null)
+          if (universityInfo == null) {
             universityInfo = new ArrayList<>();
+          }
           List<List<Object>> companyInfo = companyInfoMap.get(match);
-          if (companyInfo == null)
+          if (companyInfo == null) {
             companyInfo = new ArrayList<>();
+          }
           result.add(new LdbcQuery1Result(
-                ((UInt128) match.id()).getLowerLong(),
-                properties.get("lastName").get(0),
-                distList.get(i),
-                Long.decode(properties.get("birthday").get(0)),
-                Long.decode(properties.get("creationDate").get(0)),
-                properties.get("gender").get(0),
-                properties.get("browserUsed").get(0),
-                properties.get("locationIP").get(0),
-                emails,
-                languages,
-                placeName,
-                universityInfo,
-                companyInfo));
+              ((UInt128) match.id()).getLowerLong(),
+              properties.get("lastName").get(0),
+              distList.get(i),
+              Long.decode(properties.get("birthday").get(0)),
+              Long.decode(properties.get("creationDate").get(0)),
+              properties.get("gender").get(0),
+              properties.get("browserUsed").get(0),
+              properties.get("locationIP").get(0),
+              emails,
+              languages,
+              placeName,
+              universityInfo,
+              companyInfo));
         }
 
         if (doTransactionalReads) {
@@ -647,8 +655,8 @@ public class TorcDb extends Db {
       //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
     }
 
-    public void executeOperationRaw(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperationRaw(final LdbcQuery1 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -717,7 +725,7 @@ public class TorcDb extends Db {
             Vertex friend = friends.get(matchIndices.get(matchNumber));
             equidistantVertices.add(friend);
             matchNumber++;
-              }
+          }
 
           equidistantVertices.sort((a, b) -> {
             Vertex v1 = (Vertex) a;
@@ -786,13 +794,13 @@ public class TorcDb extends Db {
             }
 
             // Fetch where person is located
-            Vertex friendPlace = 
+            Vertex friendPlace =
                 f.edges(Direction.OUT, "isLocatedIn").next().inVertex();
             friendCityName = friendPlace.<String>property("name").value();
 
             // Fetch universities studied at
             f.edges(Direction.OUT, "studyAt").forEachRemaining((e) -> {
-              Integer classYear = 
+              Integer classYear =
                   Integer.decode(e.<String>property("classYear").value());
               Vertex organization = e.inVertex();
               String orgName = organization.<String>property("name").value();
@@ -810,7 +818,7 @@ public class TorcDb extends Db {
 
             // Fetch companies worked at
             f.edges(Direction.OUT, "workAt").forEachRemaining((e) -> {
-              Integer workFrom = 
+              Integer workFrom =
                   Integer.decode(e.<String>property("workFrom").value());
               Vertex company = e.inVertex();
               String compName = company.<String>property("name").value();
@@ -840,7 +848,7 @@ public class TorcDb extends Db {
                 friendCityName,
                 friendUniversities,
                 friendCompanies
-                );
+            );
 
             result.add(res);
 
@@ -849,8 +857,8 @@ public class TorcDb extends Db {
             }
           }
 
-          if (result.size() == operation.limit() || 
-              matchNumber == matchIndices.size()) {
+          if (result.size() == operation.limit()
+              || matchNumber == matchIndices.size()) {
             break;
           }
         }
@@ -884,15 +892,15 @@ public class TorcDb extends Db {
    * of them. Sort results descending by creation date, and then ascending by
    * Post identifier.[1]
    */
-   public static class LdbcQuery2Handler 
-        implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
+  public static class LdbcQuery2Handler
+      implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery2 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery2 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -909,15 +917,15 @@ public class TorcDb extends Db {
    * descending by total number of Posts/Comments, and then ascending by Person
    * identifier.[1]
    */
-   public static class LdbcQuery3Handler 
-        implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
+  public static class LdbcQuery3Handler
+      implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery3 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery3 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -933,15 +941,15 @@ public class TorcDb extends Db {
    * interval, that this Tag was attached to. Sort results descending by Post
    * count, and then ascending by Tag name.[1]
    */
-   public static class LdbcQuery4Handler 
-        implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
+  public static class LdbcQuery4Handler
+      implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery4 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery4 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -957,15 +965,15 @@ public class TorcDb extends Db {
    * Sort results descending by the count of Posts, and then ascending by Forum
    * identifier.[1]
    */
-   public static class LdbcQuery5Handler 
-        implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
+  public static class LdbcQuery5Handler
+      implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery5 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery5 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -980,15 +988,15 @@ public class TorcDb extends Db {
    * Tag and the given Tag. Sort results descending by count, and then
    * ascending by Tag name.[1]
    */
-   public static class LdbcQuery6Handler 
-        implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
+  public static class LdbcQuery6Handler
+      implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery6 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery6 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1006,15 +1014,15 @@ public class TorcDb extends Db {
    * lowest identifier. Sort results descending by creation time of Like, then
    * ascending by Person identifier of liker.[1]
    */
-   public static class LdbcQuery7Handler 
-        implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
+  public static class LdbcQuery7Handler
+      implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery7 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery7 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1029,15 +1037,15 @@ public class TorcDb extends Db {
    * descending by creation date of reply Comment, and then ascending by
    * identifier of reply Comment.[1]
    */
-   public static class LdbcQuery8Handler 
-        implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
+  public static class LdbcQuery8Handler
+      implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery8 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery8 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1052,15 +1060,15 @@ public class TorcDb extends Db {
    * of those Posts/Comments. Sort results descending by creation date of
    * Post/Comment, and then ascending by Post/Comment identifier.[1]
    */
-   public static class LdbcQuery9Handler 
-        implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
+  public static class LdbcQuery9Handler
+      implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery9 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery9 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1084,15 +1092,15 @@ public class TorcDb extends Db {
    * results descending by similarity score, and then ascending by Person
    * identifier.[1]
    */
-   public static class LdbcQuery10Handler 
-        implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
+  public static class LdbcQuery10Handler
+      implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery10 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery10 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1107,15 +1115,15 @@ public class TorcDb extends Db {
    * results ascending by the start date, then ascending by Person identifier,
    * and lastly by Organization name descending.[1]
    */
-   public static class LdbcQuery11Handler 
-        implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
+  public static class LdbcQuery11Handler
+      implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery11 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery11 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1133,15 +1141,15 @@ public class TorcDb extends Db {
    * Tags. Sort results descending by Comment count, and then ascending by
    * Person identifier.[1]
    */
-   public static class LdbcQuery12Handler 
-        implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
+  public static class LdbcQuery12Handler
+      implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery12 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery12 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1154,15 +1162,15 @@ public class TorcDb extends Db {
    * path. -1 should be returned if no path is found, and 0 should be returned
    * if the start person is the same as the end person.[1]
    */
-   public static class LdbcQuery13Handler 
-        implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
+  public static class LdbcQuery13Handler
+      implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery13 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery13 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1181,15 +1189,15 @@ public class TorcDb extends Db {
    * length, and their weights. Sort results descending by path weight. The
    * order of paths with the same weight is unspecified.[1]
    */
-   public static class LdbcQuery14Handler 
-        implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
+  public static class LdbcQuery14Handler
+      implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery14 operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery14 operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1205,15 +1213,15 @@ public class TorcDb extends Db {
    * Given a start Person, retrieve their first name, last name, birthday, IP
    * address, browser, and city of residence.[1]
    */
-   public static class LdbcShortQuery1PersonProfileHandler implements 
+  public static class LdbcShortQuery1PersonProfileHandler implements
       OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery1PersonProfile operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery1PersonProfile operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1228,18 +1236,18 @@ public class TorcDb extends Db {
           propertyMap.put(prop.key(), prop.value());
         });
 
-        Vertex place = 
+        Vertex place =
             person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
         long placeId = ((UInt128) place.id()).getLowerLong();
 
-        LdbcShortQuery1PersonProfileResult res = 
+        LdbcShortQuery1PersonProfileResult res =
             new LdbcShortQuery1PersonProfileResult(
-                propertyMap.get("firstName"), 
+                propertyMap.get("firstName"),
                 propertyMap.get("lastName"),
-                Long.parseLong(propertyMap.get("birthday")), 
+                Long.parseLong(propertyMap.get("birthday")),
                 propertyMap.get("locationIP"),
-                propertyMap.get("browserUsed"), 
-                placeId, 
+                propertyMap.get("browserUsed"),
+                placeId,
                 propertyMap.get("gender"),
                 Long.parseLong(propertyMap.get("creationDate")));
 
@@ -1269,15 +1277,15 @@ public class TorcDb extends Db {
    * that Message will appear twice in that result. Order results descending by
    * message creation date, then descending by message identifier.[1]
    */
-   public static class LdbcShortQuery2PersonPostsHandler implements 
+  public static class LdbcShortQuery2PersonPostsHandler implements
       OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery2PersonPosts operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery2PersonPosts operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1296,9 +1304,9 @@ public class TorcDb extends Db {
           Vertex v1 = (Vertex) a;
           Vertex v2 = (Vertex) b;
 
-          long v1Date = 
+          long v1Date =
               Long.decode(v1.<String>property("creationDate").value());
-          long v2Date = 
+          long v2Date =
               Long.decode(v2.<String>property("creationDate").value());
 
           if (v1Date > v2Date) {
@@ -1318,7 +1326,7 @@ public class TorcDb extends Db {
           }
         });
 
-        for (int i = 0; i < Integer.min(operation.limit(), messageList.size()); 
+        for (int i = 0; i < Integer.min(operation.limit(), messageList.size());
             i++) {
           Vertex message = messageList.get(i);
 
@@ -1345,35 +1353,35 @@ public class TorcDb extends Db {
           if (message.label().equals(Entity.POST.getName())) {
             originalPostId = messageId;
             originalPostAuthorId = ((UInt128) person.id()).getLowerLong();
-            originalPostAuthorFirstName = 
+            originalPostAuthorFirstName =
                 person.<String>property("firstName").value();
-            originalPostAuthorLastName = 
+            originalPostAuthorLastName =
                 person.<String>property("lastName").value();
           } else {
-            Vertex parentMessage = 
+            Vertex parentMessage =
                 message.edges(Direction.OUT, "replyOf").next().inVertex();
             while (true) {
               if (parentMessage.label().equals(Entity.POST.getName())) {
                 originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
 
-                Vertex author = 
+                Vertex author =
                     parentMessage.edges(Direction.OUT, "hasCreator")
                     .next().inVertex();
                 originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
-                originalPostAuthorFirstName = 
+                originalPostAuthorFirstName =
                     author.<String>property("firstName").value();
-                originalPostAuthorLastName = 
+                originalPostAuthorLastName =
                     author.<String>property("lastName").value();
                 break;
               } else {
-                parentMessage = 
+                parentMessage =
                     parentMessage.edges(Direction.OUT, "replyOf")
                     .next().inVertex();
               }
             }
           }
 
-          LdbcShortQuery2PersonPostsResult res = 
+          LdbcShortQuery2PersonPostsResult res =
               new LdbcShortQuery2PersonPostsResult(
                   messageId,
                   messageContent,
@@ -1408,15 +1416,15 @@ public class TorcDb extends Db {
    * they became friends. Order results descending by friendship creation date,
    * then ascending by friend identifier.[1]
    */
-   public static class LdbcShortQuery3PersonFriendsHandler implements 
+  public static class LdbcShortQuery3PersonFriendsHandler implements
       OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery3PersonFriends operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery3PersonFriends operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1441,26 +1449,26 @@ public class TorcDb extends Db {
           String firstName = friend.<String>property("firstName").value();
           String lastName = friend.<String>property("lastName").value();
 
-          LdbcShortQuery3PersonFriendsResult res = 
+          LdbcShortQuery3PersonFriendsResult res =
               new LdbcShortQuery3PersonFriendsResult(
-              personId,
-              firstName,
-              lastName,
-              creationDate);
+                  personId,
+                  firstName,
+                  lastName,
+                  creationDate);
           result.add(res);
         });
 
         // Sort the result here.
         result.sort((a, b) -> {
-          LdbcShortQuery3PersonFriendsResult r1 = 
+          LdbcShortQuery3PersonFriendsResult r1 =
               (LdbcShortQuery3PersonFriendsResult) a;
-          LdbcShortQuery3PersonFriendsResult r2 = 
+          LdbcShortQuery3PersonFriendsResult r2 =
               (LdbcShortQuery3PersonFriendsResult) b;
 
           if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
             return -1;
-          } else if (r1.friendshipCreationDate() < 
-              r2.friendshipCreationDate()) {
+          } else if (r1.friendshipCreationDate()
+              < r2.friendshipCreationDate()) {
             return 1;
           } else {
             if (r1.personId() > r2.personId()) {
@@ -1495,15 +1503,15 @@ public class TorcDb extends Db {
    * Given a Message (Post or Comment), retrieve its content and creation
    * date.[1]
    */
-   public static class LdbcShortQuery4MessageContentHandler implements 
+  public static class LdbcShortQuery4MessageContentHandler implements
       OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery4MessageContent operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery4MessageContent operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1513,17 +1521,17 @@ public class TorcDb extends Db {
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
             .next();
 
-        long creationDate = 
+        long creationDate =
             Long.decode(message.<String>property("creationDate").value());
         String content = message.<String>property("content").value();
         if (content.length() == 0) {
           content = message.<String>property("imageFile").value();
         }
 
-        LdbcShortQuery4MessageContentResult result = 
+        LdbcShortQuery4MessageContentResult result =
             new LdbcShortQuery4MessageContentResult(
-            content,
-            creationDate);
+                content,
+                creationDate);
 
         if (doTransactionalReads) {
           try {
@@ -1546,15 +1554,15 @@ public class TorcDb extends Db {
   /**
    * Given a Message (Post or Comment), retrieve its author.[1]
    */
-   public static class LdbcShortQuery5MessageCreatorHandler implements 
+  public static class LdbcShortQuery5MessageCreatorHandler implements
       OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery5MessageCreator operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery5MessageCreator operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1564,20 +1572,20 @@ public class TorcDb extends Db {
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
             .next();
 
-        Vertex creator = 
+        Vertex creator =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
 
         long creatorId = ((UInt128) creator.id()).getLowerLong();
-        String creatorFirstName = 
+        String creatorFirstName =
             creator.<String>property("firstName").value();
-        String creatorLastName = 
+        String creatorLastName =
             creator.<String>property("lastName").value();
 
-        LdbcShortQuery5MessageCreatorResult result = 
+        LdbcShortQuery5MessageCreatorResult result =
             new LdbcShortQuery5MessageCreatorResult(
-            creatorId,
-            creatorFirstName,
-            creatorLastName);
+                creatorId,
+                creatorFirstName,
+                creatorLastName);
 
         if (doTransactionalReads) {
           try {
@@ -1603,15 +1611,15 @@ public class TorcDb extends Db {
    * contained in forums, for comments, return the forum containing the
    * original post in the thread which the comment is replying to.[1]
    */
-   public static class LdbcShortQuery6MessageForumHandler implements 
+  public static class LdbcShortQuery6MessageForumHandler implements
       OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery6MessageForum operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery6MessageForum operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1627,13 +1635,13 @@ public class TorcDb extends Db {
             long forumId = ((UInt128) vertex.id()).getLowerLong();
             String forumTitle = vertex.<String>property("title").value();
 
-            Vertex moderator = 
+            Vertex moderator =
                 vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
 
             long moderatorId = ((UInt128) moderator.id()).getLowerLong();
-            String moderatorFirstName = 
+            String moderatorFirstName =
                 moderator.<String>property("firstName").value();
-            String moderatorLastName = 
+            String moderatorLastName =
                 moderator.<String>property("lastName").value();
 
             result = new LdbcShortQuery6MessageForumResult(
@@ -1645,7 +1653,7 @@ public class TorcDb extends Db {
 
             break;
           } else if (vertex.label().equals(Entity.POST.getName())) {
-            vertex = 
+            vertex =
                 vertex.edges(Direction.IN, "containerOf").next().outVertex();
           } else {
             vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
@@ -1677,15 +1685,15 @@ public class TorcDb extends Db {
    * as original author, return false for "knows" flag. Order results
    * descending by creation date, then ascending by author identifier.[1]
    */
-   public static class LdbcShortQuery7MessageRepliesHandler implements 
+  public static class LdbcShortQuery7MessageRepliesHandler implements
       OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery7MessageReplies operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery7MessageReplies operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1694,7 +1702,7 @@ public class TorcDb extends Db {
         Vertex message = client.vertices(
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
             .next();
-        Vertex messageAuthor = 
+        Vertex messageAuthor =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
         long messageAuthorId = ((UInt128) messageAuthor.id()).getLowerLong();
 
@@ -1714,15 +1722,15 @@ public class TorcDb extends Db {
         for (Vertex reply : replies) {
           long replyId = ((UInt128) reply.id()).getLowerLong();
           String replyContent = reply.<String>property("content").value();
-          long replyCreationDate = 
+          long replyCreationDate =
               Long.decode(reply.<String>property("creationDate").value());
 
-          Vertex replyAuthor = 
+          Vertex replyAuthor =
               reply.edges(Direction.OUT, "hasCreator").next().inVertex();
           long replyAuthorId = ((UInt128) replyAuthor.id()).getLowerLong();
-          String replyAuthorFirstName = 
+          String replyAuthorFirstName =
               replyAuthor.<String>property("firstName").value();
-          String replyAuthorLastName = 
+          String replyAuthorLastName =
               replyAuthor.<String>property("lastName").value();
 
           boolean knows = false;
@@ -1730,15 +1738,15 @@ public class TorcDb extends Db {
             knows = messageAuthorFriendIds.contains(replyAuthorId);
           }
 
-          LdbcShortQuery7MessageRepliesResult res = 
+          LdbcShortQuery7MessageRepliesResult res =
               new LdbcShortQuery7MessageRepliesResult(
-              replyId,
-              replyContent,
-              replyCreationDate,
-              replyAuthorId,
-              replyAuthorFirstName,
-              replyAuthorLastName,
-              knows
+                  replyId,
+                  replyContent,
+                  replyCreationDate,
+                  replyAuthorId,
+                  replyAuthorFirstName,
+                  replyAuthorLastName,
+                  knows
               );
 
           result.add(res);
@@ -1746,9 +1754,9 @@ public class TorcDb extends Db {
 
         // Sort the result here.
         result.sort((a, b) -> {
-          LdbcShortQuery7MessageRepliesResult r1 = 
+          LdbcShortQuery7MessageRepliesResult r1 =
               (LdbcShortQuery7MessageRepliesResult) a;
-          LdbcShortQuery7MessageRepliesResult r2 = 
+          LdbcShortQuery7MessageRepliesResult r2 =
               (LdbcShortQuery7MessageRepliesResult) b;
 
           if (r1.commentCreationDate() > r2.commentCreationDate()) {
@@ -1791,10 +1799,10 @@ public class TorcDb extends Db {
   /**
    * Add a Person to the social network. [1]
    */
-   public static class LdbcUpdate1AddPersonHandler implements 
+  public static class LdbcUpdate1AddPersonHandler implements
       OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
 
     private final Calendar calendar;
@@ -1804,15 +1812,15 @@ public class TorcDb extends Db {
     }
 
     @Override
-    public void executeOperation(LdbcUpdate1AddPerson operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate1AddPerson operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
       // Build key value properties array
-      List<Object> personKeyValues = 
-          new ArrayList<>(18 + 2 * operation.languages().size() + 
-              2 * operation.emails().size());
+      List<Object> personKeyValues =
+          new ArrayList<>(18 + 2 * operation.languages().size()
+              + 2 * operation.emails().size());
       personKeyValues.add(T.id);
       personKeyValues.add(
           new UInt128(Entity.PERSON.getNumber(), operation.personId()));
@@ -1856,7 +1864,7 @@ public class TorcDb extends Db {
 
         // Add edges to tags
         List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
-        operation.tagIds().forEach((id) -> 
+        operation.tagIds().forEach((id) ->
             tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
         Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
         tagVItr.forEachRemaining((tag) -> {
@@ -1870,8 +1878,8 @@ public class TorcDb extends Db {
           studiedAtKeyValues.add("classYear");
           studiedAtKeyValues.add(String.valueOf(org.year()));
           Vertex orgV = client.vertices(
-              new UInt128(Entity.ORGANISATION.getNumber(), 
-                org.organizationId()))
+              new UInt128(Entity.ORGANISATION.getNumber(),
+                  org.organizationId()))
               .next();
           person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
         }
@@ -1883,8 +1891,8 @@ public class TorcDb extends Db {
           workedAtKeyValues.add("workFrom");
           workedAtKeyValues.add(String.valueOf(org.year()));
           Vertex orgV = client.vertices(
-              new UInt128(Entity.ORGANISATION.getNumber(), 
-                org.organizationId())).next();
+              new UInt128(Entity.ORGANISATION.getNumber(),
+                  org.organizationId())).next();
           person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
         }
 
@@ -1894,11 +1902,11 @@ public class TorcDb extends Db {
         } catch (Exception e) {
           txFailCount++;
         }
-        
+
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -1909,21 +1917,21 @@ public class TorcDb extends Db {
   /**
    * Add a Like to a Post of the social network.[1]
    */
-   public static class LdbcUpdate2AddPostLikeHandler implements 
+  public static class LdbcUpdate2AddPostLikeHandler implements
       OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
-    public void executeOperation(LdbcUpdate2AddPostLike operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate2AddPostLike operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
-      UInt128 personId = 
+      UInt128 personId =
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
-      UInt128 postId = 
+      UInt128 postId =
           new UInt128(Entity.POST.getNumber(), operation.postId());
 
       boolean txSucceeded = false;
@@ -1946,8 +1954,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -1958,26 +1966,26 @@ public class TorcDb extends Db {
   /**
    * Add a Like to a Comment of the social network.[1]
    */
-   public static class LdbcUpdate3AddCommentLikeHandler implements 
+  public static class LdbcUpdate3AddCommentLikeHandler implements
       OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
-    public void executeOperation(LdbcUpdate3AddCommentLike operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate3AddCommentLike operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
-      UInt128 personId = 
+      UInt128 personId =
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
-      UInt128 commentId = 
+      UInt128 commentId =
           new UInt128(Entity.COMMENT.getNumber(), operation.commentId());
-      
+
       boolean txSucceeded = false;
       int txFailCount = 0;
-      do { 
+      do {
         Iterator<Vertex> results = client.vertices(personId, commentId);
         Vertex person = results.next();
         Vertex comment = results.next();
@@ -1995,8 +2003,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -2007,15 +2015,15 @@ public class TorcDb extends Db {
   /**
    * Add a Forum to the social network.[1]
    */
-   public static class LdbcUpdate4AddForumHandler implements 
+  public static class LdbcUpdate4AddForumHandler implements
       OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate4AddForum operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate4AddForum operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
@@ -2039,8 +2047,8 @@ public class TorcDb extends Db {
         operation.tagIds().forEach((id) -> {
           ids.add(new UInt128(Entity.TAG.getNumber(), id));
         });
-        ids.add(new UInt128(Entity.PERSON.getNumber(), 
-              operation.moderatorPersonId()));
+        ids.add(new UInt128(Entity.PERSON.getNumber(),
+            operation.moderatorPersonId()));
 
         client.vertices(ids.toArray()).forEachRemaining((v) -> {
           if (v.label().equals(Entity.TAG.getName())) {
@@ -2049,8 +2057,8 @@ public class TorcDb extends Db {
             forum.addEdge("hasModerator", v);
           } else {
             throw new RuntimeException(
-                "ERROR: LdbcUpdate4AddForum query tried to add an edge to a " + 
-                "vertex that is neither a tag nor a person.");
+                "ERROR: LdbcUpdate4AddForum query tried to add an edge to a "
+                + "vertex that is neither a tag nor a person.");
           }
         });
 
@@ -2063,8 +2071,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -2075,15 +2083,15 @@ public class TorcDb extends Db {
   /**
    * Add a Forum membership to the social network.[1]
    */
-   public static class LdbcUpdate5AddForumMembershipHandler implements 
+  public static class LdbcUpdate5AddForumMembershipHandler implements
       OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate5AddForumMembership operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate5AddForumMembership operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
@@ -2113,8 +2121,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -2125,15 +2133,15 @@ public class TorcDb extends Db {
   /**
    * Add a Post to the social network.[1]
    */
-   public static class LdbcUpdate6AddPostHandler implements 
+  public static class LdbcUpdate6AddPostHandler implements
       OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate6AddPost operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate6AddPost operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
@@ -2164,8 +2172,8 @@ public class TorcDb extends Db {
         Vertex post = client.addVertex(postKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(new UInt128(Entity.PERSON.getNumber(), 
-              operation.authorPersonId()));
+        ids.add(new UInt128(Entity.PERSON.getNumber(),
+            operation.authorPersonId()));
         ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
         ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
         operation.tagIds().forEach((id) -> {
@@ -2183,9 +2191,9 @@ public class TorcDb extends Db {
             post.addEdge("hasTag", v);
           } else {
             throw new RuntimeException(
-                "ERROR: LdbcUpdate6AddPostHandler query tried to add an " + 
-                "edge to a vertex that is none of {person, forum, place, " + 
-                "tag}.");
+                "ERROR: LdbcUpdate6AddPostHandler query tried to add an "
+                + "edge to a vertex that is none of {person, forum, place, "
+                + "tag}.");
           }
         });
 
@@ -2198,8 +2206,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -2210,15 +2218,15 @@ public class TorcDb extends Db {
   /**
    * Add a Comment replying to a Post/Comment to the social network.[1]
    */
-   public static class LdbcUpdate7AddCommentHandler implements 
+  public static class LdbcUpdate7AddCommentHandler implements
       OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate7AddComment operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate7AddComment operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
@@ -2245,15 +2253,15 @@ public class TorcDb extends Db {
         Vertex comment = client.addVertex(commentKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(new UInt128(Entity.PERSON.getNumber(), 
-              operation.authorPersonId()));
+        ids.add(new UInt128(Entity.PERSON.getNumber(),
+            operation.authorPersonId()));
         ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
         operation.tagIds().forEach((id) -> {
           ids.add(new UInt128(Entity.TAG.getNumber(), id));
         });
         if (operation.replyToCommentId() != -1) {
-          ids.add(new UInt128(Entity.COMMENT.getNumber(), 
-                operation.replyToCommentId()));
+          ids.add(new UInt128(Entity.COMMENT.getNumber(),
+              operation.replyToCommentId()));
         }
         if (operation.replyToPostId() != -1) {
           ids.add(
@@ -2273,9 +2281,9 @@ public class TorcDb extends Db {
             comment.addEdge("hasTag", v);
           } else {
             throw new RuntimeException(
-                "ERROR: LdbcUpdate7AddCommentHandler query tried to add an " + 
-                "edge to a vertex that is none of {person, place, comment, " + 
-                "post, tag}.");
+                "ERROR: LdbcUpdate7AddCommentHandler query tried to add an "
+                + "edge to a vertex that is none of {person, place, comment, "
+                + "post, tag}.");
           }
         });
 
@@ -2288,8 +2296,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
@@ -2300,15 +2308,15 @@ public class TorcDb extends Db {
   /**
    * Add a friendship relation to the social network.[1]
    */
-   public static class LdbcUpdate8AddFriendshipHandler implements 
+  public static class LdbcUpdate8AddFriendshipHandler implements
       OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate8AddFriendship operation, 
-        BasicDbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate8AddFriendship operation,
+        BasicDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = dbConnectionState.client();
 
@@ -2341,8 +2349,8 @@ public class TorcDb extends Db {
 
         if (txFailCount >= MAX_TX_ATTEMPTS) {
           throw new RuntimeException(String.format(
-                "ERROR: Transaction failed %d times, aborting...", 
-                txFailCount));
+              "ERROR: Transaction failed %d times, aborting...",
+              txFailCount));
         }
       } while (!txSucceeded);
 
