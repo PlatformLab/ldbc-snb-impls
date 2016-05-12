@@ -219,6 +219,19 @@ public class Neo4jTransactionDriver {
       throw new Neo4jCommunicationException(e);
     }
 
+    String responsePayload = response.getEntity(String.class);
+
+    logger.debug(String.format(
+        "\n"
+        + "URI: %s\n"
+        + "Request Body:\n"
+        + "%s\n"
+        + "Response Body:\n"
+        + "%s\n",
+        uri,
+        requestPayload,
+        responsePayload));
+
     // If this request opened a new transaction, capture the transaction URI
     // from the response. 
     if (currentTxLocation == null) {
@@ -226,7 +239,6 @@ public class Neo4jTransactionDriver {
     }
 
     // Parse the JSON-formatted response.
-    String responsePayload = response.getEntity(String.class);
     JsonReader reader = Json.createReader(new StringReader(responsePayload));
     JsonObject responseJsonObj = reader.readObject();
     reader.close();
@@ -419,8 +431,20 @@ public class Neo4jTransactionDriver {
       currentTxLocation = null;
     }
 
-    // Parse the JSON-formatted response.
     String responsePayload = response.getEntity(String.class);
+
+    logger.debug(String.format(
+        "\n"
+        + "URI: %s\n"
+        + "Request Body:\n"
+        + "%s\n"
+        + "Response Body:\n"
+        + "%s\n",
+        uri,
+        requestPayload,
+        responsePayload));
+
+    // Parse the JSON-formatted response.
     JsonReader reader = Json.createReader(new StringReader(responsePayload));
     JsonObject responseJsonObj = reader.readObject();
     reader.close();
@@ -551,8 +575,17 @@ public class Neo4jTransactionDriver {
         currentTxLocation = null;
       }
 
-      // Parse the JSON-formatted response.
       String responsePayload = response.getEntity(String.class);
+
+      logger.debug(String.format(
+          "\n"
+          + "URI: %s\n"
+          + "Response Body:\n"
+          + "%s\n",
+          uri,
+          responsePayload));
+
+      // Parse the JSON-formatted response.
       JsonReader reader = Json.createReader(new StringReader(responsePayload));
       JsonObject responseJsonObj = reader.readObject();
       reader.close();
@@ -679,8 +712,17 @@ public class Neo4jTransactionDriver {
         currentTxLocation = null;
       }
 
-      // Parse the JSON-formatted response.
       String responsePayload = response.getEntity(String.class);
+
+      logger.debug(String.format(
+          "\n"
+          + "URI: %s\n"
+          + "Response Body:\n"
+          + "%s\n",
+          currentTxLocation,
+          responsePayload));
+
+      // Parse the JSON-formatted response.
       JsonReader reader = Json.createReader(new StringReader(responsePayload));
       JsonObject responseJsonObj = reader.readObject();
       reader.close();
