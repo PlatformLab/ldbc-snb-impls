@@ -102,8 +102,38 @@ import java.util.logging.Level;
 import java.util.Map;
 
 /**
+ * An implementation of the LDBC SNB interactive workload[1] for TorcDB.
+ * Queries are executed against a running RAMCloud cluster. Configuration
+ * parameters for this implementation (that are supplied via the LDBC driver)
+ * are listed below.
+ * <p>
+ * Configuration Parameters:
+ * <ul>
+ * <li>graphName - name of the graph stored in RAMCloud against which to
+ * execute queries.</li>
+ * <li>coordinatorLocator - locator string for the RAMCloud cluster
+ * coordinator.</li>
+ * <li>numMasterServers - number of master servers in the RAMCloud
+ * cluster.</li>
+ * <li>txReads - the presence of this switch turns on performing transactions
+ * for read queries (Note: at time of writing complex read queries touch too
+ * much data and trying to do these transactionally will result in a timeout.
+ * This is currently being fixed in RAMCloud).</li>
+ * </ul>
+ * <p>
+ * References:<br>
+ * [1]: Prat, Arnau (UPC) and Boncz, Peter (VUA) and Larriba, Josep Lluís (UPC)
+ * and Angles, Renzo (TALCA) and Averbuch, Alex (NEO) and Erling, Orri (OGL)
+ * and Gubichev, Andrey (TUM) and Spasić, Mirko (OGL) and Pham, Minh-Duc (VUA)
+ * and Martínez, Norbert (SPARSITY). "LDBC Social Network Benchmark (SNB) -
+ * v0.2.2 First Public Draft Release". http://www.ldbcouncil.org/.
+ * <p>
+ * TODO:<br>
+ * <ul>
+ * </ul>
+ * <p>
  *
- * @author Jonathan Ellithorpe <jde@cs.stanford.edu>
+ * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class TorcDb extends Db {
 
@@ -152,7 +182,21 @@ public class TorcDb extends Db {
   @Override
   protected void onInit(Map<String, String> properties, 
       LoggingService loggingService) throws DbException {
-    registerOperationHandler(LdbcQuery1.class, LdbcQuery1Handler.class);
+
+    /*
+     * Extract parameters from properties map.
+     */
+    connectionState = new BasicDbConnectionState(properties);
+    if (properties.containsKey("txReads")) {
+      doTransactionalReads = true;
+    }
+    
+    /*
+     * Register operation handlers with the benchmark.
+     */ 
+    registerOperationHandler(LdbcQuery1.class, 
+        LdbcQuery1Handler.class);
+
     registerOperationHandler(LdbcShortQuery1PersonProfile.class, 
         LdbcShortQuery1PersonProfileHandler.class);
     registerOperationHandler(LdbcShortQuery2PersonPosts.class, 
@@ -167,6 +211,7 @@ public class TorcDb extends Db {
         LdbcShortQuery6MessageForumHandler.class);
     registerOperationHandler(LdbcShortQuery7MessageReplies.class, 
         LdbcShortQuery7MessageRepliesHandler.class);
+ 
     registerOperationHandler(LdbcUpdate1AddPerson.class, 
         LdbcUpdate1AddPersonHandler.class);
     registerOperationHandler(LdbcUpdate2AddPostLike.class, 
@@ -183,11 +228,6 @@ public class TorcDb extends Db {
         LdbcUpdate7AddCommentHandler.class);
     registerOperationHandler(LdbcUpdate8AddFriendship.class, 
         LdbcUpdate8AddFriendshipHandler.class);
-
-    connectionState = new BasicDbConnectionState(properties);
-    if (properties.containsKey("txReads")) {
-      doTransactionalReads = true;
-    }
   }
 
   @Override
@@ -205,7 +245,16 @@ public class TorcDb extends Db {
    * Complex Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcQuery1Handler 
+  /**
+   * Given a start Person, find up to 20 Persons with a given first name that
+   * the start Person is connected to (excluding start Person) by at most 3
+   * steps via Knows relationships. Return Persons, including summaries of the
+   * Persons workplaces and places of study. Sort results ascending by their
+   * distance from the start Person, for Persons within the same distance sort
+   * ascending by their last name, and for Persons with same last name
+   * ascending by their identifier.[1]
+   */
+   public static class LdbcQuery1Handler 
         implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -828,7 +877,14 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery2Handler 
+  /**
+   * Given a start Person, find (most recent) Posts and Comments from all of
+   * that Person’s friends, that were created before (and including) a given
+   * date. Return the top 20 Posts/Comments, and the Person that created each
+   * of them. Sort results descending by creation date, and then ascending by
+   * Post identifier.[1]
+   */
+   public static class LdbcQuery2Handler 
         implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -843,7 +899,17 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery3Handler 
+  /**
+   * Given a start Person, find Persons that are their friends and friends of
+   * friends (excluding start Person) that have made Posts/Comments in both of
+   * the given Countries, X and Y, within a given period. Only Persons that are
+   * foreign to Countries X and Y are considered, that is Persons whose
+   * Location is not Country X or Country Y. Return top 20 Persons, and their
+   * Post/Comment counts, in the given countries and period. Sort results
+   * descending by total number of Posts/Comments, and then ascending by Person
+   * identifier.[1]
+   */
+   public static class LdbcQuery3Handler 
         implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -858,7 +924,16 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery4Handler 
+  /**
+   * Given a start Person, find Tags that are attached to Posts that were
+   * created by that Person’s friends. Only include Tags that were attached to
+   * friends’ Posts created within a given time interval, and that were never
+   * attached to friends’ Posts created before this interval. Return top 10
+   * Tags, and the count of Posts, which were created within the given time
+   * interval, that this Tag was attached to. Sort results descending by Post
+   * count, and then ascending by Tag name.[1]
+   */
+   public static class LdbcQuery4Handler 
         implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -873,7 +948,16 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery5Handler 
+  /**
+   * Given a start Person, find the Forums which that Person’s friends and
+   * friends of friends (excluding start Person) became Members of after a
+   * given date. Return top 20 Forums, and the number of Posts in each Forum
+   * that was Created by any of these Persons. For each Forum consider only
+   * those Persons which joined that particular Forum after the given date.
+   * Sort results descending by the count of Posts, and then ascending by Forum
+   * identifier.[1]
+   */
+   public static class LdbcQuery5Handler 
         implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -888,7 +972,15 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery6Handler 
+  /**
+   * Given a start Person and some Tag, find the other Tags that occur together
+   * with this Tag on Posts that were created by start Person’s friends and
+   * friends of friends (excluding start Person). Return top 10 Tags, and the
+   * count of Posts that were created by these Persons, which contain both this
+   * Tag and the given Tag. Sort results descending by count, and then
+   * ascending by Tag name.[1]
+   */
+   public static class LdbcQuery6Handler 
         implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -903,7 +995,18 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery7Handler 
+  /**
+   * Given a start Person, find (most recent) Likes on any of start Person’s
+   * Posts/Comments. Return top 20 Persons that Liked any of start Person’s
+   * Posts/Comments, the Post/Comment they liked most recently, creation date
+   * of that Like, and the latency (in minutes) between creation of
+   * Post/Comment and Like. Additionally, return a flag indicating whether the
+   * liker is a friend of start Person. In the case that a Person Liked
+   * multiple Posts/Comments at the same time, return the Post/Comment with
+   * lowest identifier. Sort results descending by creation time of Like, then
+   * ascending by Person identifier of liker.[1]
+   */
+   public static class LdbcQuery7Handler 
         implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -918,7 +1021,15 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery8Handler 
+  /**
+   * Given a start Person, find (most recent) Comments that are replies to
+   * Posts/Comments of the start Person. Only consider immediate (1-hop)
+   * replies, not the transitive (multi-hop) case. Return the top 20 reply
+   * Comments, and the Person that created each reply Comment. Sort results
+   * descending by creation date of reply Comment, and then ascending by
+   * identifier of reply Comment.[1]
+   */
+   public static class LdbcQuery8Handler 
         implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -933,7 +1044,15 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery9Handler 
+  /**
+   * Given a start Person, find the (most recent) Posts/Comments created by
+   * that Person’s friends or friends of friends (excluding start Person). Only
+   * consider the Posts/Comments created before a given date (excluding that
+   * date). Return the top 20 Posts/Comments, and the Person that created each
+   * of those Posts/Comments. Sort results descending by creation date of
+   * Post/Comment, and then ascending by Post/Comment identifier.[1]
+   */
+   public static class LdbcQuery9Handler 
         implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -948,7 +1067,24 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery10Handler 
+  /**
+   * Given a start Person, find that Person’s friends of friends (excluding
+   * start Person, and immediate friends), who were born on or after the 21st
+   * of a given month (in any year) and before the 22nd of the following month.
+   * Calculate the similarity between each of these Persons and start Person,
+   * where similarity for any Person is defined as follows:
+   * <ul>
+   * <li>common = number of Posts created by that Person, such that the Post
+   * has a Tag that start Person is Interested in</li>
+   * <li>uncommon = number of Posts created by that Person, such that the Post
+   * has no Tag that start Person is Interested in</li>
+   * <li>similarity = common - uncommon</li>
+   * </ul>
+   * Return top 10 Persons, their Place, and their similarity score. Sort
+   * results descending by similarity score, and then ascending by Person
+   * identifier.[1]
+   */
+   public static class LdbcQuery10Handler 
         implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -963,7 +1099,15 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery11Handler 
+  /**
+   * Given a start Person, find that Person’s friends and friends of friends
+   * (excluding start Person) who started Working in some Company in a given
+   * Country, before a given date (year). Return top 10 Persons, the Company
+   * they worked at, and the year they started working at that Company. Sort
+   * results ascending by the start date, then ascending by Person identifier,
+   * and lastly by Organization name descending.[1]
+   */
+   public static class LdbcQuery11Handler 
         implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -978,7 +1122,18 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery12Handler 
+  /**
+   * Given a start Person, find the Comments that this Person’s friends made in
+   * reply to Posts, considering only those Comments that are immediate (1-hop)
+   * replies to Posts, not the transitive (multi-hop) case. Only consider Posts
+   * with a Tag in a given TagClass or in a descendent of that TagClass. Count
+   * the number of these reply Comments, and collect the Tags (with valid tag
+   * class) that were attached to the Posts they replied to. Return top 20
+   * Persons with at least one reply, the reply count, and the collection of
+   * Tags. Sort results descending by Comment count, and then ascending by
+   * Person identifier.[1]
+   */
+   public static class LdbcQuery12Handler 
         implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -993,7 +1148,13 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery13Handler 
+  /**
+   * Given two Persons, find the shortest path between these two Persons in the
+   * subgraph induced by the Knows relationships. Return the length of this
+   * path. -1 should be returned if no path is found, and 0 should be returned
+   * if the start person is the same as the end person.[1]
+   */
+   public static class LdbcQuery13Handler 
         implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1008,7 +1169,19 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcQuery14Handler 
+  /**
+   * Given two Persons, find all (unweighted) shortest paths between these two
+   * Persons, in the subgraph induced by the Knows relationship. Then, for each
+   * path calculate a weight. The nodes in the path are Persons, and the weight
+   * of a path is the sum of weights between every pair of consecutive Person
+   * nodes in the path. The weight for a pair of Persons is calculated such
+   * that every reply (by one of the Persons) to a Post (by the other Person)
+   * contributes 1.0, and every reply (by ones of the Persons) to a Comment (by
+   * the other Person) contributes 0.5. Return all the paths with shortest
+   * length, and their weights. Sort results descending by path weight. The
+   * order of paths with the same weight is unspecified.[1]
+   */
+   public static class LdbcQuery14Handler 
         implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1028,7 +1201,11 @@ public class TorcDb extends Db {
    * Short Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcShortQuery1PersonProfileHandler implements 
+  /**
+   * Given a start Person, retrieve their first name, last name, birthday, IP
+   * address, browser, and city of residence.[1]
+   */
+   public static class LdbcShortQuery1PersonProfileHandler implements 
       OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1084,7 +1261,15 @@ public class TorcDb extends Db {
 
   }
 
-  public static class LdbcShortQuery2PersonPostsHandler implements 
+  /**
+   * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
+   * created by that user. For each message, return that message, the original
+   * post in its conversation, and the author of that post. If any of the
+   * Messages is a Post, then the original Post will be the same Message, i.e.,
+   * that Message will appear twice in that result. Order results descending by
+   * message creation date, then descending by message identifier.[1]
+   */
+   public static class LdbcShortQuery2PersonPostsHandler implements 
       OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1218,7 +1403,12 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery3PersonFriendsHandler implements 
+  /**
+   * Given a start Person, retrieve all of their friends, and the date at which
+   * they became friends. Order results descending by friendship creation date,
+   * then ascending by friend identifier.[1]
+   */
+   public static class LdbcShortQuery3PersonFriendsHandler implements 
       OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1301,7 +1491,11 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery4MessageContentHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve its content and creation
+   * date.[1]
+   */
+   public static class LdbcShortQuery4MessageContentHandler implements 
       OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1349,7 +1543,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery5MessageCreatorHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve its author.[1]
+   */
+   public static class LdbcShortQuery5MessageCreatorHandler implements 
       OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1400,7 +1597,13 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery6MessageForumHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve the Forum that contains it and
+   * the Person that moderates that forum. Since comments are not directly
+   * contained in forums, for comments, return the forum containing the
+   * original post in the thread which the comment is replying to.[1]
+   */
+   public static class LdbcShortQuery6MessageForumHandler implements 
       OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1467,7 +1670,14 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery7MessageRepliesHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve the (1-hop) Comments that
+   * reply to it. In addition, return a boolean flag indicating if the author
+   * of the reply knows the author of the original message. If author is same
+   * as original author, return false for "knows" flag. Order results
+   * descending by creation date, then ascending by author identifier.[1]
+   */
+   public static class LdbcShortQuery7MessageRepliesHandler implements 
       OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1578,7 +1788,10 @@ public class TorcDb extends Db {
    * Update Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcUpdate1AddPersonHandler implements 
+  /**
+   * Add a Person to the social network. [1]
+   */
+   public static class LdbcUpdate1AddPersonHandler implements 
       OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1670,8 +1883,8 @@ public class TorcDb extends Db {
           workedAtKeyValues.add("workFrom");
           workedAtKeyValues.add(String.valueOf(org.year()));
           Vertex orgV = client.vertices(
-              new UInt128(Entity.ORGANISATION.getNumber(), org.organizationId()))
-              .next();
+              new UInt128(Entity.ORGANISATION.getNumber(), 
+                org.organizationId())).next();
           person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
         }
 
@@ -1693,7 +1906,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate2AddPostLikeHandler implements 
+  /**
+   * Add a Like to a Post of the social network.[1]
+   */
+   public static class LdbcUpdate2AddPostLikeHandler implements 
       OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1739,7 +1955,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate3AddCommentLikeHandler implements 
+  /**
+   * Add a Like to a Comment of the social network.[1]
+   */
+   public static class LdbcUpdate3AddCommentLikeHandler implements 
       OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1785,7 +2004,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate4AddForumHandler implements 
+  /**
+   * Add a Forum to the social network.[1]
+   */
+   public static class LdbcUpdate4AddForumHandler implements 
       OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1850,7 +2072,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate5AddForumMembershipHandler implements 
+  /**
+   * Add a Forum membership to the social network.[1]
+   */
+   public static class LdbcUpdate5AddForumMembershipHandler implements 
       OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1897,7 +2122,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate6AddPostHandler implements 
+  /**
+   * Add a Post to the social network.[1]
+   */
+   public static class LdbcUpdate6AddPostHandler implements 
       OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -1936,8 +2164,8 @@ public class TorcDb extends Db {
         Vertex post = client.addVertex(postKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(
-            new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+        ids.add(new UInt128(Entity.PERSON.getNumber(), 
+              operation.authorPersonId()));
         ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
         ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
         operation.tagIds().forEach((id) -> {
@@ -1955,8 +2183,9 @@ public class TorcDb extends Db {
             post.addEdge("hasTag", v);
           } else {
             throw new RuntimeException(
-                "ERROR: LdbcUpdate6AddPostHandler query tried to add an edge " + 
-                "to a vertex that is none of {person, forum, place, tag}.");
+                "ERROR: LdbcUpdate6AddPostHandler query tried to add an " + 
+                "edge to a vertex that is none of {person, forum, place, " + 
+                "tag}.");
           }
         });
 
@@ -1978,7 +2207,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate7AddCommentHandler implements 
+  /**
+   * Add a Comment replying to a Post/Comment to the social network.[1]
+   */
+   public static class LdbcUpdate7AddCommentHandler implements 
       OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
 
     final static Logger logger = 
@@ -2013,8 +2245,8 @@ public class TorcDb extends Db {
         Vertex comment = client.addVertex(commentKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(
-            new UInt128(Entity.PERSON.getNumber(), operation.authorPersonId()));
+        ids.add(new UInt128(Entity.PERSON.getNumber(), 
+              operation.authorPersonId()));
         ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
         operation.tagIds().forEach((id) -> {
           ids.add(new UInt128(Entity.TAG.getNumber(), id));
@@ -2065,7 +2297,10 @@ public class TorcDb extends Db {
     }
   }
 
-  public static class LdbcUpdate8AddFriendshipHandler implements 
+  /**
+   * Add a friendship relation to the social network.[1]
+   */
+   public static class LdbcUpdate8AddFriendshipHandler implements 
       OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
 
     final static Logger logger = 
