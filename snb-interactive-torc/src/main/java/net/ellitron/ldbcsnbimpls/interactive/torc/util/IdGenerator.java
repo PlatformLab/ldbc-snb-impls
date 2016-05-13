@@ -16,7 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc.util;
 
-import net.ellitron.ldbcsnbimpls.snb.Entity;
+import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
 
 import net.ellitron.torc.util.UInt128;
 

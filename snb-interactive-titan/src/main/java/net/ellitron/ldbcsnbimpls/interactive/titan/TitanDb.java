@@ -25,8 +25,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.within;
 
-import net.ellitron.ldbcsnbimpls.snb.Entity;
-
+import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
