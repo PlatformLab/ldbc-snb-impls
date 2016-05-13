@@ -101,10 +101,10 @@ import java.util.Map;
  * <p>
  * Configuration Parameters:
  * <ul>
- * <li>coordinatorLocator - locator string for the RAMCloud cluster
- * coordinator.</li>
+ * <li>coordinatorLocator - locator string for the RAMCloud cluster coordinator
+ * (default: tcp:host=127.0.0.1,port=12246).</li>
  * <li>graphName - name of the graph stored in RAMCloud against which to
- * execute queries.</li>
+ * execute queries (default: default).</li>
  * <li>txReads - the presence of this switch turns on performing transactions
  * for read queries (Note: at time of writing complex read queries touch too
  * much data and trying to do these transactionally will result in a timeout.
@@ -140,11 +140,25 @@ public class TorcDb extends Db {
     /*
      * Extract parameters from properties map.
      */
-    String coordinatorLocator = properties.get("coordinatorLocator");
-    String graphName = properties.get("graphName");
+    String coordinatorLocator;
+    if (properties.containsKey("coordinatorLocator")) {
+      coordinatorLocator = properties.get("coordinatorLocator");
+    } else {
+      coordinatorLocator = "tcp:host=127.0.0.1,port=12246";
+      loggingService.info("No coordinatorLocator parameter found, using "
+          + "default: " + coordinatorLocator);
+    }
 
+    String graphName;
+    if (properties.containsKey("graphName")) {
+      graphName = properties.get("graphName");
+    } else {
+      graphName = "default";
+      loggingService.info("No graphName parameter found, using "
+          + "default: " + graphName);
+    }
     connectionState = new TorcDbConnectionState(coordinatorLocator, graphName);
-    
+
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
     }
