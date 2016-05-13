@@ -26,7 +26,6 @@ import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 
 import net.ellitron.ldbcsnbimpls.snb.Entity;
 
-import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.util.UInt128;
 
 import com.ldbc.driver.control.LoggingService;
@@ -74,16 +73,12 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
-import org.apache.commons.configuration.BaseConfiguration;
-
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
@@ -93,12 +88,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.Map;
 
 /**
@@ -137,47 +130,11 @@ import java.util.Map;
  */
 public class TorcDb extends Db {
 
-  private BasicDbConnectionState connectionState = null;
+  private TorcDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
 
   // Maximum number of times to try a transaction before giving up.
   private static int MAX_TX_ATTEMPTS = 100;
-
-  static class BasicDbConnectionState extends DbConnectionState {
-
-    private Graph client;
-
-    private BasicDbConnectionState(Map<String, String> properties) {
-      BaseConfiguration config = new BaseConfiguration();
-      config.setDelimiterParsingDisabled(true);
-      config.setProperty(
-          TorcGraph.CONFIG_GRAPH_NAME,
-          properties.get("graphName"));
-      config.setProperty(
-          TorcGraph.CONFIG_COORD_LOCATOR,
-          properties.get("coordinatorLocator"));
-      config.setProperty(
-          TorcGraph.CONFIG_NUM_MASTER_SERVERS,
-          properties.get("numMasterServers"));
-
-      client = TorcGraph.open(config);
-    }
-
-    public Graph client() {
-      return client;
-    }
-
-    @Override
-    public void close() throws IOException {
-      try {
-        client.close();
-      } catch (Exception ex) {
-        // TODO: Fix this
-        java.util.logging.Logger.getLogger(TorcDb.class.getName())
-            .log(Level.SEVERE, null, ex);
-      }
-    }
-  }
 
   @Override
   protected void onInit(Map<String, String> properties,
@@ -186,7 +143,13 @@ public class TorcDb extends Db {
     /*
      * Extract parameters from properties map.
      */
-    connectionState = new BasicDbConnectionState(properties);
+    String coordinatorLocator = properties.get("coordinatorLocator");
+    String graphName = properties.get("graphName");
+    int numMasterServers = Integer.decode(properties.get("numMasterServers"));
+
+    connectionState = new TorcDbConnectionState(coordinatorLocator, graphName,
+        numMasterServers);
+    
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
     }
@@ -255,20 +218,20 @@ public class TorcDb extends Db {
    * ascending by their identifier.[1]
    */
   public static class LdbcQuery1Handler
-      implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery1, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery1 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       executeOperationGremlin2(operation, dbConnectionState, resultReporter);
     }
 
     public void executeOperationGremlin2(final LdbcQuery1 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -284,7 +247,7 @@ public class TorcDb extends Db {
         String firstName = operation.firstName();
         int resultLimit = operation.limit();
         int maxLevels = 3;
-        Graph graph = dbConnectionState.client();
+        Graph graph = dbConnectionState.getClient();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -449,7 +412,7 @@ public class TorcDb extends Db {
     }
 
     public void executeOperationGremlin1(final LdbcQuery1 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -465,7 +428,7 @@ public class TorcDb extends Db {
         String firstName = operation.firstName();
         int resultLimit = operation.limit();
         int maxLevels = 3;
-        Graph graph = dbConnectionState.client();
+        Graph graph = dbConnectionState.getClient();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -656,7 +619,7 @@ public class TorcDb extends Db {
     }
 
     public void executeOperationRaw(final LdbcQuery1 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -672,7 +635,7 @@ public class TorcDb extends Db {
         String firstName = operation.firstName();
         int maxLevels = 3;
 
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex rootPerson = client.vertices(
             new UInt128(Entity.PERSON.getNumber(), personId)).next();
@@ -893,14 +856,14 @@ public class TorcDb extends Db {
    * Post identifier.[1]
    */
   public static class LdbcQuery2Handler
-      implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery2, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery2 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -918,14 +881,14 @@ public class TorcDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery3Handler
-      implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery3, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery3 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -942,14 +905,14 @@ public class TorcDb extends Db {
    * count, and then ascending by Tag name.[1]
    */
   public static class LdbcQuery4Handler
-      implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery4, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery4 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -966,14 +929,14 @@ public class TorcDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery5Handler
-      implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery5, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery5 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -989,14 +952,14 @@ public class TorcDb extends Db {
    * ascending by Tag name.[1]
    */
   public static class LdbcQuery6Handler
-      implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery6, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery6 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1015,14 +978,14 @@ public class TorcDb extends Db {
    * ascending by Person identifier of liker.[1]
    */
   public static class LdbcQuery7Handler
-      implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery7, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery7 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1038,14 +1001,14 @@ public class TorcDb extends Db {
    * identifier of reply Comment.[1]
    */
   public static class LdbcQuery8Handler
-      implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery8, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery8 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1061,14 +1024,14 @@ public class TorcDb extends Db {
    * Post/Comment, and then ascending by Post/Comment identifier.[1]
    */
   public static class LdbcQuery9Handler
-      implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery9, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery9 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1093,14 +1056,14 @@ public class TorcDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery10Handler
-      implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery10, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery10 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1116,14 +1079,14 @@ public class TorcDb extends Db {
    * and lastly by Organization name descending.[1]
    */
   public static class LdbcQuery11Handler
-      implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery11, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery11 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1142,14 +1105,14 @@ public class TorcDb extends Db {
    * Person identifier.[1]
    */
   public static class LdbcQuery12Handler
-      implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery12, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery12 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1163,14 +1126,14 @@ public class TorcDb extends Db {
    * if the start person is the same as the end person.[1]
    */
   public static class LdbcQuery13Handler
-      implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery13, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery13 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1190,14 +1153,14 @@ public class TorcDb extends Db {
    * order of paths with the same weight is unspecified.[1]
    */
   public static class LdbcQuery14Handler
-      implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
+      implements OperationHandler<LdbcQuery14, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery14 operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1214,19 +1177,19 @@ public class TorcDb extends Db {
    * address, browser, and city of residence.[1]
    */
   public static class LdbcShortQuery1PersonProfileHandler implements
-      OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery1PersonProfile, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery1PersonProfile operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         long person_id = operation.personId();
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex person = client.vertices(
             new UInt128(Entity.PERSON.getNumber(), person_id)).next();
@@ -1278,18 +1241,18 @@ public class TorcDb extends Db {
    * message creation date, then descending by message identifier.[1]
    */
   public static class LdbcShortQuery2PersonPostsHandler implements
-      OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery2PersonPosts, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery2PersonPosts operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
@@ -1417,18 +1380,18 @@ public class TorcDb extends Db {
    * then ascending by friend identifier.[1]
    */
   public static class LdbcShortQuery3PersonFriendsHandler implements
-      OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery3PersonFriends, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery3PersonFriends operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 
@@ -1504,18 +1467,18 @@ public class TorcDb extends Db {
    * date.[1]
    */
   public static class LdbcShortQuery4MessageContentHandler implements
-      OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery4MessageContent, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery4MessageContent operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex message = client.vertices(
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
@@ -1555,18 +1518,18 @@ public class TorcDb extends Db {
    * Given a Message (Post or Comment), retrieve its author.[1]
    */
   public static class LdbcShortQuery5MessageCreatorHandler implements
-      OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery5MessageCreator, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery5MessageCreator operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex message = client.vertices(
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
@@ -1612,18 +1575,18 @@ public class TorcDb extends Db {
    * original post in the thread which the comment is replying to.[1]
    */
   public static class LdbcShortQuery6MessageForumHandler implements
-      OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery6MessageForum, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery6MessageForum operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex vertex = client.vertices(
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
@@ -1686,18 +1649,18 @@ public class TorcDb extends Db {
    * descending by creation date, then ascending by author identifier.[1]
    */
   public static class LdbcShortQuery7MessageRepliesHandler implements
-      OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery7MessageReplies, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery7MessageReplies operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = dbConnectionState.getClient();
 
         Vertex message = client.vertices(
             new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
@@ -1800,7 +1763,7 @@ public class TorcDb extends Db {
    * Add a Person to the social network. [1]
    */
   public static class LdbcUpdate1AddPersonHandler implements
-      OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate1AddPerson, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
@@ -1813,9 +1776,9 @@ public class TorcDb extends Db {
 
     @Override
     public void executeOperation(LdbcUpdate1AddPerson operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       // Build key value properties array
       List<Object> personKeyValues =
@@ -1918,16 +1881,16 @@ public class TorcDb extends Db {
    * Add a Like to a Post of the social network.[1]
    */
   public static class LdbcUpdate2AddPostLikeHandler implements
-      OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate2AddPostLike, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate2AddPostLike operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       UInt128 personId =
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
@@ -1967,16 +1930,16 @@ public class TorcDb extends Db {
    * Add a Like to a Comment of the social network.[1]
    */
   public static class LdbcUpdate3AddCommentLikeHandler implements
-      OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate3AddCommentLike, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate3AddCommentLike operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       UInt128 personId =
           new UInt128(Entity.PERSON.getNumber(), operation.personId());
@@ -2016,16 +1979,16 @@ public class TorcDb extends Db {
    * Add a Forum to the social network.[1]
    */
   public static class LdbcUpdate4AddForumHandler implements
-      OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate4AddForum, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       List<Object> forumKeyValues = new ArrayList<>(8);
       forumKeyValues.add(T.id);
@@ -2084,16 +2047,16 @@ public class TorcDb extends Db {
    * Add a Forum membership to the social network.[1]
    */
   public static class LdbcUpdate5AddForumMembershipHandler implements
-      OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate5AddForumMembership, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       List<UInt128> ids = new ArrayList<>(2);
       ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
@@ -2134,16 +2097,16 @@ public class TorcDb extends Db {
    * Add a Post to the social network.[1]
    */
   public static class LdbcUpdate6AddPostHandler implements
-      OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate6AddPost, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       List<Object> postKeyValues = new ArrayList<>(18);
       postKeyValues.add(T.id);
@@ -2219,16 +2182,16 @@ public class TorcDb extends Db {
    * Add a Comment replying to a Post/Comment to the social network.[1]
    */
   public static class LdbcUpdate7AddCommentHandler implements
-      OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate7AddComment, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       List<Object> commentKeyValues = new ArrayList<>(14);
       commentKeyValues.add(T.id);
@@ -2309,16 +2272,16 @@ public class TorcDb extends Db {
    * Add a friendship relation to the social network.[1]
    */
   public static class LdbcUpdate8AddFriendshipHandler implements
-      OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate8AddFriendship, TorcDbConnectionState> {
 
     final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation,
-        BasicDbConnectionState dbConnectionState,
+        TorcDbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = dbConnectionState.getClient();
 
       List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
       knowsEdgeKeyValues.add("creationDate");
