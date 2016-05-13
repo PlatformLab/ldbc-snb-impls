@@ -102,12 +102,10 @@ import java.util.Map;
  * <p>
  * Configuration Parameters:
  * <ul>
- * <li>graphName - name of the graph stored in RAMCloud against which to
- * execute queries.</li>
  * <li>coordinatorLocator - locator string for the RAMCloud cluster
  * coordinator.</li>
- * <li>numMasterServers - number of master servers in the RAMCloud
- * cluster.</li>
+ * <li>graphName - name of the graph stored in RAMCloud against which to
+ * execute queries.</li>
  * <li>txReads - the presence of this switch turns on performing transactions
  * for read queries (Note: at time of writing complex read queries touch too
  * much data and trying to do these transactionally will result in a timeout.
@@ -145,10 +143,8 @@ public class TorcDb extends Db {
      */
     String coordinatorLocator = properties.get("coordinatorLocator");
     String graphName = properties.get("graphName");
-    int numMasterServers = Integer.decode(properties.get("numMasterServers"));
 
-    connectionState = new TorcDbConnectionState(coordinatorLocator, graphName,
-        numMasterServers);
+    connectionState = new TorcDbConnectionState(coordinatorLocator, graphName);
     
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;

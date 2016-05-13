@@ -38,19 +38,17 @@ public class TorcDbConnectionState extends DbConnectionState {
 
   private final Graph client;
 
-  public TorcDbConnectionState(String coordinatorLocator, String graphName,
-      int numMasterServers) {
+  public TorcDbConnectionState(String coordinatorLocator, String graphName) {
     BaseConfiguration config = new BaseConfiguration();
     config.setDelimiterParsingDisabled(true);
+    
     config.setProperty(
         TorcGraph.CONFIG_COORD_LOCATOR,
         coordinatorLocator);
+    
     config.setProperty(
         TorcGraph.CONFIG_GRAPH_NAME,
         graphName);
-    config.setProperty(
-        TorcGraph.CONFIG_NUM_MASTER_SERVERS,
-        numMasterServers);
 
     this.client = TorcGraph.open(config);
   }
