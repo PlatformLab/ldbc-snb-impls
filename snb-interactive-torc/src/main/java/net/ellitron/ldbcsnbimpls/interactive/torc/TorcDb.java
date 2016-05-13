@@ -233,13 +233,6 @@ public class TorcDb extends Db {
     public void executeOperationGremlin2(final LdbcQuery1 operation,
         TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -405,22 +398,11 @@ public class TorcDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
     }
 
     public void executeOperationGremlin1(final LdbcQuery1 operation,
         TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -612,22 +594,11 @@ public class TorcDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
     }
 
     public void executeOperationRaw(final LdbcQuery1 operation,
         TorcDbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -840,10 +811,6 @@ public class TorcDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format("LdbcQuery1: %d: time: %dus", i, (timers[i][1] - timers[i][0])/1000l));
     }
 
   }
