@@ -14,31 +14,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
+package net.ellitron.ldbcsnbimpls.interactive.torc.util;
 
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery10Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery11Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery12Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery13Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery14Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery1Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery2Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery3Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery4Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery5Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery6Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery7Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery8Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery9Handler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery1PersonProfileHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery2PersonPostsHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery3PersonFriendsHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery4MessageContentHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery5MessageCreatorHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6MessageForumHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery10Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery11Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery12Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery13Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery14Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery1Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery2Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery3Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery4Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery5Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery6Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery7Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery8Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcQuery9Handler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery1PersonProfileHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery2PersonPostsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery3PersonFriendsHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery4MessageContentHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery5MessageCreatorHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery6MessageForumHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcShortQuery7MessageRepliesHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate1AddPersonHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate2AddPostLikeHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate3AddCommentLikeHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate4AddForumHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate5AddForumMembershipHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate6AddPostHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate7AddCommentHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.LdbcUpdate8AddFriendshipHandler;
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbConnectionState;
 
 import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
@@ -141,23 +148,24 @@ public class QueryTester {
       + "  QueryTester --version\n"
       + "\n"
       + "Options:\n"
-      + "  --host=<host>       Host IP address of Neo4j webserver\n"
-      + "                      [default: 127.0.0.1].\n"
-      + "  --port=<port>       Port of Neo4j webserver [default: 7474].\n"
-      + "  --repeat=<n>        How many times to repeat the query. If n > 1\n"
-      + "                      then normal query result output will be\n"
-      + "                      surpressed to show only the query timing\n"
-      + "                      information\n"
-      + "                      [default: 1].\n"
-      + "  --input=<input>     Directory of updateStream files to use as\n"
-      + "                      input for update queries (the nth update of\n"
-      + "                      its kind will be selected from the stream to\n"
-      + "                      execute) [default: ./].\n"
-      + "  --timeUnits=<unit>  Unit of time in which to report timings\n"
-      + "                      (SECONDS, MILLISECONDS, MICROSECONDS,\n"
-      + "                      NANOSECONDS) [default: MILLISECONDS].\n"
-      + "  -h --help           Show this screen.\n"
-      + "  --version           Show version.\n"
+      + "  --coordinator=<loc>  Locator string for the RAMCloud coordinator\n"
+      + "                       [default: tcp:host=127.0.0.1,port=12246].\n"
+      + "  --graph=<name>       Name of the graph in RAMCloud against which\n"
+      + "                       to execute queries. [default: default].\n"
+      + "  --repeat=<n>         How many times to repeat the query. If n > 1\n"
+      + "                       then normal query result output will be\n"
+      + "                       surpressed to show only the query timing\n"
+      + "                       information\n"
+      + "                       [default: 1].\n"
+      + "  --input=<input>      Directory of updateStream files to use as\n"
+      + "                       input for update queries (the nth update of\n"
+      + "                       its kind will be selected from the stream to\n"
+      + "                       execute) [default: ./].\n"
+      + "  --timeUnits=<unit>   Unit of time in which to report timings\n"
+      + "                       (SECONDS, MILLISECONDS, MICROSECONDS,\n"
+      + "                       NANOSECONDS) [default: MILLISECONDS].\n"
+      + "  -h --help            Show this screen.\n"
+      + "  --version            Show version.\n"
       + "\n";
 
   /**
@@ -530,9 +538,9 @@ public class QueryTester {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
 
-    String host = (String) opts.get("--host");
+    String coordinatorLocator = (String) opts.get("--coordinator");
 
-    String port = (String) opts.get("--port");
+    String graphName = (String) opts.get("--graph");
 
     String inputDir = (String) opts.get("--input");
 
@@ -540,8 +548,8 @@ public class QueryTester {
 
     String timeUnits = (String) opts.get("--timeUnits");
 
-    Neo4jDbConnectionState dbConnectionState =
-        new Neo4jDbConnectionState(host, port);
+    TorcDbConnectionState dbConnectionState =
+        new TorcDbConnectionState(coordinatorLocator, graphName);
 
     ResultReporter resultReporter =
         new ResultReporter.SimpleResultReporter(
@@ -861,57 +869,57 @@ public class QueryTester {
             long startTime, endTime;
             switch (opNumber) {
               case 1: {
-                OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate1AddPersonHandler();
+                OperationHandler<LdbcUpdate1AddPerson, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate1AddPersonHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate1AddPerson) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 2: {
-                OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate2AddPostLikeHandler();
+                OperationHandler<LdbcUpdate2AddPostLike, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate2AddPostLikeHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate2AddPostLike) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 3: {
-                OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate3AddCommentLikeHandler();
+                OperationHandler<LdbcUpdate3AddCommentLike, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate3AddCommentLikeHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate3AddCommentLike) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 4: {
-                OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate4AddForumHandler();
+                OperationHandler<LdbcUpdate4AddForum, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate4AddForumHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate4AddForum) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 5: {
-                OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate5AddForumMembershipHandler();
+                OperationHandler<LdbcUpdate5AddForumMembership, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate5AddForumMembershipHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate5AddForumMembership) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 6: {
-                OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate6AddPostHandler();
+                OperationHandler<LdbcUpdate6AddPost, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate6AddPostHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate6AddPost) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 7: {
-                OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate7AddCommentHandler();
+                OperationHandler<LdbcUpdate7AddComment, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate7AddCommentHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate7AddComment) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 8: {
-                OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> opHandler =
-                    new Neo4jDb.LdbcUpdate8AddFriendshipHandler();
+                OperationHandler<LdbcUpdate8AddFriendship, TorcDbConnectionState> opHandler =
+                    new LdbcUpdate8AddFriendshipHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate8AddFriendship) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
