@@ -12,7 +12,7 @@
     (see https://github.com/ldbc/ldbc_driver).
   </description>
   <modules>
-    <module>snb-core</module>
+    <module>snb-interactive-core</module>
     <module>snb-interactive-neo4j</module>
     <module>snb-interactive-titan</module>
     <module>snb-interactive-torc</module>
