@@ -16,6 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
+import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery10Handler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery11Handler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcQuery12Handler;
@@ -37,14 +38,6 @@ import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery4Messag
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery5MessageCreatorHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery6MessageForumHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcShortQuery7MessageRepliesHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate1AddPersonHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate2AddPostLikeHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate3AddCommentLikeHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate4AddForumHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate5AddForumMembershipHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate6AddPostHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate7AddCommentHandler;
-import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDb.LdbcUpdate8AddFriendshipHandler;
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.Neo4jDbConnectionState;
 
 import com.ldbc.driver.DbConnectionState;
@@ -869,56 +862,56 @@ public class QueryTester {
             switch (opNumber) {
               case 1: {
                 OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate1AddPersonHandler();
+                    new Neo4jDb.LdbcUpdate1AddPersonHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate1AddPerson) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 2: {
                 OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate2AddPostLikeHandler();
+                    new Neo4jDb.LdbcUpdate2AddPostLikeHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate2AddPostLike) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 3: {
                 OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate3AddCommentLikeHandler();
+                    new Neo4jDb.LdbcUpdate3AddCommentLikeHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate3AddCommentLike) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 4: {
                 OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate4AddForumHandler();
+                    new Neo4jDb.LdbcUpdate4AddForumHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate4AddForum) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 5: {
                 OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate5AddForumMembershipHandler();
+                    new Neo4jDb.LdbcUpdate5AddForumMembershipHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate5AddForumMembership) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 6: {
                 OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate6AddPostHandler();
+                    new Neo4jDb.LdbcUpdate6AddPostHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate6AddPost) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 7: {
                 OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate7AddCommentHandler();
+                    new Neo4jDb.LdbcUpdate7AddCommentHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate7AddComment) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
               }
               case 8: {
                 OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> opHandler =
-                    new LdbcUpdate8AddFriendshipHandler();
+                    new Neo4jDb.LdbcUpdate8AddFriendshipHandler();
                 execAndTimeQuery(opHandler, (LdbcUpdate8AddFriendship) op,
                     dbConnectionState, resultReporter, repeatCount, timeUnits);
                 break;
