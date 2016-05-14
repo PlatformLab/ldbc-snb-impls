@@ -210,8 +210,6 @@ Options:
 Here is a usage example:
 
 ```
-mvn exec:java -Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester" -Dexec.args="--input /path/to/social_network/ update8 20"
-
 mvn exec:java
 -Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester"
 -Dexec.args="shortquery1 933"
