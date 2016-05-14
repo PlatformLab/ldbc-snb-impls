@@ -19,6 +19,7 @@ package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 import com.ldbc.driver.DbConnectionState;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Encapsulates the state of a connection to a Neo4j database. An instance of
@@ -33,7 +34,25 @@ public class Neo4jDbConnectionState extends DbConnectionState {
 
   private ThreadLocal<Neo4jTransactionDriver> driver;
 
-  public Neo4jDbConnectionState(String host, String port) {
+  public Neo4jDbConnectionState(Map<String, String> props) {
+    
+    /*
+     * Extract parameters from properties map.
+     */
+    String host;
+    if (props.containsKey("host")) {
+      host = props.get("host");
+    } else {
+      host = "127.0.0.1";
+    }
+
+    String port;
+    if (props.containsKey("port")) {
+      port = props.get("port");
+    } else {
+      port = "7474";
+    }
+    
     this.driver = ThreadLocal.withInitial(() -> {
       return new Neo4jTransactionDriver(host, port);
     });

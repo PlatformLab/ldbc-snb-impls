@@ -14,11 +14,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.ellitron.ldbcsnbimpls.interactive.torc;
-
-import net.ellitron.torc.TorcGraph;
+package net.ellitron.ldbcsnbimpls.interactive.titan;
 
 import com.ldbc.driver.DbConnectionState;
+
+import com.thinkaurelius.titan.core.TitanFactory;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -26,31 +26,27 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import java.io.IOException;
 import java.util.Map;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
- * Encapsulates the state of a connection to a RAMCloud cluster. An instance of
- * this object is created on benchmark initialization, and then subsequently
- * passed to each query on execution.
  *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
-public class TorcDbConnectionState extends DbConnectionState {
+public class TitanDbConnectionState extends DbConnectionState {
 
-  private final Graph client;
-  
-  public TorcDbConnectionState(Map<String, String> props) {
+  private Graph client;
+
+  public TitanDbConnectionState(Map<String, String> props) {
     BaseConfiguration config = new BaseConfiguration();
     config.setDelimiterParsingDisabled(true);
-    
+
     /*
      * Extract parameters from properties map.
      */
-    String coordinatorLocator;
-    if (props.containsKey("coordinatorLocator")) {
-      coordinatorLocator = props.get("coordinatorLocator");
+    String cassandraLocator;
+    if (props.containsKey("cassandraLocator")) {
+      cassandraLocator = props.get("cassandraLocator");
     } else {
-      coordinatorLocator = "tcp:host=127.0.0.1,port=12246";
+      cassandraLocator = "127.0.0.1";
     }
 
     String graphName;
@@ -60,15 +56,15 @@ public class TorcDbConnectionState extends DbConnectionState {
       graphName = "default";
     }
     
-    config.setProperty(
-        TorcGraph.CONFIG_COORD_LOCATOR,
-        coordinatorLocator);
-    
-    config.setProperty(
-        TorcGraph.CONFIG_GRAPH_NAME,
-        graphName);
+    config.setProperty("storage.backend", "cassandra");
+    config.setProperty("storage.hostname", cassandraLocator);
+    config.setProperty("storage.cassandra.keyspace", graphName);
 
-    this.client = TorcGraph.open(config);
+    client = TitanFactory.open(config);
+  }
+
+  public Graph getClient() {
+    return client;
   }
 
   @Override
@@ -76,13 +72,8 @@ public class TorcDbConnectionState extends DbConnectionState {
     try {
       client.close();
     } catch (Exception ex) {
-      // TODO: Fix this.
-      Logger.getLogger(
-          TorcDbConnectionState.class.getName()).log(Level.SEVERE, null, ex);
+      java.util.logging.Logger.getLogger(TitanDb.class.getName())
+          .log(Level.SEVERE, null, ex);
     }
-  }
-
-  public Graph getClient() {
-    return client;
   }
 }

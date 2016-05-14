@@ -118,7 +118,7 @@ import javax.json.JsonValue;
  */
 public class Neo4jDb extends Db {
 
-  private Neo4jDbConnectionState connectionState = null;
+  private DbConnectionState connectionState = null;
 
   @Override
   protected DbConnectionState getConnectionState() throws DbException {
@@ -134,26 +134,7 @@ public class Neo4jDb extends Db {
   protected void onInit(Map<String, String> properties,
       LoggingService loggingService) throws DbException {
 
-    /*
-     * Extract parameters from properties map.
-     */
-    String host;
-    if (properties.containsKey("host")) {
-      host = properties.get("host");
-    } else {
-      host = "127.0.0.1";
-      loggingService.info("No host parameter found, using default: " + host);
-    }
-
-    String port;
-    if (properties.containsKey("port")) {
-      port = properties.get("port");
-    } else {
-      port = "7474";
-      loggingService.info("No port parameter found, using default: " + port);
-    }
-
-    connectionState = new Neo4jDbConnectionState(host, port);
+    connectionState = new Neo4jDbConnectionState(properties);
 
     /*
      * Register operation handlers with the benchmark.
@@ -235,17 +216,18 @@ public class Neo4jDb extends Db {
    * ascending by their identifier.[1]
    */
   public static class LdbcQuery1Handler
-      implements OperationHandler<LdbcQuery1, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery1, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery1 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (:Person {id:{1}})-[path:KNOWS*1..3]-(friend:Person)"
@@ -370,17 +352,18 @@ public class Neo4jDb extends Db {
    * Post identifier.[1]
    */
   public static class LdbcQuery2Handler
-      implements OperationHandler<LdbcQuery2, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery2, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery2 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message)"
@@ -436,17 +419,18 @@ public class Neo4jDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery3Handler
-      implements OperationHandler<LdbcQuery3, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery3, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery3 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       long periodStart = operation.startDate().getTime();
       long periodEnd = periodStart
@@ -523,17 +507,18 @@ public class Neo4jDb extends Db {
    * count, and then ascending by Tag name.[1]
    */
   public static class LdbcQuery4Handler
-      implements OperationHandler<LdbcQuery4, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery4, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery4 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       long periodStart = operation.startDate().getTime();
       long periodEnd = periodStart
@@ -586,17 +571,18 @@ public class Neo4jDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery5Handler
-      implements OperationHandler<LdbcQuery5, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery5, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery5 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[membership:HAS_MEMBER]-(forum:Forum)"
@@ -642,17 +628,18 @@ public class Neo4jDb extends Db {
    * ascending by Tag name.[1]
    */
   public static class LdbcQuery6Handler
-      implements OperationHandler<LdbcQuery6, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery6, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery6 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH"
@@ -705,17 +692,18 @@ public class Neo4jDb extends Db {
    * ascending by Person identifier of liker.[1]
    */
   public static class LdbcQuery7Handler
-      implements OperationHandler<LdbcQuery7, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery7, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery7 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (person:Person {id:{1}})<-[:HAS_CREATOR]-(message)<-[like:LIKES]-(liker:Person)"
@@ -776,17 +764,18 @@ public class Neo4jDb extends Db {
    * identifier of reply Comment.[1]
    */
   public static class LdbcQuery8Handler
-      implements OperationHandler<LdbcQuery8, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery8, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery8 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH"
@@ -836,17 +825,18 @@ public class Neo4jDb extends Db {
    * Post/Comment, and then ascending by Post/Comment identifier.[1]
    */
   public static class LdbcQuery9Handler
-      implements OperationHandler<LdbcQuery9, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery9, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery9 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)<-[:HAS_CREATOR]-(message)"
@@ -909,17 +899,18 @@ public class Neo4jDb extends Db {
    * identifier.[1]
    */
   public static class LdbcQuery10Handler
-      implements OperationHandler<LdbcQuery10, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery10, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery10 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (person:Person {id:{1}})-[:KNOWS*2..2]-(friend:Person)-[:IS_LOCATED_IN]->(city:Place)"
@@ -982,17 +973,18 @@ public class Neo4jDb extends Db {
    * and lastly by Organization name descending.[1]
    */
   public static class LdbcQuery11Handler
-      implements OperationHandler<LdbcQuery11, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery11, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery11 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (person:Person {id:{1}})-[:KNOWS*1..2]-(friend:Person)"
@@ -1048,17 +1040,18 @@ public class Neo4jDb extends Db {
    * Person identifier.[1]
    */
   public static class LdbcQuery12Handler
-      implements OperationHandler<LdbcQuery12, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery12, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery12 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)"
@@ -1114,17 +1107,18 @@ public class Neo4jDb extends Db {
    * if the start person is the same as the end person.[1]
    */
   public static class LdbcQuery13Handler
-      implements OperationHandler<LdbcQuery13, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery13, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery13 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (person1:Person {id:{1}}), (person2:Person {id:{2}})"
@@ -1164,17 +1158,18 @@ public class Neo4jDb extends Db {
    * order of paths with the same weight is unspecified.[1]
    */
   public static class LdbcQuery14Handler
-      implements OperationHandler<LdbcQuery14, Neo4jDbConnectionState> {
+      implements OperationHandler<LdbcQuery14, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
     public void executeOperation(LdbcQuery14 operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH path = allShortestPaths((person1:Person {id:{1}})-[:KNOWS*..15]-(person2:Person {id:{2}}))"
@@ -1222,17 +1217,18 @@ public class Neo4jDb extends Db {
    * address, browser, and city of residence.[1]
    */
   public static class LdbcShortQuery1PersonProfileHandler implements
-      OperationHandler<LdbcShortQuery1PersonProfile, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery1PersonProfile operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (n:Person {id:{id}})-[:IS_LOCATED_IN]-(p:Place)"
@@ -1280,17 +1276,18 @@ public class Neo4jDb extends Db {
    * message creation date, then descending by message identifier.[1]
    */
   public static class LdbcShortQuery2PersonPostsHandler implements
-      OperationHandler<LdbcShortQuery2PersonPosts, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery2PersonPosts operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (:Person {id:{id}})<-[:HAS_CREATOR]-(m)-[:REPLY_OF*0..]->(p:Post)"
@@ -1339,17 +1336,18 @@ public class Neo4jDb extends Db {
    * then ascending by friend identifier.[1]
    */
   public static class LdbcShortQuery3PersonFriendsHandler implements
-      OperationHandler<LdbcShortQuery3PersonFriends, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery3PersonFriends operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (n:Person {id:{id}})-[r:KNOWS]-(friend)"
@@ -1384,17 +1382,18 @@ public class Neo4jDb extends Db {
    * date.[1]
    */
   public static class LdbcShortQuery4MessageContentHandler implements
-      OperationHandler<LdbcShortQuery4MessageContent, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery4MessageContent operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (m:Message {id:{id}})"
@@ -1428,17 +1427,18 @@ public class Neo4jDb extends Db {
    * Given a Message (Post or Comment), retrieve its author.[1]
    */
   public static class LdbcShortQuery5MessageCreatorHandler implements
-      OperationHandler<LdbcShortQuery5MessageCreator, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery5MessageCreator operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (m:Message {id:{id}})-[:HAS_CREATOR]->(p:Person)"
@@ -1474,17 +1474,18 @@ public class Neo4jDb extends Db {
    * original post in the thread which the comment is replying to.[1]
    */
   public static class LdbcShortQuery6MessageForumHandler implements
-      OperationHandler<LdbcShortQuery6MessageForum, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery6MessageForum operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (m:Message {id:{id}})-[:REPLY_OF*0..]->(p:Post)<-[:CONTAINER_OF]-(f:Forum)-[:HAS_MODERATOR]->(mod:Person)"
@@ -1525,17 +1526,18 @@ public class Neo4jDb extends Db {
    * descending by creation date, then ascending by author identifier.[1]
    */
   public static class LdbcShortQuery7MessageRepliesHandler implements
-      OperationHandler<LdbcShortQuery7MessageReplies, Neo4jDbConnectionState> {
+      OperationHandler<LdbcShortQuery7MessageReplies, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
     public void executeOperation(LdbcShortQuery7MessageReplies operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (m:Message {id:{id}})<-[:REPLY_OF]-(c:Comment)-[:HAS_CREATOR]->(p:Person)"
@@ -1593,7 +1595,7 @@ public class Neo4jDb extends Db {
    * </ul>
    */
   public static class LdbcUpdate1AddPersonHandler implements
-      OperationHandler<LdbcUpdate1AddPerson, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate1AddPerson, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
@@ -1605,10 +1607,11 @@ public class Neo4jDb extends Db {
 
     @Override
     public void executeOperation(LdbcUpdate1AddPerson operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       // Create the person node.
       String statement =
@@ -1729,17 +1732,18 @@ public class Neo4jDb extends Db {
    * Add a Like to a Post of the social network.[1]
    */
   public static class LdbcUpdate2AddPostLikeHandler implements
-      OperationHandler<LdbcUpdate2AddPostLike, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate2AddPostLike operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (p:Person {id:{personId}}),"
@@ -1764,17 +1768,18 @@ public class Neo4jDb extends Db {
    * Add a Like to a Comment of the social network.[1]
    */
   public static class LdbcUpdate3AddCommentLikeHandler implements
-      OperationHandler<LdbcUpdate3AddCommentLike, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate3AddCommentLike operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (p:Person {id:{personId}}),"
@@ -1798,17 +1803,18 @@ public class Neo4jDb extends Db {
    * Add a Forum to the social network.[1]
    */
   public static class LdbcUpdate4AddForumHandler implements
-      OperationHandler<LdbcUpdate4AddForum, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForumHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       // Create the forum node.
       String statement =
@@ -1848,17 +1854,18 @@ public class Neo4jDb extends Db {
    * Add a Forum membership to the social network.[1]
    */
   public static class LdbcUpdate5AddForumMembershipHandler implements
-      OperationHandler<LdbcUpdate5AddForumMembership, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate5AddForumMembershipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (f:Forum {id:{forumId}}),"
@@ -1882,17 +1889,18 @@ public class Neo4jDb extends Db {
    * Add a Post to the social network.[1]
    */
   public static class LdbcUpdate6AddPostHandler implements
-      OperationHandler<LdbcUpdate6AddPost, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate6AddPostHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       // Create the post node.
       String statement =
@@ -1955,17 +1963,18 @@ public class Neo4jDb extends Db {
    * Add a Comment replying to a Post/Comment to the social network.[1]
    */
   public static class LdbcUpdate7AddCommentHandler implements
-      OperationHandler<LdbcUpdate7AddComment, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate7AddCommentHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       // Create the comment node.
       String statement =
@@ -2021,17 +2030,18 @@ public class Neo4jDb extends Db {
    * Add a friendship relation to the social network.[1]
    */
   public static class LdbcUpdate8AddFriendshipHandler implements
-      OperationHandler<LdbcUpdate8AddFriendship, Neo4jDbConnectionState> {
+      OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
 
     private static final Logger logger =
         LoggerFactory.getLogger(LdbcUpdate8AddFriendshipHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation,
-        Neo4jDbConnectionState dbConnectionState,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
 
-      Neo4jTransactionDriver driver = dbConnectionState.getTxDriver();
+      Neo4jTransactionDriver driver = 
+          ((Neo4jDbConnectionState) dbConnectionState).getTxDriver();
 
       String statement =
           "   MATCH (p1:Person {id:{person1Id}}),"

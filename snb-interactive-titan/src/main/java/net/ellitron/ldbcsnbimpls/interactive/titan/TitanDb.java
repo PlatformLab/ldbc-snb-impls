@@ -105,43 +105,11 @@ import java.util.Map;
  */
 public class TitanDb extends Db {
 
-  private BasicDbConnectionState connectionState = null;
+  private TitanDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
 
   // Maximum number of times to try a transaction before giving up.
   private static int MAX_TX_ATTEMPTS = 100;
-
-  static class BasicDbConnectionState extends DbConnectionState {
-
-    private Graph client;
-
-    private BasicDbConnectionState(Map<String, String> properties) {
-      BaseConfiguration config = new BaseConfiguration();
-      config.setDelimiterParsingDisabled(true);
-
-      config.setProperty("storage.backend", "cassandra");
-      config.setProperty("storage.hostname", 
-          properties.get("cassandraLocator"));
-      config.setProperty("storage.cassandra.keyspace", 
-          properties.get("graphName"));
-
-      client = TitanFactory.open(config);
-    }
-
-    public Graph client() {
-      return client;
-    }
-
-    @Override
-    public void close() throws IOException {
-      try {
-        client.close();
-      } catch (Exception ex) {
-        java.util.logging.Logger.getLogger(TitanDb.class.getName())
-            .log(Level.SEVERE, null, ex);
-      }
-    }
-  }
 
   /* Returns the original LDBC SNB assigned 64-bit ID of the given vertex (this
    * is not the ID that is assigned to the vertex by TitanDB during the data
@@ -163,7 +131,18 @@ public class TitanDb extends Db {
   @Override
   protected void onInit(Map<String, String> properties, 
       LoggingService loggingService) throws DbException {
+    
+    connectionState = new TitanDbConnectionState(properties);
+    
+    if (properties.containsKey("txReads")) {
+      doTransactionalReads = true;
+    }
+    
+    /*
+     * Register operation handlers with the benchmark.
+     */
     registerOperationHandler(LdbcQuery1.class, LdbcQuery1Handler.class);
+    
     registerOperationHandler(LdbcShortQuery1PersonProfile.class, 
         LdbcShortQuery1PersonProfileHandler.class);
     registerOperationHandler(LdbcShortQuery2PersonPosts.class, 
@@ -178,6 +157,7 @@ public class TitanDb extends Db {
         LdbcShortQuery6MessageForumHandler.class);
     registerOperationHandler(LdbcShortQuery7MessageReplies.class, 
         LdbcShortQuery7MessageRepliesHandler.class);
+    
     registerOperationHandler(LdbcUpdate1AddPerson.class, 
         LdbcUpdate1AddPersonHandler.class);
     registerOperationHandler(LdbcUpdate2AddPostLike.class, 
@@ -194,11 +174,6 @@ public class TitanDb extends Db {
         LdbcUpdate7AddCommentHandler.class);
     registerOperationHandler(LdbcUpdate8AddFriendship.class, 
         LdbcUpdate8AddFriendshipHandler.class);
-
-    connectionState = new BasicDbConnectionState(properties);
-    if (properties.containsKey("txReads")) {
-      doTransactionalReads = true;
-    }
   }
 
   @Override
@@ -217,20 +192,20 @@ public class TitanDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcQuery1Handler 
-        implements OperationHandler<LdbcQuery1, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery1, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       executeOperationGremlin2(operation, dbConnectionState, resultReporter);
     }
 
     public void executeOperationGremlin2(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -246,7 +221,7 @@ public class TitanDb extends Db {
         String firstName = operation.firstName();
         int resultLimit = operation.limit();
         int maxLevels = 3;
-        Graph graph = dbConnectionState.client();
+        Graph graph = ((TitanDbConnectionState) dbConnectionState).getClient();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -412,7 +387,7 @@ public class TitanDb extends Db {
     }
 
     public void executeOperationGremlin1(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -428,7 +403,7 @@ public class TitanDb extends Db {
         String firstName = operation.firstName();
         int resultLimit = operation.limit();
         int maxLevels = 3;
-        Graph graph = dbConnectionState.client();
+        Graph graph = ((TitanDbConnectionState) dbConnectionState).getClient();
 
         GraphTraversalSource g = graph.traversal();
 
@@ -617,7 +592,7 @@ public class TitanDb extends Db {
     }
 
     public void executeOperationRaw(final LdbcQuery1 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       //            int NUMTIMERS = 1;
       //            long[][] timers = new long[NUMTIMERS][2];
@@ -633,7 +608,7 @@ public class TitanDb extends Db {
         String firstName = operation.firstName();
         int maxLevels = 3;
 
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
 
@@ -848,14 +823,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery2Handler 
-        implements OperationHandler<LdbcQuery2, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery2, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery2 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -863,14 +838,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery3Handler 
-        implements OperationHandler<LdbcQuery3, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery3, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery3 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -878,14 +853,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery4Handler 
-        implements OperationHandler<LdbcQuery4, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery4, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery4 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -893,14 +868,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery5Handler 
-        implements OperationHandler<LdbcQuery5, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery5, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery5 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -908,14 +883,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery6Handler 
-        implements OperationHandler<LdbcQuery6, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery6, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery6 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -923,14 +898,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery7Handler 
-        implements OperationHandler<LdbcQuery7, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery7, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery7 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -938,14 +913,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery8Handler 
-        implements OperationHandler<LdbcQuery8, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery8, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery8 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -953,14 +928,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery9Handler 
-        implements OperationHandler<LdbcQuery9, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery9, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery9 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -968,14 +943,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery10Handler 
-        implements OperationHandler<LdbcQuery10, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery10, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery10 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -983,14 +958,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery11Handler 
-        implements OperationHandler<LdbcQuery11, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery11, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery11 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -998,14 +973,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery12Handler 
-        implements OperationHandler<LdbcQuery12, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery12, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery12 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1013,14 +988,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery13Handler 
-        implements OperationHandler<LdbcQuery13, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery13, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery13 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1028,14 +1003,14 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcQuery14Handler 
-        implements OperationHandler<LdbcQuery14, BasicDbConnectionState> {
+        implements OperationHandler<LdbcQuery14, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
     public void executeOperation(final LdbcQuery14 operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1048,19 +1023,19 @@ public class TitanDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcShortQuery1PersonProfileHandler implements 
-      OperationHandler<LdbcShortQuery1PersonProfile, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery1PersonProfile operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         long person_id = operation.personId();
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         Vertex person = g.V().has("iid", 
@@ -1106,18 +1081,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery2PersonPostsHandler implements 
-      OperationHandler<LdbcShortQuery2PersonPosts, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery2PersonPosts operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
@@ -1238,18 +1213,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery3PersonFriendsHandler implements 
-      OperationHandler<LdbcShortQuery3PersonFriends, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery3PersonFriends operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
@@ -1321,18 +1296,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery4MessageContentHandler implements 
-      OperationHandler<LdbcShortQuery4MessageContent, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery4MessageContent operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         Vertex message = g.V().has("iid", 
@@ -1369,18 +1344,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery5MessageCreatorHandler implements 
-      OperationHandler<LdbcShortQuery5MessageCreator, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery5MessageCreator operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         Vertex message = g.V().has("iid", 
@@ -1419,18 +1394,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery6MessageForumHandler implements 
-      OperationHandler<LdbcShortQuery6MessageForum, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery6MessageForum operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         Vertex vertex = g.V().has("iid", 
@@ -1486,18 +1461,18 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcShortQuery7MessageRepliesHandler implements 
-      OperationHandler<LdbcShortQuery7MessageReplies, BasicDbConnectionState> {
+      OperationHandler<LdbcShortQuery7MessageReplies, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
     public void executeOperation(final LdbcShortQuery7MessageReplies operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = dbConnectionState.client();
+        Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
         Vertex message = g.V().has("iid", 
@@ -1596,7 +1571,7 @@ public class TitanDb extends Db {
    * ------------------------------------------------------------------------
    */
   public static class LdbcUpdate1AddPersonHandler implements 
-      OperationHandler<LdbcUpdate1AddPerson, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate1AddPerson, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
@@ -1609,9 +1584,9 @@ public class TitanDb extends Db {
 
     @Override
     public void executeOperation(LdbcUpdate1AddPerson operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
       
       // Build key value properties array
@@ -1694,16 +1669,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate2AddPostLikeHandler implements 
-      OperationHandler<LdbcUpdate2AddPostLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate2AddPostLike operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       Vertex person = g.V().has("iid", 
@@ -1722,16 +1697,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate3AddCommentLikeHandler implements 
-      OperationHandler<LdbcUpdate3AddCommentLike, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
     public void executeOperation(LdbcUpdate3AddCommentLike operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       Vertex person = g.V().has("iid", 
@@ -1750,16 +1725,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate4AddForumHandler implements 
-      OperationHandler<LdbcUpdate4AddForum, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       List<Object> forumKeyValues = new ArrayList<>(8);
@@ -1799,16 +1774,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate5AddForumMembershipHandler implements 
-      OperationHandler<LdbcUpdate5AddForumMembership, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       Vertex forum = g.V().has("iid", 
@@ -1829,16 +1804,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate6AddPostHandler implements 
-      OperationHandler<LdbcUpdate6AddPost, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       List<Object> postKeyValues = new ArrayList<>(18);
@@ -1894,16 +1869,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate7AddCommentHandler implements 
-      OperationHandler<LdbcUpdate7AddComment, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       List<Object> commentKeyValues = new ArrayList<>(14);
@@ -1963,16 +1938,16 @@ public class TitanDb extends Db {
   }
 
   public static class LdbcUpdate8AddFriendshipHandler implements 
-      OperationHandler<LdbcUpdate8AddFriendship, BasicDbConnectionState> {
+      OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
 
     final static Logger logger = 
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation, 
-        BasicDbConnectionState dbConnectionState, 
+        DbConnectionState dbConnectionState, 
         ResultReporter reporter) throws DbException {
-      Graph client = dbConnectionState.client();
+      Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
       List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
