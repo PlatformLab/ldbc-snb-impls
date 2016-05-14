@@ -26,6 +26,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.within;
 
 import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
+
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
@@ -71,17 +72,12 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
-import com.thinkaurelius.titan.core.TitanFactory;
-
-import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.util.AbstractTransaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
@@ -91,17 +87,39 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.Map;
 
 /**
+ * An implementation of the LDBC SNB interactive workload[1] for TitanDB.
+ * Queries are executed against a running TitanDB-Cassandra cluster.
+ * Configuration parameters for this implementation (that are supplied via the
+ * LDBC driver) are listed below.
+ * <p>
+ * Configuration Parameters:
+ * <ul>
+ * <li>cassandraLocator - IP address of a Cassandra node (default:
+ * 127.0.0.1).</li>
+ * <li>graphName - name of the graph stored in TitanDB against which to execute
+ * queries (default: default).</li>
+ * </ul>
+ * <p>
+ * References:<br>
+ * [1]: Prat, Arnau (UPC) and Boncz, Peter (VUA) and Larriba, Josep Lluís (UPC)
+ * and Angles, Renzo (TALCA) and Averbuch, Alex (NEO) and Erling, Orri (OGL)
+ * and Gubichev, Andrey (TUM) and Spasić, Mirko (OGL) and Pham, Minh-Duc (VUA)
+ * and Martínez, Norbert (SPARSITY). "LDBC Social Network Benchmark (SNB) -
+ * v0.2.2 First Public Draft Release". http://www.ldbcouncil.org/.
+ * <p>
+ * TODO:<br>
+ * <ul>
+ * </ul>
+ * <p>
  *
- * @author Jonathan Ellithorpe <jde@cs.stanford.edu>
+ * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class TitanDb extends Db {
 
@@ -111,7 +129,8 @@ public class TitanDb extends Db {
   // Maximum number of times to try a transaction before giving up.
   private static int MAX_TX_ATTEMPTS = 100;
 
-  /* Returns the original LDBC SNB assigned 64-bit ID of the given vertex (this
+  /*
+   * Returns the original LDBC SNB assigned 64-bit ID of the given vertex (this
    * is not the ID that is assigned to the vertex by TitanDB during the data
    * loading phase).
    */
@@ -119,7 +138,8 @@ public class TitanDb extends Db {
     return Long.decode(v.<String>property("iid").value().split(":")[1]);
   }
 
-  /* Return a String representing the globally unique Iid property on all
+  /*
+   * Return a String representing the globally unique Iid property on all
    * vertices in the graph. This Iid property is a function of both the Entity
    * type and the 64-bit LDBC SNB assigned ID to the node (which is only unique
    * across vertices of that type).
@@ -129,50 +149,50 @@ public class TitanDb extends Db {
   }
 
   @Override
-  protected void onInit(Map<String, String> properties, 
+  protected void onInit(Map<String, String> properties,
       LoggingService loggingService) throws DbException {
-    
+
     connectionState = new TitanDbConnectionState(properties);
-    
+
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
     }
-    
+
     /*
      * Register operation handlers with the benchmark.
      */
     registerOperationHandler(LdbcQuery1.class, LdbcQuery1Handler.class);
-    
-    registerOperationHandler(LdbcShortQuery1PersonProfile.class, 
+
+    registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
-    registerOperationHandler(LdbcShortQuery2PersonPosts.class, 
+    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
         LdbcShortQuery2PersonPostsHandler.class);
-    registerOperationHandler(LdbcShortQuery3PersonFriends.class, 
+    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
         LdbcShortQuery3PersonFriendsHandler.class);
-    registerOperationHandler(LdbcShortQuery4MessageContent.class, 
+    registerOperationHandler(LdbcShortQuery4MessageContent.class,
         LdbcShortQuery4MessageContentHandler.class);
-    registerOperationHandler(LdbcShortQuery5MessageCreator.class, 
+    registerOperationHandler(LdbcShortQuery5MessageCreator.class,
         LdbcShortQuery5MessageCreatorHandler.class);
-    registerOperationHandler(LdbcShortQuery6MessageForum.class, 
+    registerOperationHandler(LdbcShortQuery6MessageForum.class,
         LdbcShortQuery6MessageForumHandler.class);
-    registerOperationHandler(LdbcShortQuery7MessageReplies.class, 
+    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
         LdbcShortQuery7MessageRepliesHandler.class);
-    
-    registerOperationHandler(LdbcUpdate1AddPerson.class, 
+
+    registerOperationHandler(LdbcUpdate1AddPerson.class,
         LdbcUpdate1AddPersonHandler.class);
-    registerOperationHandler(LdbcUpdate2AddPostLike.class, 
+    registerOperationHandler(LdbcUpdate2AddPostLike.class,
         LdbcUpdate2AddPostLikeHandler.class);
-    registerOperationHandler(LdbcUpdate3AddCommentLike.class, 
+    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
         LdbcUpdate3AddCommentLikeHandler.class);
-    registerOperationHandler(LdbcUpdate4AddForum.class, 
+    registerOperationHandler(LdbcUpdate4AddForum.class,
         LdbcUpdate4AddForumHandler.class);
-    registerOperationHandler(LdbcUpdate5AddForumMembership.class, 
+    registerOperationHandler(LdbcUpdate5AddForumMembership.class,
         LdbcUpdate5AddForumMembershipHandler.class);
-    registerOperationHandler(LdbcUpdate6AddPost.class, 
+    registerOperationHandler(LdbcUpdate6AddPost.class,
         LdbcUpdate6AddPostHandler.class);
-    registerOperationHandler(LdbcUpdate7AddComment.class, 
+    registerOperationHandler(LdbcUpdate7AddComment.class,
         LdbcUpdate7AddCommentHandler.class);
-    registerOperationHandler(LdbcUpdate8AddFriendship.class, 
+    registerOperationHandler(LdbcUpdate8AddFriendship.class,
         LdbcUpdate8AddFriendshipHandler.class);
   }
 
@@ -191,29 +211,31 @@ public class TitanDb extends Db {
    * Complex Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcQuery1Handler 
-        implements OperationHandler<LdbcQuery1, DbConnectionState> {
+  /**
+   * Given a start Person, find up to 20 Persons with a given first name that
+   * the start Person is connected to (excluding start Person) by at most 3
+   * steps via Knows relationships. Return Persons, including summaries of the
+   * Persons workplaces and places of study. Sort results ascending by their
+   * distance from the start Person, for Persons within the same distance sort
+   * ascending by their last name, and for Persons with same last name
+   * ascending by their identifier.[1]
+   */
+  public static class LdbcQuery1Handler
+      implements OperationHandler<LdbcQuery1, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery1Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery1 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery1 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      executeOperationGremlin2(operation, dbConnectionState, resultReporter);
+      executeOperationGremlinV2(operation, dbConnectionState, resultReporter);
     }
 
-    public void executeOperationGremlin2(final LdbcQuery1 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperationGremlinV2(final LdbcQuery1 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -238,7 +260,7 @@ public class TitanDb extends Db {
                 .select("x").by(count(Scope.local)).is(lt(resultLimit))
                 .store("x").by(select("person"))
             ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-            .store("d")).unfold().aggregate("done").out("knows")
+                .store("d")).unfold().aggregate("done").out("knows")
             .where(without("done")).dedup().fold().sideEffect(
                 unfold().has("firstName", firstName).order()
                 .by("lastName", incr).by(id(), incr).limit(resultLimit)
@@ -246,7 +268,7 @@ public class TitanDb extends Db {
                 .select("x").by(count(Scope.local)).is(lt(resultLimit))
                 .store("x").by(select("person"))
             ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-            .store("d")).unfold().aggregate("done").out("knows")
+                .store("d")).unfold().aggregate("done").out("knows")
             .where(without("done")).dedup().fold().sideEffect(
                 unfold().has("firstName", firstName).order()
                 .by("lastName", incr).by(id(), incr).limit(resultLimit)
@@ -261,14 +283,14 @@ public class TitanDb extends Db {
           matchListIds.add(v.<String>property("iid").value());
         });
 
-        Map<Vertex, Map<String, List<String>>> propertiesMap = 
+        Map<Vertex, Map<String, List<String>>> propertiesMap =
             new HashMap<>(matchList.size());
         g.V().has("iid", within(matchListIds)).as("person")
             .<List<String>>valueMap().as("props")
             .select("person", "props")
             .forEachRemaining(map -> {
-              propertiesMap.put((Vertex)map.get("person"), 
-                  (Map<String,List<String>>)map.get("props"));
+              propertiesMap.put((Vertex) map.get("person"),
+                  (Map<String, List<String>>) map.get("props"));
             });
 
         Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
@@ -278,11 +300,11 @@ public class TitanDb extends Db {
             .as("placeName")
             .select("person", "placeName")
             .forEachRemaining(map -> {
-              placeNameMap.put((Vertex)map.get("person"), 
-                  (String)map.get("placeName"));
+              placeNameMap.put((Vertex) map.get("person"),
+                  (String) map.get("placeName"));
             });
 
-        Map<Vertex, List<List<Object>>> universityInfoMap = 
+        Map<Vertex, List<List<Object>>> universityInfoMap =
             new HashMap<>(matchList.size());
         g.V().has("iid", within(matchListIds)).as("person")
             .outE("studyAt").as("classYear")
@@ -305,7 +327,7 @@ public class TitanDb extends Db {
               }
             });
 
-        Map<Vertex, List<List<Object>>> companyInfoMap = 
+        Map<Vertex, List<List<Object>>> companyInfoMap =
             new HashMap<>(matchList.size());
         g.V().has("iid", within(matchListIds)).as("person")
             .outE("workAt").as("workFrom")
@@ -332,36 +354,40 @@ public class TitanDb extends Db {
 
         for (int i = 0; i < matchList.size(); i++) {
           Vertex match = matchList.get(i);
-          int distance = (i < distList.get(0)) ? 1 : 
-              (i < distList.get(1)) ? 2 : 3;
+          int distance = (i < distList.get(0)) ? 1
+              : (i < distList.get(1)) ? 2 : 3;
           Map<String, List<String>> properties = propertiesMap.get(match);
           List<String> emails = properties.get("email");
-          if (emails == null)
+          if (emails == null) {
             emails = new ArrayList<>();
+          }
           List<String> languages = properties.get("language");
-          if (languages == null)
+          if (languages == null) {
             languages = new ArrayList<>();
+          }
           String placeName = placeNameMap.get(match);
           List<List<Object>> universityInfo = universityInfoMap.get(match);
-          if (universityInfo == null)
+          if (universityInfo == null) {
             universityInfo = new ArrayList<>();
+          }
           List<List<Object>> companyInfo = companyInfoMap.get(match);
-          if (companyInfo == null)
+          if (companyInfo == null) {
             companyInfo = new ArrayList<>();
+          }
           result.add(new LdbcQuery1Result(
-                getSNBId(match),
-                properties.get("lastName").get(0),
-                distance,
-                Long.decode(properties.get("birthday").get(0)),
-                Long.decode(properties.get("creationDate").get(0)),
-                properties.get("gender").get(0),
-                properties.get("browserUsed").get(0),
-                properties.get("locationIP").get(0),
-                emails,
-                languages,
-                placeName,
-                universityInfo,
-                companyInfo));
+              getSNBId(match),
+              properties.get("lastName").get(0),
+              distance,
+              Long.decode(properties.get("birthday").get(0)),
+              Long.decode(properties.get("creationDate").get(0)),
+              properties.get("gender").get(0),
+              properties.get("browserUsed").get(0),
+              properties.get("locationIP").get(0),
+              emails,
+              languages,
+              placeName,
+              universityInfo,
+              companyInfo));
         }
 
         if (doTransactionalReads) {
@@ -378,24 +404,11 @@ public class TitanDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format(
-      //                    "LdbcQuery1: %d: time: %dus", i, 
-      //                    (timers[i][1] - timers[i][0])/1000l));
     }
 
-    public void executeOperationGremlin1(final LdbcQuery1 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperationGremlinV1(final LdbcQuery1 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -410,7 +423,7 @@ public class TitanDb extends Db {
         List<Integer> distList = new ArrayList<>(resultLimit);
         List<Vertex> matchList = new ArrayList<>(resultLimit);
 
-        Vertex root = g.V().has("iid", 
+        Vertex root = g.V().has("iid",
             makeIid(Entity.PERSON, personId)).next();
 
         List<Vertex> l1Friends = new ArrayList<>();
@@ -426,7 +439,7 @@ public class TitanDb extends Db {
                 distList.add(1);
               }
             })
-        .iterate();
+            .iterate();
 
         if (matchList.size() < resultLimit && l1Friends.size() > 0) {
           List<Vertex> l2Friends = new ArrayList<>();
@@ -446,7 +459,7 @@ public class TitanDb extends Db {
                   distList.add(2);
                 }
               })
-          .iterate();
+              .iterate();
 
           if (matchList.size() < resultLimit && l2Friends.size() > 0) {
             g.V(l2Friends.toArray())
@@ -464,18 +477,18 @@ public class TitanDb extends Db {
                     distList.add(3);
                   }
                 })
-            .iterate();
+                .iterate();
           }
         }
 
-        Map<Vertex, Map<String, List<String>>> propertiesMap = 
+        Map<Vertex, Map<String, List<String>>> propertiesMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .<List<String>>valueMap().as("props")
             .select("person", "props")
             .forEachRemaining(map -> {
-              propertiesMap.put((Vertex)map.get("person"), 
-                  (Map<String,List<String>>)map.get("props"));
+              propertiesMap.put((Vertex) map.get("person"),
+                  (Map<String, List<String>>) map.get("props"));
             });
 
         Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
@@ -485,11 +498,11 @@ public class TitanDb extends Db {
             .as("placeName")
             .select("person", "placeName")
             .forEachRemaining(map -> {
-              placeNameMap.put((Vertex)map.get("person"), 
-                  (String)map.get("placeName"));
+              placeNameMap.put((Vertex) map.get("person"),
+                  (String) map.get("placeName"));
             });
 
-        Map<Vertex, List<List<Object>>> universityInfoMap = 
+        Map<Vertex, List<List<Object>>> universityInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("studyAt").as("classYear")
@@ -512,7 +525,7 @@ public class TitanDb extends Db {
               }
             });
 
-        Map<Vertex, List<List<Object>>> companyInfoMap = 
+        Map<Vertex, List<List<Object>>> companyInfoMap =
             new HashMap<>(matchList.size());
         g.V(matchList.toArray()).as("person")
             .outE("workAt").as("workFrom")
@@ -541,32 +554,36 @@ public class TitanDb extends Db {
           Vertex match = matchList.get(i);
           Map<String, List<String>> properties = propertiesMap.get(match);
           List<String> emails = properties.get("email");
-          if (emails == null)
+          if (emails == null) {
             emails = new ArrayList<>();
+          }
           List<String> languages = properties.get("language");
-          if (languages == null)
+          if (languages == null) {
             languages = new ArrayList<>();
+          }
           String placeName = placeNameMap.get(match);
           List<List<Object>> universityInfo = universityInfoMap.get(match);
-          if (universityInfo == null)
+          if (universityInfo == null) {
             universityInfo = new ArrayList<>();
+          }
           List<List<Object>> companyInfo = companyInfoMap.get(match);
-          if (companyInfo == null)
+          if (companyInfo == null) {
             companyInfo = new ArrayList<>();
+          }
           result.add(new LdbcQuery1Result(
-                getSNBId(match),
-                properties.get("lastName").get(0),
-                distList.get(i),
-                Long.decode(properties.get("birthday").get(0)),
-                Long.decode(properties.get("creationDate").get(0)),
-                properties.get("gender").get(0),
-                properties.get("browserUsed").get(0),
-                properties.get("locationIP").get(0),
-                emails,
-                languages,
-                placeName,
-                universityInfo,
-                companyInfo));
+              getSNBId(match),
+              properties.get("lastName").get(0),
+              distList.get(i),
+              Long.decode(properties.get("birthday").get(0)),
+              Long.decode(properties.get("creationDate").get(0)),
+              properties.get("gender").get(0),
+              properties.get("browserUsed").get(0),
+              properties.get("locationIP").get(0),
+              emails,
+              languages,
+              placeName,
+              universityInfo,
+              companyInfo));
         }
 
         if (doTransactionalReads) {
@@ -583,24 +600,11 @@ public class TitanDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format(
-      //                "LdbcQuery1: %d: time: %dus", i, 
-      //                (timers[i][1] - timers[i][0])/1000l));
     }
 
-    public void executeOperationRaw(final LdbcQuery1 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperationTinkerPop(final LdbcQuery1 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      //            int NUMTIMERS = 1;
-      //            long[][] timers = new long[NUMTIMERS][2];
-      //            for (int i = 0; i < NUMTIMERS; i++) {
-      //                timers[i][0] = 0;
-      //                timers[i][1] = 0;
-      //            }
-      //            timers[NUMTIMERS-1][0] = System.nanoTime();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -611,8 +615,7 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-
-        Vertex rootPerson = g.V().has("iid", 
+        Vertex rootPerson = g.V().has("iid",
             makeIid(Entity.PERSON, personId)).next();
 
         List<Vertex> friends = new ArrayList<>();
@@ -663,7 +666,7 @@ public class TitanDb extends Db {
             Vertex friend = friends.get(matchIndices.get(matchNumber));
             equidistantVertices.add(friend);
             matchNumber++;
-              }
+          }
 
           equidistantVertices.sort((a, b) -> {
             Vertex v1 = (Vertex) a;
@@ -729,13 +732,13 @@ public class TitanDb extends Db {
             }
 
             // Fetch where person is located
-            Vertex friendPlace = 
+            Vertex friendPlace =
                 f.edges(Direction.OUT, "isLocatedIn").next().inVertex();
             friendCityName = friendPlace.<String>property("name").value();
 
             // Fetch universities studied at
             f.edges(Direction.OUT, "studyAt").forEachRemaining((e) -> {
-              Integer classYear = 
+              Integer classYear =
                   Integer.decode(e.<String>property("classYear").value());
               Vertex organization = e.inVertex();
               String orgName = organization.<String>property("name").value();
@@ -753,7 +756,7 @@ public class TitanDb extends Db {
 
             // Fetch companies worked at
             f.edges(Direction.OUT, "workAt").forEachRemaining((e) -> {
-              Integer workFrom = 
+              Integer workFrom =
                   Integer.decode(e.<String>property("workFrom").value());
               Vertex company = e.inVertex();
               String compName = company.<String>property("name").value();
@@ -783,7 +786,7 @@ public class TitanDb extends Db {
                 friendCityName,
                 friendUniversities,
                 friendCompanies
-                );
+            );
 
             result.add(res);
 
@@ -792,8 +795,8 @@ public class TitanDb extends Db {
             }
           }
 
-          if (result.size() == operation.limit() || 
-              matchNumber == matchIndices.size()) {
+          if (result.size() == operation.limit()
+              || matchNumber == matchIndices.size()) {
             break;
           }
         }
@@ -812,205 +815,322 @@ public class TitanDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      //            timers[NUMTIMERS-1][1] = System.nanoTime();
-      //            for (int i = 0; i < NUMTIMERS; i++)
-      //                System.out.println(String.format(
-      //                "LdbcQuery1: %d: time: %dus", i, 
-      //                (timers[i][1] - timers[i][0])/1000l));
     }
-
   }
 
-  public static class LdbcQuery2Handler 
-        implements OperationHandler<LdbcQuery2, DbConnectionState> {
+  /**
+   * Given a start Person, find (most recent) Posts and Comments from all of
+   * that Person’s friends, that were created before (and including) a given
+   * date. Return the top 20 Posts/Comments, and the Person that created each
+   * of them. Sort results descending by creation date, and then ascending by
+   * Post identifier.[1]
+   */
+  public static class LdbcQuery2Handler
+      implements OperationHandler<LdbcQuery2, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery2Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery2 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery2 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery3Handler 
-        implements OperationHandler<LdbcQuery3, DbConnectionState> {
+  /**
+   * Given a start Person, find Persons that are their friends and friends of
+   * friends (excluding start Person) that have made Posts/Comments in both of
+   * the given Countries, X and Y, within a given period. Only Persons that are
+   * foreign to Countries X and Y are considered, that is Persons whose
+   * Location is not Country X or Country Y. Return top 20 Persons, and their
+   * Post/Comment counts, in the given countries and period. Sort results
+   * descending by total number of Posts/Comments, and then ascending by Person
+   * identifier.[1]
+   */
+  public static class LdbcQuery3Handler
+      implements OperationHandler<LdbcQuery3, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery3Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery3 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery3 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery4Handler 
-        implements OperationHandler<LdbcQuery4, DbConnectionState> {
+  /**
+   * Given a start Person, find Tags that are attached to Posts that were
+   * created by that Person’s friends. Only include Tags that were attached to
+   * friends’ Posts created within a given time interval, and that were never
+   * attached to friends’ Posts created before this interval. Return top 10
+   * Tags, and the count of Posts, which were created within the given time
+   * interval, that this Tag was attached to. Sort results descending by Post
+   * count, and then ascending by Tag name.[1]
+   */
+  public static class LdbcQuery4Handler
+      implements OperationHandler<LdbcQuery4, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery4Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery4 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery4 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery5Handler 
-        implements OperationHandler<LdbcQuery5, DbConnectionState> {
+  /**
+   * Given a start Person, find the Forums which that Person’s friends and
+   * friends of friends (excluding start Person) became Members of after a
+   * given date. Return top 20 Forums, and the number of Posts in each Forum
+   * that was Created by any of these Persons. For each Forum consider only
+   * those Persons which joined that particular Forum after the given date.
+   * Sort results descending by the count of Posts, and then ascending by Forum
+   * identifier.[1]
+   */
+  public static class LdbcQuery5Handler
+      implements OperationHandler<LdbcQuery5, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery5Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery5 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery5 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery6Handler 
-        implements OperationHandler<LdbcQuery6, DbConnectionState> {
+  /**
+   * Given a start Person and some Tag, find the other Tags that occur together
+   * with this Tag on Posts that were created by start Person’s friends and
+   * friends of friends (excluding start Person). Return top 10 Tags, and the
+   * count of Posts that were created by these Persons, which contain both this
+   * Tag and the given Tag. Sort results descending by count, and then
+   * ascending by Tag name.[1]
+   */
+  public static class LdbcQuery6Handler
+      implements OperationHandler<LdbcQuery6, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery6Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery6 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery6 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery7Handler 
-        implements OperationHandler<LdbcQuery7, DbConnectionState> {
+  /**
+   * Given a start Person, find (most recent) Likes on any of start Person’s
+   * Posts/Comments. Return top 20 Persons that Liked any of start Person’s
+   * Posts/Comments, the Post/Comment they liked most recently, creation date
+   * of that Like, and the latency (in minutes) between creation of
+   * Post/Comment and Like. Additionally, return a flag indicating whether the
+   * liker is a friend of start Person. In the case that a Person Liked
+   * multiple Posts/Comments at the same time, return the Post/Comment with
+   * lowest identifier. Sort results descending by creation time of Like, then
+   * ascending by Person identifier of liker.[1]
+   */
+  public static class LdbcQuery7Handler
+      implements OperationHandler<LdbcQuery7, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery7Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery7 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery7 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery8Handler 
-        implements OperationHandler<LdbcQuery8, DbConnectionState> {
+  /**
+   * Given a start Person, find (most recent) Comments that are replies to
+   * Posts/Comments of the start Person. Only consider immediate (1-hop)
+   * replies, not the transitive (multi-hop) case. Return the top 20 reply
+   * Comments, and the Person that created each reply Comment. Sort results
+   * descending by creation date of reply Comment, and then ascending by
+   * identifier of reply Comment.[1]
+   */
+  public static class LdbcQuery8Handler
+      implements OperationHandler<LdbcQuery8, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery8Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery8 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery8 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery9Handler 
-        implements OperationHandler<LdbcQuery9, DbConnectionState> {
+  /**
+   * Given a start Person, find the (most recent) Posts/Comments created by
+   * that Person’s friends or friends of friends (excluding start Person). Only
+   * consider the Posts/Comments created before a given date (excluding that
+   * date). Return the top 20 Posts/Comments, and the Person that created each
+   * of those Posts/Comments. Sort results descending by creation date of
+   * Post/Comment, and then ascending by Post/Comment identifier.[1]
+   */
+  public static class LdbcQuery9Handler
+      implements OperationHandler<LdbcQuery9, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery9Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery9 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery9 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery10Handler 
-        implements OperationHandler<LdbcQuery10, DbConnectionState> {
+  /**
+   * Given a start Person, find that Person’s friends of friends (excluding
+   * start Person, and immediate friends), who were born on or after the 21st
+   * of a given month (in any year) and before the 22nd of the following month.
+   * Calculate the similarity between each of these Persons and start Person,
+   * where similarity for any Person is defined as follows:
+   * <ul>
+   * <li>common = number of Posts created by that Person, such that the Post
+   * has a Tag that start Person is Interested in</li>
+   * <li>uncommon = number of Posts created by that Person, such that the Post
+   * has no Tag that start Person is Interested in</li>
+   * <li>similarity = common - uncommon</li>
+   * </ul>
+   * Return top 10 Persons, their Place, and their similarity score. Sort
+   * results descending by similarity score, and then ascending by Person
+   * identifier.[1]
+   */
+  public static class LdbcQuery10Handler
+      implements OperationHandler<LdbcQuery10, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery10Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery10 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery10 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery11Handler 
-        implements OperationHandler<LdbcQuery11, DbConnectionState> {
+  /**
+   * Given a start Person, find that Person’s friends and friends of friends
+   * (excluding start Person) who started Working in some Company in a given
+   * Country, before a given date (year). Return top 10 Persons, the Company
+   * they worked at, and the year they started working at that Company. Sort
+   * results ascending by the start date, then ascending by Person identifier,
+   * and lastly by Organization name descending.[1]
+   */
+  public static class LdbcQuery11Handler
+      implements OperationHandler<LdbcQuery11, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery11Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery11 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery11 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery12Handler 
-        implements OperationHandler<LdbcQuery12, DbConnectionState> {
+  /**
+   * Given a start Person, find the Comments that this Person’s friends made in
+   * reply to Posts, considering only those Comments that are immediate (1-hop)
+   * replies to Posts, not the transitive (multi-hop) case. Only consider Posts
+   * with a Tag in a given TagClass or in a descendent of that TagClass. Count
+   * the number of these reply Comments, and collect the Tags (with valid tag
+   * class) that were attached to the Posts they replied to. Return top 20
+   * Persons with at least one reply, the reply count, and the collection of
+   * Tags. Sort results descending by Comment count, and then ascending by
+   * Person identifier.[1]
+   */
+  public static class LdbcQuery12Handler
+      implements OperationHandler<LdbcQuery12, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery12Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery12 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery12 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery13Handler 
-        implements OperationHandler<LdbcQuery13, DbConnectionState> {
+  /**
+   * Given two Persons, find the shortest path between these two Persons in the
+   * subgraph induced by the Knows relationships. Return the length of this
+   * path. -1 should be returned if no path is found, and 0 should be returned
+   * if the start person is the same as the end person.[1]
+   */
+  public static class LdbcQuery13Handler
+      implements OperationHandler<LdbcQuery13, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery13Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery13 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery13 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
 
   }
 
-  public static class LdbcQuery14Handler 
-        implements OperationHandler<LdbcQuery14, DbConnectionState> {
+  /**
+   * Given two Persons, find all (unweighted) shortest paths between these two
+   * Persons, in the subgraph induced by the Knows relationship. Then, for each
+   * path calculate a weight. The nodes in the path are Persons, and the weight
+   * of a path is the sum of weights between every pair of consecutive Person
+   * nodes in the path. The weight for a pair of Persons is calculated such
+   * that every reply (by one of the Persons) to a Post (by the other Person)
+   * contributes 1.0, and every reply (by ones of the Persons) to a Comment (by
+   * the other Person) contributes 0.5. Return all the paths with shortest
+   * length, and their weights. Sort results descending by path weight. The
+   * order of paths with the same weight is unspecified.[1]
+   */
+  public static class LdbcQuery14Handler
+      implements OperationHandler<LdbcQuery14, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcQuery14Handler.class);
 
     @Override
-    public void executeOperation(final LdbcQuery14 operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcQuery14 operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
 
     }
@@ -1022,15 +1142,19 @@ public class TitanDb extends Db {
    * Short Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcShortQuery1PersonProfileHandler implements 
+  /**
+   * Given a start Person, retrieve their first name, last name, birthday, IP
+   * address, browser, and city of residence.[1]
+   */
+  public static class LdbcShortQuery1PersonProfileHandler implements
       OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery1PersonProfileHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery1PersonProfile operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery1PersonProfile operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1038,7 +1162,7 @@ public class TitanDb extends Db {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex person = g.V().has("iid", 
+        Vertex person = g.V().has("iid",
             makeIid(Entity.PERSON, person_id)).next();
 
         Iterator<VertexProperty<String>> props = person.properties();
@@ -1047,20 +1171,20 @@ public class TitanDb extends Db {
           propertyMap.put(prop.key(), prop.value());
         });
 
-        Vertex place = 
+        Vertex place =
             person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
         long placeId = getSNBId(place);
 
-        LdbcShortQuery1PersonProfileResult res = 
+        LdbcShortQuery1PersonProfileResult res =
             new LdbcShortQuery1PersonProfileResult(
-            propertyMap.get("firstName"), 
-            propertyMap.get("lastName"),
-            Long.parseLong(propertyMap.get("birthday")), 
-            propertyMap.get("locationIP"),
-            propertyMap.get("browserUsed"), 
-            placeId, 
-            propertyMap.get("gender"),
-            Long.parseLong(propertyMap.get("creationDate")));
+                propertyMap.get("firstName"),
+                propertyMap.get("lastName"),
+                Long.parseLong(propertyMap.get("birthday")),
+                propertyMap.get("locationIP"),
+                propertyMap.get("browserUsed"),
+                placeId,
+                propertyMap.get("gender"),
+                Long.parseLong(propertyMap.get("creationDate")));
 
         if (doTransactionalReads) {
           try {
@@ -1077,18 +1201,25 @@ public class TitanDb extends Db {
         break;
       }
     }
-
   }
 
-  public static class LdbcShortQuery2PersonPostsHandler implements 
+  /**
+   * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
+   * created by that user. For each message, return that message, the original
+   * post in its conversation, and the author of that post. If any of the
+   * Messages is a Post, then the original Post will be the same Message, i.e.,
+   * that Message will appear twice in that result. Order results descending by
+   * message creation date, then descending by message identifier.[1]
+   */
+  public static class LdbcShortQuery2PersonPostsHandler implements
       OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery2PersonPostsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery2PersonPosts operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery2PersonPosts operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1097,7 +1228,7 @@ public class TitanDb extends Db {
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
-        Vertex person = g.V().has("iid", 
+        Vertex person = g.V().has("iid",
             makeIid(Entity.PERSON, operation.personId())).next();
         Iterator<Edge> edges = person.edges(Direction.IN, "hasCreator");
 
@@ -1107,9 +1238,9 @@ public class TitanDb extends Db {
           Vertex v1 = (Vertex) a;
           Vertex v2 = (Vertex) b;
 
-          long v1Date = 
+          long v1Date =
               Long.decode(v1.<String>property("creationDate").value());
-          long v2Date = 
+          long v2Date =
               Long.decode(v2.<String>property("creationDate").value());
 
           if (v1Date > v2Date) {
@@ -1156,23 +1287,23 @@ public class TitanDb extends Db {
           if (message.label().equals(Entity.POST.getName())) {
             originalPostId = messageId;
             originalPostAuthorId = getSNBId(person);
-            originalPostAuthorFirstName = 
+            originalPostAuthorFirstName =
                 person.<String>property("firstName").value();
-            originalPostAuthorLastName = 
+            originalPostAuthorLastName =
                 person.<String>property("lastName").value();
           } else {
-            Vertex parentMessage = 
+            Vertex parentMessage =
                 message.edges(Direction.OUT, "replyOf").next().inVertex();
             while (true) {
               if (parentMessage.label().equals(Entity.POST.getName())) {
                 originalPostId = getSNBId(parentMessage);
 
-                Vertex author = parentMessage.edges(Direction.OUT, 
+                Vertex author = parentMessage.edges(Direction.OUT,
                     "hasCreator").next().inVertex();
                 originalPostAuthorId = getSNBId(author);
-                originalPostAuthorFirstName = 
+                originalPostAuthorFirstName =
                     author.<String>property("firstName").value();
-                originalPostAuthorLastName = 
+                originalPostAuthorLastName =
                     author.<String>property("lastName").value();
                 break;
               } else {
@@ -1182,7 +1313,7 @@ public class TitanDb extends Db {
             }
           }
 
-          LdbcShortQuery2PersonPostsResult res = 
+          LdbcShortQuery2PersonPostsResult res =
               new LdbcShortQuery2PersonPostsResult(
                   messageId,
                   messageContent,
@@ -1212,15 +1343,20 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery3PersonFriendsHandler implements 
+  /**
+   * Given a start Person, retrieve all of their friends, and the date at which
+   * they became friends. Order results descending by friendship creation date,
+   * then ascending by friend identifier.[1]
+   */
+  public static class LdbcShortQuery3PersonFriendsHandler implements
       OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery3PersonFriendsHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery3PersonFriends operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery3PersonFriends operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1229,13 +1365,13 @@ public class TitanDb extends Db {
 
         List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 
-        Vertex person = g.V().has("iid", 
+        Vertex person = g.V().has("iid",
             makeIid(Entity.PERSON, operation.personId())).next();
 
         Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
 
         edges.forEachRemaining((e) -> {
-          long creationDate = 
+          long creationDate =
               Long.decode(e.<String>property("creationDate").value());
 
           Vertex friend = e.inVertex();
@@ -1245,7 +1381,7 @@ public class TitanDb extends Db {
           String firstName = friend.<String>property("firstName").value();
           String lastName = friend.<String>property("lastName").value();
 
-          LdbcShortQuery3PersonFriendsResult res = 
+          LdbcShortQuery3PersonFriendsResult res =
               new LdbcShortQuery3PersonFriendsResult(
                   personId,
                   firstName,
@@ -1256,15 +1392,15 @@ public class TitanDb extends Db {
 
         // Sort the result here.
         result.sort((a, b) -> {
-          LdbcShortQuery3PersonFriendsResult r1 = 
+          LdbcShortQuery3PersonFriendsResult r1 =
               (LdbcShortQuery3PersonFriendsResult) a;
-          LdbcShortQuery3PersonFriendsResult r2 = 
+          LdbcShortQuery3PersonFriendsResult r2 =
               (LdbcShortQuery3PersonFriendsResult) b;
 
           if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
             return -1;
-          } else if (r1.friendshipCreationDate() < 
-              r2.friendshipCreationDate()) {
+          } else if (r1.friendshipCreationDate()
+              < r2.friendshipCreationDate()) {
             return 1;
           } else {
             if (r1.personId() > r2.personId()) {
@@ -1295,32 +1431,36 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery4MessageContentHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve its content and creation
+   * date.[1]
+   */
+  public static class LdbcShortQuery4MessageContentHandler implements
       OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery4MessageContentHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery4MessageContent operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery4MessageContent operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid", 
+        Vertex message = g.V().has("iid",
             makeIid(Entity.MESSAGE, operation.messageId())).next();
 
-        long creationDate = 
+        long creationDate =
             Long.decode(message.<String>property("creationDate").value());
         String content = message.<String>property("content").value();
         if (content.length() == 0) {
           content = message.<String>property("imageFile").value();
         }
 
-        LdbcShortQuery4MessageContentResult result = 
+        LdbcShortQuery4MessageContentResult result =
             new LdbcShortQuery4MessageContentResult(
                 content,
                 creationDate);
@@ -1343,33 +1483,36 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery5MessageCreatorHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve its author.[1]
+   */
+  public static class LdbcShortQuery5MessageCreatorHandler implements
       OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery5MessageCreatorHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery5MessageCreator operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery5MessageCreator operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid", 
+        Vertex message = g.V().has("iid",
             makeIid(Entity.MESSAGE, operation.messageId())).next();
 
-        Vertex creator = 
+        Vertex creator =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
 
         long creatorId = getSNBId(creator);
-        String creatorFirstName = 
+        String creatorFirstName =
             creator.<String>property("firstName").value();
         String creatorLastName = creator.<String>property("lastName").value();
 
-        LdbcShortQuery5MessageCreatorResult result = 
+        LdbcShortQuery5MessageCreatorResult result =
             new LdbcShortQuery5MessageCreatorResult(
                 creatorId,
                 creatorFirstName,
@@ -1393,22 +1536,28 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery6MessageForumHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve the Forum that contains it and
+   * the Person that moderates that forum. Since comments are not directly
+   * contained in forums, for comments, return the forum containing the
+   * original post in the thread which the comment is replying to.[1]
+   */
+  public static class LdbcShortQuery6MessageForumHandler implements
       OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery6MessageForumHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery6MessageForum operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery6MessageForum operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex vertex = g.V().has("iid", 
+        Vertex vertex = g.V().has("iid",
             makeIid(Entity.MESSAGE, operation.messageId())).next();
 
         LdbcShortQuery6MessageForumResult result;
@@ -1417,13 +1566,13 @@ public class TitanDb extends Db {
             long forumId = getSNBId(vertex);
             String forumTitle = vertex.<String>property("title").value();
 
-            Vertex moderator = 
+            Vertex moderator =
                 vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
 
             long moderatorId = getSNBId(moderator);
-            String moderatorFirstName = 
+            String moderatorFirstName =
                 moderator.<String>property("firstName").value();
-            String moderatorLastName = 
+            String moderatorLastName =
                 moderator.<String>property("lastName").value();
 
             result = new LdbcShortQuery6MessageForumResult(
@@ -1435,7 +1584,7 @@ public class TitanDb extends Db {
 
             break;
           } else if (vertex.label().equals(Entity.POST.getName())) {
-            vertex = 
+            vertex =
                 vertex.edges(Direction.IN, "containerOf").next().outVertex();
           } else {
             vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
@@ -1460,24 +1609,31 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcShortQuery7MessageRepliesHandler implements 
+  /**
+   * Given a Message (Post or Comment), retrieve the (1-hop) Comments that
+   * reply to it. In addition, return a boolean flag indicating if the author
+   * of the reply knows the author of the original message. If author is same
+   * as original author, return false for "knows" flag. Order results
+   * descending by creation date, then ascending by author identifier.[1]
+   */
+  public static class LdbcShortQuery7MessageRepliesHandler implements
       OperationHandler<LdbcShortQuery7MessageReplies, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcShortQuery7MessageRepliesHandler.class);
 
     @Override
-    public void executeOperation(final LdbcShortQuery7MessageReplies operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(final LdbcShortQuery7MessageReplies operation,
+        DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
         GraphTraversalSource g = client.traversal();
 
-        Vertex message = g.V().has("iid", 
+        Vertex message = g.V().has("iid",
             makeIid(Entity.MESSAGE, operation.messageId())).next();
-        Vertex messageAuthor = 
+        Vertex messageAuthor =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
         long messageAuthorId = getSNBId(messageAuthor);
 
@@ -1496,15 +1652,15 @@ public class TitanDb extends Db {
         for (Vertex reply : replies) {
           long replyId = getSNBId(reply);
           String replyContent = reply.<String>property("content").value();
-          long replyCreationDate = 
+          long replyCreationDate =
               Long.decode(reply.<String>property("creationDate").value());
 
-          Vertex replyAuthor = 
+          Vertex replyAuthor =
               reply.edges(Direction.OUT, "hasCreator").next().inVertex();
           long replyAuthorId = getSNBId(replyAuthor);
-          String replyAuthorFirstName = 
+          String replyAuthorFirstName =
               replyAuthor.<String>property("firstName").value();
-          String replyAuthorLastName = 
+          String replyAuthorLastName =
               replyAuthor.<String>property("lastName").value();
 
           boolean knows = false;
@@ -1512,15 +1668,15 @@ public class TitanDb extends Db {
             knows = messageAuthorFriendIds.contains(replyAuthorId);
           }
 
-          LdbcShortQuery7MessageRepliesResult res = 
+          LdbcShortQuery7MessageRepliesResult res =
               new LdbcShortQuery7MessageRepliesResult(
-              replyId,
-              replyContent,
-              replyCreationDate,
-              replyAuthorId,
-              replyAuthorFirstName,
-              replyAuthorLastName,
-              knows
+                  replyId,
+                  replyContent,
+                  replyCreationDate,
+                  replyAuthorId,
+                  replyAuthorFirstName,
+                  replyAuthorLastName,
+                  knows
               );
 
           result.add(res);
@@ -1528,9 +1684,9 @@ public class TitanDb extends Db {
 
         // Sort the result here.
         result.sort((a, b) -> {
-          LdbcShortQuery7MessageRepliesResult r1 = 
+          LdbcShortQuery7MessageRepliesResult r1 =
               (LdbcShortQuery7MessageRepliesResult) a;
-          LdbcShortQuery7MessageRepliesResult r2 = 
+          LdbcShortQuery7MessageRepliesResult r2 =
               (LdbcShortQuery7MessageRepliesResult) b;
 
           if (r1.commentCreationDate() > r2.commentCreationDate()) {
@@ -1570,10 +1726,13 @@ public class TitanDb extends Db {
    * Update Queries
    * ------------------------------------------------------------------------
    */
-  public static class LdbcUpdate1AddPersonHandler implements 
+  /**
+   * Add a Person to the social network. [1]
+   */
+  public static class LdbcUpdate1AddPersonHandler implements
       OperationHandler<LdbcUpdate1AddPerson, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate1AddPersonHandler.class);
 
     private final Calendar calendar;
@@ -1583,16 +1742,16 @@ public class TitanDb extends Db {
     }
 
     @Override
-    public void executeOperation(LdbcUpdate1AddPerson operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate1AddPerson operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
-      
+
       // Build key value properties array
-      List<Object> personKeyValues = 
-          new ArrayList<>(18 + 2 * operation.languages().size() + 
-              2 * operation.emails().size());
+      List<Object> personKeyValues =
+          new ArrayList<>(18 + 2 * operation.languages().size()
+              + 2 * operation.emails().size());
       personKeyValues.add("iid");
       personKeyValues.add(makeIid(Entity.PERSON, operation.personId()));
       personKeyValues.add(T.label);
@@ -1626,15 +1785,15 @@ public class TitanDb extends Db {
       Vertex person = client.addVertex(personKeyValues.toArray());
 
       // Add edge to place
-      Vertex place = g.V().has("iid", 
+      Vertex place = g.V().has("iid",
           makeIid(Entity.PLACE, operation.cityId())).next();
       person.addEdge("isLocatedIn", place);
 
       // Add edges to tags
       List<String> tagIds = new ArrayList<>(operation.tagIds().size());
-      operation.tagIds().forEach((id) -> 
+      operation.tagIds().forEach((id) ->
           tagIds.add(Entity.TAG.getName() + ":" + String.valueOf(id)));
-      Iterator<Vertex> tagVItr = 
+      Iterator<Vertex> tagVItr =
           client.vertices(tagIds.toArray());
       tagVItr.forEachRemaining((tag) -> {
         person.addEdge("hasInterest", tag);
@@ -1646,7 +1805,7 @@ public class TitanDb extends Db {
         studiedAtKeyValues.clear();
         studiedAtKeyValues.add("classYear");
         studiedAtKeyValues.add(String.valueOf(org.year()));
-        Vertex orgV = g.V().has("iid", 
+        Vertex orgV = g.V().has("iid",
             makeIid(Entity.ORGANISATION, org.organizationId())).next();
         person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
       }
@@ -1657,7 +1816,7 @@ public class TitanDb extends Db {
         workedAtKeyValues.clear();
         workedAtKeyValues.add("workFrom");
         workedAtKeyValues.add(String.valueOf(org.year()));
-        Vertex orgV = g.V().has("iid", 
+        Vertex orgV = g.V().has("iid",
             makeIid(Entity.ORGANISATION, org.organizationId())).next();
         person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
       }
@@ -1668,23 +1827,26 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate2AddPostLikeHandler implements 
+  /**
+   * Add a Like to a Post of the social network.[1]
+   */
+  public static class LdbcUpdate2AddPostLikeHandler implements
       OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate2AddPostLikeHandler.class);
 
     @Override
-    public void executeOperation(LdbcUpdate2AddPostLike operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate2AddPostLike operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
-      Vertex person = g.V().has("iid", 
+      Vertex person = g.V().has("iid",
           makeIid(Entity.PERSON, operation.personId())).next();
-      Vertex post = g.V().has("iid", 
-        makeIid(Entity.POST, operation.postId())).next();
+      Vertex post = g.V().has("iid",
+          makeIid(Entity.POST, operation.postId())).next();
       List<Object> keyValues = new ArrayList<>(2);
       keyValues.add("creationDate");
       keyValues.add(String.valueOf(operation.creationDate().getTime()));
@@ -1696,23 +1858,26 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate3AddCommentLikeHandler implements 
+  /**
+   * Add a Like to a Comment of the social network.[1]
+   */
+  public static class LdbcUpdate3AddCommentLikeHandler implements
       OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate3AddCommentLikeHandler.class);
 
     @Override
-    public void executeOperation(LdbcUpdate3AddCommentLike operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate3AddCommentLike operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
-      Vertex person = g.V().has("iid", 
+      Vertex person = g.V().has("iid",
           makeIid(Entity.PERSON, operation.personId())).next();
-      Vertex comment = g.V().has("iid", 
-        makeIid(Entity.COMMENT, operation.commentId())).next();
+      Vertex comment = g.V().has("iid",
+          makeIid(Entity.COMMENT, operation.commentId())).next();
       List<Object> keyValues = new ArrayList<>(2);
       keyValues.add("creationDate");
       keyValues.add(String.valueOf(operation.creationDate().getTime()));
@@ -1724,15 +1889,18 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate4AddForumHandler implements 
+  /**
+   * Add a Like to a Comment of the social network.[1]
+   */
+  public static class LdbcUpdate4AddForumHandler implements
       OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate4AddForum operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate4AddForum operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
@@ -1762,8 +1930,8 @@ public class TitanDb extends Db {
           forum.addEdge("hasModerator", v);
         } else {
           throw new RuntimeException(
-              "ERROR: LdbcUpdate4AddForum query tried to add an edge to a " + 
-              "vertex that is neither a tag nor a person.");
+              "ERROR: LdbcUpdate4AddForum query tried to add an edge to a "
+              + "vertex that is neither a tag nor a person.");
         }
       });
 
@@ -1773,23 +1941,26 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate5AddForumMembershipHandler implements 
+  /**
+   * Add a Forum membership to the social network.[1]
+   */
+  public static class LdbcUpdate5AddForumMembershipHandler implements
       OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate5AddForumMembership operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate5AddForumMembership operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
 
-      Vertex forum = g.V().has("iid", 
+      Vertex forum = g.V().has("iid",
           makeIid(Entity.FORUM, operation.forumId())).next();
-      Vertex member = g.V().has("iid", 
-        makeIid(Entity.PERSON, operation.personId())).next();
+      Vertex member = g.V().has("iid",
+          makeIid(Entity.PERSON, operation.personId())).next();
 
       List<Object> edgeKeyValues = new ArrayList<>(2);
       edgeKeyValues.add("joinDate");
@@ -1803,15 +1974,18 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate6AddPostHandler implements 
+  /**
+   * Add a Post to the social network.[1]
+   */
+  public static class LdbcUpdate6AddPostHandler implements
       OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate6AddPost operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate6AddPost operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
@@ -1857,8 +2031,8 @@ public class TitanDb extends Db {
           post.addEdge("hasTag", v);
         } else {
           throw new RuntimeException(
-              "ERROR: LdbcUpdate6AddPostHandler query tried to add an edge " + 
-              "to a vertex that is none of {person, forum, place, tag}.");
+              "ERROR: LdbcUpdate6AddPostHandler query tried to add an edge "
+              + "to a vertex that is none of {person, forum, place, tag}.");
         }
       });
 
@@ -1868,15 +2042,18 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate7AddCommentHandler implements 
+  /**
+   * Add a Comment replying to a Post/Comment to the social network.[1]
+   */
+  public static class LdbcUpdate7AddCommentHandler implements
       OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate7AddComment operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate7AddComment operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
@@ -1925,9 +2102,9 @@ public class TitanDb extends Db {
           comment.addEdge("hasTag", v);
         } else {
           throw new RuntimeException(
-              "ERROR: LdbcUpdate7AddCommentHandler query tried to add an " + 
-              "edge to a vertex that is none of {person, place, comment, " + 
-              "post, tag}.");
+              "ERROR: LdbcUpdate7AddCommentHandler query tried to add an "
+              + "edge to a vertex that is none of {person, place, comment, "
+              + "post, tag}.");
         }
       });
 
@@ -1937,15 +2114,18 @@ public class TitanDb extends Db {
     }
   }
 
-  public static class LdbcUpdate8AddFriendshipHandler implements 
+  /**
+   * Add a friendship relation to the social network.[1]
+   */
+  public static class LdbcUpdate8AddFriendshipHandler implements
       OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
 
-    final static Logger logger = 
+    final static Logger logger =
         LoggerFactory.getLogger(LdbcUpdate4AddForum.class);
 
     @Override
-    public void executeOperation(LdbcUpdate8AddFriendship operation, 
-        DbConnectionState dbConnectionState, 
+    public void executeOperation(LdbcUpdate8AddFriendship operation,
+        DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
       Graph client = ((TitanDbConnectionState) dbConnectionState).getClient();
       GraphTraversalSource g = client.traversal();
