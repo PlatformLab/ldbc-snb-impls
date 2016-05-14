@@ -156,44 +156,55 @@ To run individual queries use the `QueryTester` utility included in this repo:
 QueryTester: A utility for running individual queries for testing purposes.
 
 Usage:
-  QueryTester [--host=<host>] [--port=<port>] query1 <personId> <firstName> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query2 <personId> <maxDate> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query3 <personId> <countryXName> <countryYName> <startDate> <durationDays> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query4 <personId> <startDate> <durationDays> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query5 <personId> <minDate> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query6 <personId> <tagName> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query7 <personId> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query8 <personId> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query9 <personId> <maxDate> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query10 <personId> <month> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query11 <personId> <countryName> <workFromYear> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query12 <personId> <tagClassName> <limit>
-  QueryTester [--host=<host>] [--port=<port>] query13 <person1Id> <person2Id>
-  QueryTester [--host=<host>] [--port=<port>] query14 <person1Id> <person2Id>
-  QueryTester [--host=<host>] [--port=<port>] shortquery1 <personId>
-  QueryTester [--host=<host>] [--port=<port>] shortquery2 <personId> <limit>
-  QueryTester [--host=<host>] [--port=<port>] shortquery3 <personId>
-  QueryTester [--host=<host>] [--port=<port>] shortquery4 <messageId>
-  QueryTester [--host=<host>] [--port=<port>] shortquery5 <messageId>
-  QueryTester [--host=<host>] [--port=<port>] shortquery6 <messageId>
-  QueryTester [--host=<host>] [--port=<port>] shortquery7 <messageId>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update1 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update2 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update3 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update4 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update5 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update6 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update7 <nth>
-  QueryTester [--host=<host>] [--port=<port>] [--input=<input>] update8 <nth>
+  QueryTester [options] query1 <personId> <firstName> <limit>
+  QueryTester [options] query2 <personId> <maxDate> <limit>
+  QueryTester [options] query3 <personId> <countryXName> <countryYName> <startDate> <durationDays> <limit>
+  QueryTester [options] query4 <personId> <startDate> <durationDays> <limit>
+  QueryTester [options] query5 <personId> <minDate> <limit>
+  QueryTester [options] query6 <personId> <tagName> <limit>
+  QueryTester [options] query7 <personId> <limit>
+  QueryTester [options] query8 <personId> <limit>
+  QueryTester [options] query9 <personId> <maxDate> <limit>
+  QueryTester [options] query10 <personId> <month> <limit>
+  QueryTester [options] query11 <personId> <countryName> <workFromYear> <limit>
+  QueryTester [options] query12 <personId> <tagClassName> <limit>
+  QueryTester [options] query13 <person1Id> <person2Id>
+  QueryTester [options] query14 <person1Id> <person2Id>
+  QueryTester [options] shortquery1 <personId>
+  QueryTester [options] shortquery2 <personId> <limit>
+  QueryTester [options] shortquery3 <personId>
+  QueryTester [options] shortquery4 <messageId>
+  QueryTester [options] shortquery5 <messageId>
+  QueryTester [options] shortquery6 <messageId>
+  QueryTester [options] shortquery7 <messageId>
+  QueryTester [options] update1 <nth>
+  QueryTester [options] update2 <nth>
+  QueryTester [options] update3 <nth>
+  QueryTester [options] update4 <nth>
+  QueryTester [options] update5 <nth>
+  QueryTester [options] update6 <nth>
+  QueryTester [options] update7 <nth>
+  QueryTester [options] update8 <nth>
   QueryTester (-h | --help)
   QueryTester --version
 
 Options:
-  --host=<host> Host IP address of Neo4j webserver [default: 127.0.0.1].
-  --port=<port> Port of Neo4j webserver [default: 7474].
-  --input=<input> Directory of updateStream files to use as input [default: ./].
-  -h --help Show this screen.
-  --version Show version.
+  --config=<file>      QueryTester configuration file
+                       [default: ./config/querytester.properties].
+  --repeat=<n>         How many times to repeat the query. If n > 1
+                       then normal query result output will be
+                       surpressed to show only the query timing
+                       information
+                       [default: 1].
+  --input=<input>      Directory of updateStream files to use as
+                       input for update queries (the nth update of
+                       its kind will be selected from the stream to
+                       execute) [default: ./].
+  --timeUnits=<unit>   Unit of time in which to report timings
+                       (SECONDS, MILLISECONDS, MICROSECONDS,
+                       NANOSECONDS) [default: MILLISECONDS].
+  -h --help            Show this screen.
+  --version            Show version.
 ```
 
 Here is a usage example:
@@ -201,7 +212,70 @@ Here is a usage example:
 ```
 mvn exec:java -Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester" -Dexec.args="--input /path/to/social_network/ update8 20"
 
-mvn exec:java -Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester" -Dexec.args="shortquery7 257704419129"
+mvn exec:java
+-Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester"
+-Dexec.args="shortquery1 933"
+
+Query:
+LdbcShortQuery1PersonProfile{personId=933}
+
+Query Stats:
+  Units:            MILLISECONDS
+  Count:            1
+  Min:              256
+  Max:              256
+  Mean:             256
+  25th Percentile:  256
+  50th Percentile:  256
+  75th Percentile:  256
+  90th Percentile:  256
+  95th Percentile:  256
+  99th Percentile:  256
+
+LdbcShortQuery1PersonProfileResult{firstName='Mahinda', lastName='Perera', birthday=628732800000, locationIp='192.248.2.123', browserUsed='Firefox', cityId=1359, gender='male', creationDate=1268868730447}
+
+mvn exec:java
+-Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester"
+-Dexec.args="--repeat 1000 --timeUnits MICROSECONDS shortquery1 933"
+
+Query:
+LdbcShortQuery1PersonProfile{personId=933}
+
+Query Stats:
+  Units:            MICROSECONDS
+  Count:            1000
+  Min:              611
+  Max:              341849
+  Mean:             1256
+  25th Percentile:  720
+  50th Percentile:  809
+  75th Percentile:  991
+  90th Percentile:  1293
+  95th Percentile:  1555
+  99th Percentile:  2097
+
+
+mvn exec:java
+-Dexec.mainClass="net.ellitron.ldbcsnbimpls.interactive.neo4j.util.QueryTester"
+-Dexec.args="--input /home/jdellit/git/ldbc_snb_datagen/social_network update1 7"
+
+Query:
+LdbcUpdate1AddPerson{personId=17592186052198, personFirstName='Mikhail', personLastName='Basov', gender='male', birthday=Fri Jan 16 16:00:00 PST 1981, creationDate=Sun Oct 21 02:03:48 PDT 2012, locationIp='31.28.124.76', browserUsed='Firefox', cityId=843, languages=[ru, en], emails=[], tagIds=[58, 282, 288, 468, 777, 779, 780, 797, 809, 973, 974, 1153, 1185, 1201, 1533, 1615, 1676, 1733, 1758, 1765, 1769, 1984, 1993, 2011, 2092, 2104, 2780, 2786, 2787, 2792, 2832, 2841, 2845, 2848, 2849, 2859, 2865, 2874, 2887, 2902, 2907, 2939, 2940, 2990, 3001, 3065, 3076, 3086, 3109, 4878, 4952, 5078, 6168, 6981, 7804, 9319, 9448, 14155, 14826], studyAt=[Organization{organizationId=6004, year=2002}], workAt=[Organization{organizationId=1043, year=2003}, Organization{organizationId=1096, year=2002}, Organization{organizationId=1102, year=2002}]}
+
+Query Stats:
+  Units:            MILLISECONDS
+  Count:            1
+  Min:              370
+  Max:              370
+  Mean:             370
+  25th Percentile:  370
+  50th Percentile:  370
+  75th Percentile:  370
+  90th Percentile:  370
+  95th Percentile:  370
+  99th Percentile:  370
+
+com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult@241e8b0a
 ```
 
 ### Validation ###
