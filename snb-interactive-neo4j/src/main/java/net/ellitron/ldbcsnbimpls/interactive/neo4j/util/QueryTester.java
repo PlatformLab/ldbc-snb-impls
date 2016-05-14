@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package net.ellitron.ldbcsnbimpls.interactive.tools;
+package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
 import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
@@ -72,16 +72,7 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * A utility for running individual queries for testing purposes. It is
- * designed to work with any LDBC SNB interactive workload implementation, with
- * the single constraint that the first constructor of the implementation's
- * DbConnectorState object takes a single Map&lt;String, String&gt; argument.
- * Configuration parameters are specified in a jproperties config file, which
- * includes all parameters for the DbConnectionState object, as well as which
- * specific OperationHandlers to use for testing. This is useful for testing
- * multiple implementations of the same query without having to recompile your
- * code. Additionally, many database configurations can co-exist in the same
- * configuration file and be switched between with a single key.
+ * A utility for running individual queries for testing purposes. 
  *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
