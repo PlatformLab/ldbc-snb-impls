@@ -11,9 +11,9 @@ database.
 ### Interactive ###
 * [Torc](https://github.com/ellitron/torc) 
   * Implementation Status:
-    * Complex Read Queries: 1/14
-    * Short Read Queries: 7/7
-    * Update Queries: 8/8
+    * Complex Read Queries: 1/14 (passing validation)
+    * Short Read Queries: 7/7 (passing validation)
+    * Update Queries: 8/8 (passing validation)
 * [TitanDB](https://github.com/thinkaurelius/titan)
   * Implementation Status:
     * Complex Read Queries: 1/14
