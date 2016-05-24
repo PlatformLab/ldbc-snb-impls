@@ -24,7 +24,6 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 
-import net.ellitron.ldbcsnbimpls.interactive.core.Entity;
 import net.ellitron.torc.util.UInt128;
 
 import com.ldbc.driver.control.LoggingService;
@@ -236,7 +235,7 @@ public class TorcDb extends Db {
         List<Long> distList = new ArrayList<>(resultLimit);
         List<Vertex> matchList = new ArrayList<>(resultLimit);
 
-        Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId))
+        Vertex root = g.V(new UInt128(TorcEntity.PERSON.idSpace, personId))
             .next();
 
         g.withSideEffect("x", matchList).withSideEffect("d", distList)
@@ -406,7 +405,7 @@ public class TorcDb extends Db {
         List<Integer> distList = new ArrayList<>(resultLimit);
         List<Vertex> matchList = new ArrayList<>(resultLimit);
 
-        Vertex root = g.V(new UInt128(Entity.PERSON.getNumber(), personId))
+        Vertex root = g.V(new UInt128(TorcEntity.PERSON.idSpace, personId))
             .next();
 
         List<Vertex> l1Friends = new ArrayList<>();
@@ -598,7 +597,7 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex rootPerson = client.vertices(
-            new UInt128(Entity.PERSON.getNumber(), personId)).next();
+            new UInt128(TorcEntity.PERSON.idSpace, personId)).next();
 
         List<Vertex> friends = new ArrayList<>();
         List<Integer> levelIndices = new ArrayList<>();
@@ -1148,7 +1147,7 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex person = client.vertices(
-            new UInt128(Entity.PERSON.getNumber(), person_id)).next();
+            new UInt128(TorcEntity.PERSON.idSpace, person_id)).next();
         Iterator<VertexProperty<String>> props = person.properties();
         Map<String, String> propertyMap = new HashMap<>();
         props.forEachRemaining((prop) -> {
@@ -1213,7 +1212,7 @@ public class TorcDb extends Db {
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
         Vertex person = client.vertices(
-            new UInt128(Entity.PERSON.getNumber(), operation.personId()))
+            new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
         Iterator<Edge> edges = person.edges(Direction.IN, "hasCreator");
 
@@ -1269,7 +1268,7 @@ public class TorcDb extends Db {
           long originalPostAuthorId;
           String originalPostAuthorFirstName;
           String originalPostAuthorLastName;
-          if (message.label().equals(Entity.POST.getName())) {
+          if (message.label().equals(TorcEntity.POST.label)) {
             originalPostId = messageId;
             originalPostAuthorId = ((UInt128) person.id()).getLowerLong();
             originalPostAuthorFirstName =
@@ -1280,7 +1279,7 @@ public class TorcDb extends Db {
             Vertex parentMessage =
                 message.edges(Direction.OUT, "replyOf").next().inVertex();
             while (true) {
-              if (parentMessage.label().equals(Entity.POST.getName())) {
+              if (parentMessage.label().equals(TorcEntity.POST.label)) {
                 originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
 
                 Vertex author =
@@ -1352,7 +1351,7 @@ public class TorcDb extends Db {
         List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 
         Vertex person = client.vertices(
-            new UInt128(Entity.PERSON.getNumber(), operation.personId()))
+            new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
 
         Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
@@ -1437,7 +1436,7 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex message = client.vertices(
-            new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
+            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
         long creationDate =
@@ -1488,7 +1487,7 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex message = client.vertices(
-            new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
+            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
         Vertex creator =
@@ -1545,12 +1544,12 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex vertex = client.vertices(
-            new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
+            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
         LdbcShortQuery6MessageForumResult result;
         while (true) {
-          if (vertex.label().equals(Entity.FORUM.getName())) {
+          if (vertex.label().equals(TorcEntity.FORUM.label)) {
             long forumId = ((UInt128) vertex.id()).getLowerLong();
             String forumTitle = vertex.<String>property("title").value();
 
@@ -1571,7 +1570,7 @@ public class TorcDb extends Db {
                 moderatorLastName);
 
             break;
-          } else if (vertex.label().equals(Entity.POST.getName())) {
+          } else if (vertex.label().equals(TorcEntity.POST.label)) {
             vertex =
                 vertex.edges(Direction.IN, "containerOf").next().outVertex();
           } else {
@@ -1619,7 +1618,7 @@ public class TorcDb extends Db {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         Vertex message = client.vertices(
-            new UInt128(Entity.MESSAGE.getNumber(), operation.messageId()))
+            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
         Vertex messageAuthor =
             message.edges(Direction.OUT, "hasCreator").next().inVertex();
@@ -1742,9 +1741,9 @@ public class TorcDb extends Db {
               + 2 * operation.emails().size());
       personKeyValues.add(T.id);
       personKeyValues.add(
-          new UInt128(Entity.PERSON.getNumber(), operation.personId()));
+          new UInt128(TorcEntity.PERSON.idSpace, operation.personId()));
       personKeyValues.add(T.label);
-      personKeyValues.add("person");
+      personKeyValues.add(TorcEntity.PERSON.label);
       personKeyValues.add("firstName");
       personKeyValues.add(operation.personFirstName());
       personKeyValues.add("lastName");
@@ -1778,13 +1777,13 @@ public class TorcDb extends Db {
 
         // Add edge to place
         Vertex place = client.vertices(
-            new UInt128(Entity.PLACE.getNumber(), operation.cityId())).next();
+            new UInt128(TorcEntity.PLACE.idSpace, operation.cityId())).next();
         person.addEdge("isLocatedIn", place);
 
         // Add edges to tags
         List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
         operation.tagIds().forEach((id) ->
-            tagIds.add(new UInt128(Entity.TAG.getNumber(), id)));
+            tagIds.add(new UInt128(TorcEntity.TAG.idSpace, id)));
         Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
         tagVItr.forEachRemaining((tag) -> {
           person.addEdge("hasInterest", tag);
@@ -1797,7 +1796,7 @@ public class TorcDb extends Db {
           studiedAtKeyValues.add("classYear");
           studiedAtKeyValues.add(String.valueOf(org.year()));
           Vertex orgV = client.vertices(
-              new UInt128(Entity.ORGANISATION.getNumber(),
+              new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId()))
               .next();
           person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
@@ -1810,7 +1809,7 @@ public class TorcDb extends Db {
           workedAtKeyValues.add("workFrom");
           workedAtKeyValues.add(String.valueOf(org.year()));
           Vertex orgV = client.vertices(
-              new UInt128(Entity.ORGANISATION.getNumber(),
+              new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId())).next();
           person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
         }
@@ -1849,9 +1848,9 @@ public class TorcDb extends Db {
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
-          new UInt128(Entity.PERSON.getNumber(), operation.personId());
+          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
       UInt128 postId =
-          new UInt128(Entity.POST.getNumber(), operation.postId());
+          new UInt128(TorcEntity.POST.idSpace, operation.postId());
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -1898,9 +1897,9 @@ public class TorcDb extends Db {
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
-          new UInt128(Entity.PERSON.getNumber(), operation.personId());
+          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
       UInt128 commentId =
-          new UInt128(Entity.COMMENT.getNumber(), operation.commentId());
+          new UInt128(TorcEntity.COMMENT.idSpace, operation.commentId());
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -1949,9 +1948,9 @@ public class TorcDb extends Db {
       List<Object> forumKeyValues = new ArrayList<>(8);
       forumKeyValues.add(T.id);
       forumKeyValues.add(
-          new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
+          new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
       forumKeyValues.add(T.label);
-      forumKeyValues.add(Entity.FORUM.getName());
+      forumKeyValues.add(TorcEntity.FORUM.label);
       forumKeyValues.add("title");
       forumKeyValues.add(operation.forumTitle());
       forumKeyValues.add("creationDate");
@@ -1964,20 +1963,20 @@ public class TorcDb extends Db {
 
         List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
         operation.tagIds().forEach((id) -> {
-          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
         });
-        ids.add(new UInt128(Entity.PERSON.getNumber(),
+        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
             operation.moderatorPersonId()));
 
         client.vertices(ids.toArray()).forEachRemaining((v) -> {
-          if (v.label().equals(Entity.TAG.getName())) {
+          if (v.label().equals(TorcEntity.TAG.label)) {
             forum.addEdge("hasTag", v);
-          } else if (v.label().equals(Entity.PERSON.getName())) {
+          } else if (v.label().equals(TorcEntity.PERSON.label)) {
             forum.addEdge("hasModerator", v);
           } else {
-            throw new RuntimeException(
-                "ERROR: LdbcUpdate4AddForum query tried to add an edge to a "
-                + "vertex that is neither a tag nor a person.");
+            throw new RuntimeException(String.format(
+                "ERROR: LdbcUpdate4AddForum query read a vertex with an "
+                + "unexpected label: %s", v.label()));
           }
         });
 
@@ -2015,8 +2014,8 @@ public class TorcDb extends Db {
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<UInt128> ids = new ArrayList<>(2);
-      ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
-      ids.add(new UInt128(Entity.PERSON.getNumber(), operation.personId()));
+      ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
+      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.personId()));
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -2067,9 +2066,9 @@ public class TorcDb extends Db {
       List<Object> postKeyValues = new ArrayList<>(18);
       postKeyValues.add(T.id);
       postKeyValues.add(
-          new UInt128(Entity.POST.getNumber(), operation.postId()));
+          new UInt128(TorcEntity.POST.idSpace, operation.postId()));
       postKeyValues.add(T.label);
-      postKeyValues.add(Entity.POST.getName());
+      postKeyValues.add(TorcEntity.POST.label);
       postKeyValues.add("imageFile");
       postKeyValues.add(operation.imageFile());
       postKeyValues.add("creationDate");
@@ -2091,28 +2090,27 @@ public class TorcDb extends Db {
         Vertex post = client.addVertex(postKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(new UInt128(Entity.PERSON.getNumber(),
+        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
             operation.authorPersonId()));
-        ids.add(new UInt128(Entity.FORUM.getNumber(), operation.forumId()));
-        ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+        ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
+        ids.add(new UInt128(TorcEntity.PLACE.idSpace, operation.countryId()));
         operation.tagIds().forEach((id) -> {
-          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
         });
 
         client.vertices(ids.toArray()).forEachRemaining((v) -> {
-          if (v.label().equals(Entity.PERSON.getName())) {
+          if (v.label().equals(TorcEntity.PERSON.label)) {
             post.addEdge("hasCreator", v);
-          } else if (v.label().equals(Entity.FORUM.getName())) {
+          } else if (v.label().equals(TorcEntity.FORUM.label)) {
             v.addEdge("containerOf", post);
-          } else if (v.label().equals(Entity.PLACE.getName())) {
+          } else if (v.label().equals(TorcEntity.PLACE.label)) {
             post.addEdge("isLocatedIn", v);
-          } else if (v.label().equals(Entity.TAG.getName())) {
+          } else if (v.label().equals(TorcEntity.TAG.label)) {
             post.addEdge("hasTag", v);
           } else {
-            throw new RuntimeException(
-                "ERROR: LdbcUpdate6AddPostHandler query tried to add an "
-                + "edge to a vertex that is none of {person, forum, place, "
-                + "tag}.");
+            throw new RuntimeException(String.format(
+                "ERROR: LdbcUpdate6AddPostHandler query read a vertex with an "
+                + "unexpected label: %s", v.label()));
           }
         });
 
@@ -2152,9 +2150,9 @@ public class TorcDb extends Db {
       List<Object> commentKeyValues = new ArrayList<>(14);
       commentKeyValues.add(T.id);
       commentKeyValues.add(
-          new UInt128(Entity.COMMENT.getNumber(), operation.commentId()));
+          new UInt128(TorcEntity.COMMENT.idSpace, operation.commentId()));
       commentKeyValues.add(T.label);
-      commentKeyValues.add(Entity.COMMENT.getName());
+      commentKeyValues.add(TorcEntity.COMMENT.label);
       commentKeyValues.add("creationDate");
       commentKeyValues.add(String.valueOf(operation.creationDate().getTime()));
       commentKeyValues.add("locationIP");
@@ -2172,37 +2170,36 @@ public class TorcDb extends Db {
         Vertex comment = client.addVertex(commentKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
-        ids.add(new UInt128(Entity.PERSON.getNumber(),
+        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
             operation.authorPersonId()));
-        ids.add(new UInt128(Entity.PLACE.getNumber(), operation.countryId()));
+        ids.add(new UInt128(TorcEntity.PLACE.idSpace, operation.countryId()));
         operation.tagIds().forEach((id) -> {
-          ids.add(new UInt128(Entity.TAG.getNumber(), id));
+          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
         });
         if (operation.replyToCommentId() != -1) {
-          ids.add(new UInt128(Entity.COMMENT.getNumber(),
+          ids.add(new UInt128(TorcEntity.COMMENT.idSpace,
               operation.replyToCommentId()));
         }
         if (operation.replyToPostId() != -1) {
           ids.add(
-              new UInt128(Entity.POST.getNumber(), operation.replyToPostId()));
+              new UInt128(TorcEntity.POST.idSpace, operation.replyToPostId()));
         }
 
         client.vertices(ids.toArray()).forEachRemaining((v) -> {
-          if (v.label().equals(Entity.PERSON.getName())) {
+          if (v.label().equals(TorcEntity.PERSON.label)) {
             comment.addEdge("hasCreator", v);
-          } else if (v.label().equals(Entity.PLACE.getName())) {
+          } else if (v.label().equals(TorcEntity.PLACE.label)) {
             comment.addEdge("isLocatedIn", v);
-          } else if (v.label().equals(Entity.COMMENT.getName())) {
+          } else if (v.label().equals(TorcEntity.COMMENT.label)) {
             comment.addEdge("replyOf", v);
-          } else if (v.label().equals(Entity.POST.getName())) {
+          } else if (v.label().equals(TorcEntity.POST.label)) {
             comment.addEdge("replyOf", v);
-          } else if (v.label().equals(Entity.TAG.getName())) {
+          } else if (v.label().equals(TorcEntity.TAG.label)) {
             comment.addEdge("hasTag", v);
           } else {
-            throw new RuntimeException(
-                "ERROR: LdbcUpdate7AddCommentHandler query tried to add an "
-                + "edge to a vertex that is none of {person, place, comment, "
-                + "post, tag}.");
+            throw new RuntimeException(String.format(
+                "ERROR: LdbcUpdate7AddCommentHandler query read a vertex with "
+                + "an unexpected label: %s", v.label()));
           }
         });
 
@@ -2245,8 +2242,8 @@ public class TorcDb extends Db {
           String.valueOf(operation.creationDate().getTime()));
 
       List<UInt128> ids = new ArrayList<>(2);
-      ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person1Id()));
-      ids.add(new UInt128(Entity.PERSON.getNumber(), operation.person2Id()));
+      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.person1Id()));
+      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.person2Id()));
 
       boolean txSucceeded = false;
       int txFailCount = 0;
