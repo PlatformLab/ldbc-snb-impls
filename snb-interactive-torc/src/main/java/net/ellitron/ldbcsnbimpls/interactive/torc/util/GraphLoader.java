@@ -551,8 +551,9 @@ public class GraphLoader {
           sb.append(String.format(colFormatStr, tName + ".rate"));
           sb.append(String.format(colFormatStr, tName + ".prog"));
         }
-        sb.append(String.format(colFormatStr, "tot.rate"));
-        sb.append(String.format(colFormatStr, "tot.prog"));
+        sb.append(String.format(colFormatStr, "rate"));
+        sb.append(String.format(colFormatStr, "prog"));
+        sb.append(String.format(colFormatStr, "time"));
         System.out.println(sb.toString());
 
         // Capture the thread stats now before entering report loop. We'll use
@@ -591,12 +592,18 @@ public class GraphLoader {
           sb.append(String.format(colFormatStr, totalCurrLineRate));
           sb.append(String.format(colFormatStr, String.format("(%d/%d)",
               totalFilesProcessed, totalFilesToProcess)));
+          sb.append(String.format(colFormatStr, (timeElapsed / 60l) + "m"));
 
           System.out.println(sb.toString());
 
           lastThreadStats.clear();
           for (int i = 0; i < threadStats.size(); i++) {
             lastThreadStats.add(new ThreadStats(threadStats.get(i)));
+          }
+          
+          // Check if we are done loading. If so, exit.
+          if (totalFilesProcessed == totalFilesToProcess) {
+            break;
           }
         }
       } catch (InterruptedException ex) {
