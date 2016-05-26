@@ -258,199 +258,230 @@ public class GraphLoader {
 
     @Override
     public void run() {
-      try {
-        // Load every file in the range [startIndex, startIndex + length)
-        for (int fIndex = startIndex; fIndex < startIndex + length; fIndex++) {
-          LoadUnit loadUnit = loadList.get(fIndex);
-          Path path = loadUnit.getFilePath();
+      // Load every file in the range [startIndex, startIndex + length)
+      for (int fIndex = startIndex; fIndex < startIndex + length; fIndex++) {
+        LoadUnit loadUnit = loadList.get(fIndex);
+        Path path = loadUnit.getFilePath();
 
-          BufferedReader inFile =
-              Files.newBufferedReader(path, StandardCharsets.UTF_8);
+        BufferedReader inFile;
+        try {
+          inFile = Files.newBufferedReader(path, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+          throw new RuntimeException(String.format("Encountered error opening "
+              + "file %s", path.getFileName()));
+        }
 
-          // First line of the file contains the column headers.
-          String[] fieldNames = inFile.readLine().split("\\|");
+        // First line of the file contains the column headers.
+        String[] fieldNames;
+        try {
+          fieldNames = inFile.readLine().split("\\|");
+        } catch (IOException ex) {
+          throw new RuntimeException(String.format("Encountered error reading "
+              + "header line of file %s", path.getFileName()));
+        }
 
-          Consumer<List<String>> lineGobbler;
-          if (loadUnit.isEntity()) {
-            SnbEntity snbEntity = loadUnit.getSnbEntity();
+        Consumer<List<String>> lineGobbler;
+        if (loadUnit.isEntity()) {
+          SnbEntity snbEntity = loadUnit.getSnbEntity();
 
-            long idSpace = TorcEntity.valueOf(snbEntity).idSpace;
-            String vertexLabel = TorcEntity.valueOf(snbEntity).label;
+          long idSpace = TorcEntity.valueOf(snbEntity).idSpace;
+          String vertexLabel = TorcEntity.valueOf(snbEntity).label;
 
-            lineGobbler = (List<String> lineBuffer) -> {
-              try {
-                for (int i = 0; i < lineBuffer.size(); i++) {
-                  /*
-                   * Here we parse the line into a map of the entity's
-                   * properties. Date-type fields (birthday, creationDate, ...)
-                   * need to be converted to the number of milliseconds since
-                   * January 1, 1970, 00:00:00 GMT. This is the format expected
-                   * to be returned for these fields by LDBC SNB benchmark
-                   * queries, although the format in the dataset files are
-                   * things like "1989-12-04" and
-                   * "2010-03-17T23:32:10.447+0000". We could do this
-                   * conversion "live" during the benchmark, but that would
-                   * detract from the performance numbers' reflection of true
-                   * database performance since it would add to the client-side
-                   * query processing overhead.
-                   */
-                  String[] fieldValues = lineBuffer.get(i).split("\\|");
-                  Map<Object, Object> propMap = new HashMap<>();
-                  for (int j = 0; j < fieldValues.length; j++) {
-                    if (fieldNames[j].equals("id")) {
-                      propMap.put(T.id,
-                          new UInt128(idSpace, Long.decode(fieldValues[j])));
-                    } else if (fieldNames[j].equals("birthday")) {
-                      propMap.put(fieldNames[j], String.valueOf(
-                          birthdayDateFormat.parse(fieldValues[j])
-                          .getTime()));
-                    } else if (fieldNames[j].equals("creationDate")) {
-                      propMap.put(fieldNames[j], String.valueOf(
-                          creationDateDateFormat.parse(fieldValues[j])
-                          .getTime()));
-                    } else if (fieldNames[j].equals("joinDate")) {
-                      propMap.put(fieldNames[j], String.valueOf(
-                          creationDateDateFormat.parse(fieldValues[j])
-                          .getTime()));
-                    } else {
-                      propMap.put(fieldNames[j], fieldValues[j]);
-                    }
+          lineGobbler = (List<String> lineBuffer) -> {
+            for (int i = 0; i < lineBuffer.size(); i++) {
+              /*
+               * Here we parse the line into a map of the entity's properties.
+               * Date-type fields (birthday, creationDate, ...) need to be
+               * converted to the number of milliseconds since January 1, 1970,
+               * 00:00:00 GMT. This is the format expected to be returned for
+               * these fields by LDBC SNB benchmark queries, although the
+               * format in the dataset files are things like "1989-12-04" and
+               * "2010-03-17T23:32:10.447+0000". We could do this conversion
+               * "live" during the benchmark, but that would detract from the
+               * performance numbers' reflection of true database performance
+               * since it would add to the client-side query processing
+               * overhead.
+               */
+              String[] fieldValues = lineBuffer.get(i).split("\\|");
+              Map<Object, Object> propMap = new HashMap<>();
+              for (int j = 0; j < fieldValues.length; j++) {
+                try {
+                  if (fieldNames[j].equals("id")) {
+                    propMap.put(T.id,
+                        new UInt128(idSpace, Long.decode(fieldValues[j])));
+                  } else if (fieldNames[j].equals("birthday")) {
+                    propMap.put(fieldNames[j], String.valueOf(
+                        birthdayDateFormat.parse(fieldValues[j])
+                        .getTime()));
+                  } else if (fieldNames[j].equals("creationDate")) {
+                    propMap.put(fieldNames[j], String.valueOf(
+                        creationDateDateFormat.parse(fieldValues[j])
+                        .getTime()));
+                  } else if (fieldNames[j].equals("joinDate")) {
+                    propMap.put(fieldNames[j], String.valueOf(
+                        creationDateDateFormat.parse(fieldValues[j])
+                        .getTime()));
+                  } else {
+                    propMap.put(fieldNames[j], fieldValues[j]);
                   }
-
-                  // Don't forget to add the label!
-                  propMap.put(T.label, vertexLabel);
-
-                  List<Object> keyValues = new ArrayList<>();
-                  propMap.forEach((key, val) -> {
-                    keyValues.add(key);
-                    keyValues.add(val);
-                  });
-
-                  graph.addVertex(keyValues.toArray());
+                } catch (Exception ex) {
+                  throw new RuntimeException(String.format("Encountered "
+                      + "error processing field %s with value %s of line %d "
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j], 
+                      fieldValues[j], i, lineBuffer.get(i)), ex);
                 }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
               }
-            };
-          } else {
-            SnbRelation snbRelation = loadUnit.getSnbRelation();
 
-            long tailIdSpace = TorcEntity.valueOf(snbRelation.tail).idSpace;
-            long headIdSpace = TorcEntity.valueOf(snbRelation.head).idSpace;
-            String edgeLabel = snbRelation.name;
+              // Don't forget to add the label!
+              propMap.put(T.label, vertexLabel);
 
-            lineGobbler = (List<String> lineBuffer) -> {
-              try {
-                for (int i = 0; i < lineBuffer.size(); i++) {
-                  String[] fieldValues = lineBuffer.get(i).split("\\|");
+              List<Object> keyValues = new ArrayList<>();
+              propMap.forEach((key, val) -> {
+                keyValues.add(key);
+                keyValues.add(val);
+              });
 
-                  TorcVertex tailVertex = (TorcVertex) graph.vertices(
-                      new UInt128(tailIdSpace, Long.decode(fieldValues[0])))
-                      .next();
-                  TorcVertex headVertex = (TorcVertex) graph.vertices(
-                      new UInt128(headIdSpace, Long.decode(fieldValues[1])))
-                      .next();
+              graph.addVertex(keyValues.toArray());
+            }
+          };
+        } else {
+          SnbRelation snbRelation = loadUnit.getSnbRelation();
 
-                  Map<Object, Object> propMap = new HashMap<>();
-                  for (int j = 2; j < fieldValues.length; j++) {
-                    if (fieldNames[j].equals("creationDate")
-                        || fieldNames[j].equals("joinDate")) {
-                      propMap.put(fieldNames[j], String.valueOf(
-                          creationDateDateFormat.parse(fieldValues[j])
-                          .getTime()));
-                    } else {
-                      propMap.put(fieldNames[j], fieldValues[j]);
-                    }
+          long tailIdSpace = TorcEntity.valueOf(snbRelation.tail).idSpace;
+          long headIdSpace = TorcEntity.valueOf(snbRelation.head).idSpace;
+          String edgeLabel = snbRelation.name;
+
+          lineGobbler = (List<String> lineBuffer) -> {
+            for (int i = 0; i < lineBuffer.size(); i++) {
+              String[] fieldValues = lineBuffer.get(i).split("\\|");
+
+              TorcVertex tailVertex = (TorcVertex) graph.vertices(
+                  new UInt128(tailIdSpace, Long.decode(fieldValues[0])))
+                  .next();
+              TorcVertex headVertex = (TorcVertex) graph.vertices(
+                  new UInt128(headIdSpace, Long.decode(fieldValues[1])))
+                  .next();
+
+              Map<Object, Object> propMap = new HashMap<>();
+              for (int j = 2; j < fieldValues.length; j++) {
+                try {
+                  if (fieldNames[j].equals("creationDate")
+                      || fieldNames[j].equals("joinDate")) {
+                    propMap.put(fieldNames[j], String.valueOf(
+                        creationDateDateFormat.parse(fieldValues[j])
+                        .getTime()));
+                  } else {
+                    propMap.put(fieldNames[j], fieldValues[j]);
                   }
-
-                  List<Object> keyValues = new ArrayList<>();
-                  propMap.forEach((key, val) -> {
-                    keyValues.add(key);
-                    keyValues.add(val);
-                  });
-
-                  tailVertex.addEdge(edgeLabel, headVertex,
-                      keyValues.toArray());
-
-                  /*
-                   * If this is not an undirected edge, then add the reverse
-                   * edge from head to tail.
-                   */
-                  if (!snbRelation.directed) {
-                    headVertex.addEdge(edgeLabel, tailVertex,
-                        keyValues.toArray());
-                  }
+                } catch (Exception ex) {
+                  throw new RuntimeException(String.format("Encountered "
+                      + "error processing field %s with value %s of line %d "
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j], 
+                      fieldValues[j], i, lineBuffer.get(i)), ex);
                 }
-              } catch (Exception e) {
-                throw new RuntimeException(e);
               }
-            };
-          }
 
-          // Keep track of what lines we're on in this file.
-          long localLinesProcessed = 0;
+              List<Object> keyValues = new ArrayList<>();
+              propMap.forEach((key, val) -> {
+                keyValues.add(key);
+                keyValues.add(val);
+              });
 
-          boolean hasLinesLeft = true;
-          while (hasLinesLeft) {
-            /*
-             * Buffer txSize lines at a time from the input file and keep it
-             * around until commit time. If the commit succeeds we can forget
-             * about it, otherwise we'll use it again to retry the transaction.
-             */
-            String line;
-            List<String> lineBuffer = new ArrayList<>(txSize);
+              tailVertex.addEdge(edgeLabel, headVertex,
+                  keyValues.toArray());
+
+              /*
+               * If this is not an undirected edge, then add the reverse edge
+               * from head to tail.
+               */
+              if (!snbRelation.directed) {
+                headVertex.addEdge(edgeLabel, tailVertex,
+                    keyValues.toArray());
+              }
+            }
+          };
+        }
+
+        // Keep track of what lines we're on in this file.
+        long localLinesProcessed = 0;
+
+        boolean hasLinesLeft = true;
+        while (hasLinesLeft) {
+          /*
+           * Buffer txSize lines at a time from the input file and keep it
+           * around until commit time. If the commit succeeds we can forget
+           * about it, otherwise we'll use it again to retry the transaction.
+           */
+          String line;
+          List<String> lineBuffer = new ArrayList<>(txSize);
+          try {
             while ((line = inFile.readLine()) != null) {
               lineBuffer.add(line);
               if (lineBuffer.size() == txSize) {
                 break;
               }
             }
+          } catch (IOException ex) {
+            throw new RuntimeException(String.format("Encountered error "
+              + "reading lines of file %s", path.getFileName()));
+          }
 
-            // Catch when we've read all the lines in the file.
-            if (line == null) {
-              hasLinesLeft = false;
+          // Catch when we've read all the lines in the file.
+          if (line == null) {
+            hasLinesLeft = false;
+          }
+
+          /*
+           * Parse the lines in the buffer and write them into the database. If
+           * the commit fails for any reason, retry the transaction up to
+           * txRetries number of times.
+           */
+          int txFailCount = 0;
+          while (true) {
+            try {
+              lineGobbler.accept(lineBuffer);
+            } catch (Exception ex) {
+              throw new RuntimeException(String.format(
+                  "Encountered error processing lines in range [%d, %d] of "
+                  + "file %s",
+                  localLinesProcessed + 2,
+                  localLinesProcessed + 1 + lineBuffer.size(),
+                  path.getFileName()), ex);
             }
 
-            /*
-             * Parse the lines in the buffer and write them into the database.
-             * If the commit fails for any reason, retry the transaction up to
-             * txRetries number of times.
-             */
-            int txFailCount = 0;
-            while (true) {
-              lineGobbler.accept(lineBuffer);
+            try {
+              graph.tx().commit();
+              localLinesProcessed += lineBuffer.size();
+              stats.linesProcessed += lineBuffer.size();
+              break;
+            } catch (Exception e) {
+              /*
+               * The transaction failed due to either a conflict or a timeout.
+               * In this case we want to retry the transaction, but only up to
+               * the txRetries limit.
+               */
+              txFailCount++;
+              stats.txFailures++;
 
-              try {
-                graph.tx().commit();
-                localLinesProcessed += lineBuffer.size();
-                stats.linesProcessed += lineBuffer.size();
-                break;
-              } catch (Exception e) {
-                /*
-                 * The transaction failed due to either a conflict or a
-                 * timeout. In this case we want to retry the transaction, but
-                 * only up to the txRetries limit.
-                 */
-                txFailCount++;
-                stats.txFailures++;
-
-                if (txFailCount > txRetries) {
-                  throw new RuntimeException(String.format(
-                      "Transaction failed %d times on line range [%d, %d] "
-                      + "of file %s",
-                      txFailCount, localLinesProcessed + 2,
-                      localLinesProcessed + 1 + lineBuffer.size(),
-                      path.getFileName()));
-                }
+              if (txFailCount > txRetries) {
+                throw new RuntimeException(String.format(
+                    "Transaction failed %d times on line range [%d, %d] "
+                    + "of file %s",
+                    txFailCount, localLinesProcessed + 2,
+                    localLinesProcessed + 1 + lineBuffer.size(),
+                    path.getFileName()));
               }
             }
           }
-
-          inFile.close();
-          stats.filesProcessed++;
         }
-      } catch (Exception ex) {
-        throw new RuntimeException(ex);
+
+        try {
+          inFile.close();
+        } catch (IOException ex) {
+          throw new RuntimeException(String.format("Encountered error closing "
+              + "file %s", path.getFileName()));
+        }
+        stats.filesProcessed++;
       }
     }
   }
@@ -723,7 +754,7 @@ public class GraphLoader {
      * Start stats reporting thread.
      */
     (new Thread(new StatsReporterThread(threadStats, reportInterval))).start();
-    
+
     /*
      * Join on all the loader threads.
      */
