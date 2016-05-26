@@ -200,19 +200,46 @@ public class GraphLoader {
      * The total number of lines this thread has successfully processed and
      * loaded into the database.
      */
-    public long linesProcessed = 0;
+    public long linesProcessed;
 
     /*
      * The total number of files this thread has successfully processed and
      * loaded into the database.
      */
-    public long filesProcessed = 0;
+    public long filesProcessed;
+
+    /*
+     * The total number of fiels this thread has been given to process.
+     */
+    public long totalFilesToProcess;
 
     /*
      * Number of times this thread has attempted to commit a transaction but
      * the transaction failed.
      */
-    public long txFailures = 0;
+    public long txFailures;
+
+    /**
+     * Constructor.
+     */
+    public ThreadStats() {
+      this.linesProcessed = 0;
+      this.filesProcessed = 0;
+      this.totalFilesToProcess = 0;
+      this.txFailures = 0;
+    }
+
+    /**
+     * Copy constructor.
+     *
+     * @param stats ThreadStats object to copy.
+     */
+    public ThreadStats(ThreadStats stats) {
+      this.linesProcessed = stats.linesProcessed;
+      this.filesProcessed = stats.filesProcessed;
+      this.totalFilesToProcess = stats.totalFilesToProcess;
+      this.txFailures = stats.txFailures;
+    }
   }
 
   /**
@@ -258,6 +285,9 @@ public class GraphLoader {
 
     @Override
     public void run() {
+      // Update this thread's total file load stat.
+      stats.totalFilesToProcess = length;
+
       // Load every file in the range [startIndex, startIndex + length)
       for (int fIndex = startIndex; fIndex < startIndex + length; fIndex++) {
         LoadUnit loadUnit = loadList.get(fIndex);
@@ -327,7 +357,7 @@ public class GraphLoader {
                 } catch (Exception ex) {
                   throw new RuntimeException(String.format("Encountered "
                       + "error processing field %s with value %s of line %d "
-                      + "in the line buffer. Line: \"%s\"", fieldNames[j], 
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j],
                       fieldValues[j], i, lineBuffer.get(i)), ex);
                 }
               }
@@ -376,7 +406,7 @@ public class GraphLoader {
                 } catch (Exception ex) {
                   throw new RuntimeException(String.format("Encountered "
                       + "error processing field %s with value %s of line %d "
-                      + "in the line buffer. Line: \"%s\"", fieldNames[j], 
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j],
                       fieldValues[j], i, lineBuffer.get(i)), ex);
                 }
               }
@@ -423,7 +453,7 @@ public class GraphLoader {
             }
           } catch (IOException ex) {
             throw new RuntimeException(String.format("Encountered error "
-              + "reading lines of file %s", path.getFileName()));
+                + "reading lines of file %s", path.getFileName()));
           }
 
           // Catch when we've read all the lines in the file.
@@ -514,12 +544,23 @@ public class GraphLoader {
     public void run() {
       try {
         // Print the column headers.
+        String colFormatStr = "%10s";
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < threadStats.size(); i++) {
-          sb.append(String.format("%12s", "thread" + i));
+          String tName = "t" + i;
+          sb.append(String.format(colFormatStr, tName + ".rate"));
+          sb.append(String.format(colFormatStr, tName + ".prog"));
         }
-        sb.append(String.format("%12s", "total"));
+        sb.append(String.format(colFormatStr, "tot.rate"));
+        sb.append(String.format(colFormatStr, "tot.prog"));
         System.out.println(sb.toString());
+
+        // Capture the thread stats now before entering report loop. We'll use
+        // this to start reporting diffs right away.
+        List<ThreadStats> lastThreadStats = new ArrayList<>();
+        for (int i = 0; i < threadStats.size(); i++) {
+          lastThreadStats.add(new ThreadStats(threadStats.get(i)));
+        }
 
         long startTime = System.currentTimeMillis();
         while (true) {
@@ -529,16 +570,34 @@ public class GraphLoader {
           long timeElapsed = (System.currentTimeMillis() - startTime) / 1000l;
 
           sb = new StringBuilder();
-          long totalAvgLineRate = 0;
+          long totalCurrLineRate = 0;
+          long totalFilesProcessed = 0;
+          long totalFilesToProcess = 0;
           for (int i = 0; i < threadStats.size(); i++) {
-            ThreadStats stats = threadStats.get(i);
-            long avgLineRate = stats.linesProcessed / timeElapsed;
-            sb.append(String.format("%12d", avgLineRate));
-            totalAvgLineRate += avgLineRate;
+            ThreadStats lastStats = lastThreadStats.get(i);
+            ThreadStats currStats = threadStats.get(i);
+            long linesProcessed =
+                currStats.linesProcessed - lastStats.linesProcessed;
+            long currLineRate = linesProcessed / reportInterval;
+
+            sb.append(String.format(colFormatStr, currLineRate));
+            sb.append(String.format(colFormatStr, String.format("(%d/%d)",
+                currStats.filesProcessed, currStats.totalFilesToProcess)));
+
+            totalCurrLineRate += currLineRate;
+            totalFilesProcessed += currStats.filesProcessed;
+            totalFilesToProcess += currStats.totalFilesToProcess;
           }
-          sb.append(String.format("%12d", totalAvgLineRate));
+          sb.append(String.format(colFormatStr, totalCurrLineRate));
+          sb.append(String.format(colFormatStr, String.format("(%d/%d)",
+              totalFilesProcessed, totalFilesToProcess)));
 
           System.out.println(sb.toString());
+
+          lastThreadStats.clear();
+          for (int i = 0; i < threadStats.size(); i++) {
+            lastThreadStats.add(new ThreadStats(threadStats.get(i)));
+          }
         }
       } catch (InterruptedException ex) {
         // This is fine, we're probably being terminated, in which case we 
