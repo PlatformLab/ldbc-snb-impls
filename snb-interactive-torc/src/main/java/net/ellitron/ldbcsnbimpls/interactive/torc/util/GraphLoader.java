@@ -123,8 +123,10 @@ public class GraphLoader {
       + "  --reportFmt=<s>   Format options for status report output.\n"
       + "                      L - Total lines processed per second.\n"
       + "                      l - Per thread lines processed per second.\n"
-      + "                      F - Total files processed per second.\n"
-      + "                      f - Per thread files processed per second.\n"
+      + "                      F - Total files processed.\n"
+      + "                      f - Per thread files processed.\n"
+      + "                      X - Total tx failures.\n"
+      + "                      x - Per thread tx failures.\n"
       + "                      D - Total disk read bandwidth in MB/s.\n"
       + "                      d - Per thread disk read bandwidth in KB/s.\n"
       + "                      T - Total time elapsed.\n"
@@ -203,7 +205,7 @@ public class GraphLoader {
     public long filesProcessed;
 
     /*
-     * The total number of fiels this thread has been given to process.
+     * The total number of files this thread has been given to process.
      */
     public long totalFilesToProcess;
 
@@ -584,6 +586,10 @@ public class GraphLoader {
           if (formatString.contains("f")) {
             sb.append(String.format(colFormatStr, i + ".f"));
           }
+          
+          if (formatString.contains("x")) {
+            sb.append(String.format(colFormatStr, i + ".x"));
+          }
 
           if (formatString.contains("d")) {
             sb.append(String.format(colFormatStr, i + ".d"));
@@ -596,6 +602,10 @@ public class GraphLoader {
 
         if (formatString.contains("F")) {
           sb.append(String.format(colFormatStr, "F"));
+        }
+        
+        if (formatString.contains("X")) {
+          sb.append(String.format(colFormatStr, "X"));
         }
 
         if (formatString.contains("D")) {
@@ -628,6 +638,7 @@ public class GraphLoader {
           long totalCurrLineRate = 0;
           long totalCurrByteRate = 0;
           long totalFilesProcessed = 0;
+          long totalTxFailures = 0;
           long totalFilesToProcess = 0;
           for (int i = 0; i < threadStats.size(); i++) {
             ThreadStats lastStats = lastThreadStats.get(i);
@@ -649,6 +660,10 @@ public class GraphLoader {
               sb.append(String.format(colFormatStr, String.format("(%d/%d)",
                   currStats.filesProcessed, currStats.totalFilesToProcess)));
             }
+            
+            if (formatString.contains("x")) {
+              sb.append(String.format(colFormatStr, currStats.txFailures));
+            }
 
             if (formatString.contains("d")) {
               sb.append(String.format(colFormatStr, (currByteRate / 1000l)
@@ -658,6 +673,7 @@ public class GraphLoader {
             totalCurrLineRate += currLineRate;
             totalCurrByteRate += currByteRate;
             totalFilesProcessed += currStats.filesProcessed;
+            totalTxFailures += currStats.txFailures;
             totalFilesToProcess += currStats.totalFilesToProcess;
           }
 
@@ -668,6 +684,10 @@ public class GraphLoader {
           if (formatString.contains("F")) {
             sb.append(String.format(colFormatStr, String.format("(%d/%d)",
                 totalFilesProcessed, totalFilesToProcess)));
+          }
+          
+          if (formatString.contains("X")) {
+            sb.append(String.format(colFormatStr, totalTxFailures));
           }
 
           if (formatString.contains("D")) {
