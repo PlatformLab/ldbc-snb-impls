@@ -850,8 +850,7 @@ public class GraphLoader {
     String command;
     if ((Boolean) opts.get("nodes")) {
       command = "nodes";
-    }
-    if ((Boolean) opts.get("props")) {
+    } else if ((Boolean) opts.get("props")) {
       command = "props";
     } else {
       command = "edges";
@@ -935,8 +934,7 @@ public class GraphLoader {
 
       System.out.println(String.format("Found %d total node files",
           loadList.size()));
-    }
-    if (command.equals("props")) {
+    } else if (command.equals("props")) {
       loadList.add(new LoadUnit(SnbEntity.PERSON,
           Paths.get(inputDir + "/person_email_emailaddress_0_0.csv"), true));
       
