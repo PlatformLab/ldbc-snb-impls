@@ -116,13 +116,20 @@ public class GraphLoader {
       + "                    [default: 10].\n"
       + "  --txBackoff=<t>   When a transaction has failed txRetries times\n"
       + "                    then the loader will wait a randomized amount\n"
-      + "                    time in the range [0,t], and retry again. If\n"
-      + "                    the transaction fails again, the time range is\n"
-      + "                    doubled in size and the process is repeated.\n"
-      + "                    When the transaction succeeds the time range is\n"
-      + "                    reset to begin at [0,t] for future failures.\n"
-      + "                    The units of this parameter is in milliseconds.\n"
-      + "                    [default: 1000].\n"
+      + "                    of time in the range [0,txBackoff], and retry\n"
+      + "                    again. If the transaction fails again, the time\n"
+      + "                    range is doubled in size (up to a ceiling of\n"
+      + "                    txBoffCeil) and the process is repeated. When\n"
+      + "                    the transaction succeeds the time range is\n"
+      + "                    reset to begin at [0,txBackoff] for future\n"
+      + "                    failures. The units of this parameter is in\n"
+      + "                    milliseconds. [default: 1000].\n"
+      + "  --txBoffCeil=<t>  Defines a ceiling on the time range in which to\n"
+      + "                    choose a random sleep time before retrying a\n"
+      + "                    transaction. In other words, defines the max\n"
+      + "                    time range to be [0,txBoffCeil]. The units of\n"
+      + "                    this parameter is in milliseconds.\n"
+      + "                    [default: 10000].\n"
       + "  --splitSfx=<sf>   The presence of this option indicates that the\n"
       + "                    dataset files have been split with each part\n"
       + "                    still containing the original file's header as\n"
@@ -290,6 +297,7 @@ public class GraphLoader {
     private final int txSize;
     private final int txRetries;
     private final int txBackoff;
+    private final int txBoffCeil;
     private final ThreadStats stats;
 
     /*
@@ -305,11 +313,6 @@ public class GraphLoader {
      * transaction failures.
      */
     private final Random rand;
-
-    /*
-     * The maximum amount of time to sleep when experiencing failures.
-     */
-    private final int MAX_SLEEP_TIME_MILLIS = 10000;
 
     /**
      * Constructor for LoaderThread.
@@ -327,11 +330,14 @@ public class GraphLoader {
      * @param txBackoff The time range, in milliseconds, in which to select a
      * random time to back-off in the case of txRetries transaction failures.
      * Time range is doubled upon repeated failures after backing off.
+     * @param txBackoff The maximum time range, in milliseconds, in which to
+     * select a random time to back-off in the case of txRetries transaction
+     * failures.
      * @param stats ThreadStats instance to update with loading statistics
      * info.
      */
     public LoaderThread(Graph graph, List<LoadUnit> loadList, int startIndex,
-        int length, int txSize, int txRetries, int txBackoff,
+        int length, int txSize, int txRetries, int txBackoff, int txBoffCeil,
         ThreadStats stats) {
       this.graph = graph;
       this.loadList = loadList;
@@ -340,6 +346,7 @@ public class GraphLoader {
       this.txSize = txSize;
       this.txRetries = txRetries;
       this.txBackoff = txBackoff;
+      this.txBoffCeil = txBoffCeil;
       this.stats = stats;
 
       this.birthdayDateFormat =
@@ -396,7 +403,7 @@ public class GraphLoader {
                     .next();
 
                 for (int j = 1; j < fieldValues.length; j++) {
-                  vertex.property(VertexProperty.Cardinality.list, 
+                  vertex.property(VertexProperty.Cardinality.list,
                       fieldNames[j], fieldValues[j]);
                 }
               }
@@ -605,11 +612,11 @@ public class GraphLoader {
               if (txFailCount > txRetries) {
                 try {
                   int sleepTimeBound;
-                  if (backoffMultiplier * txBackoff < MAX_SLEEP_TIME_MILLIS) {
+                  if (backoffMultiplier * txBackoff < txBoffCeil) {
                     sleepTimeBound = backoffMultiplier * txBackoff;
                     backoffMultiplier *= 2;
                   } else {
-                    sleepTimeBound = MAX_SLEEP_TIME_MILLIS;
+                    sleepTimeBound = txBoffCeil;
                   }
 
                   int sleepTime = rand.nextInt(sleepTimeBound + 1);
@@ -842,6 +849,7 @@ public class GraphLoader {
     int txSize = Integer.decode((String) opts.get("--txSize"));
     int txRetries = Integer.decode((String) opts.get("--txRetries"));
     int txBackoff = Integer.decode((String) opts.get("--txBackoff"));
+    int txBoffCeil = Integer.decode((String) opts.get("--txBoffCeil"));
     long reportInterval = Long.decode((String) opts.get("--reportInt"));
     String formatString = (String) opts.get("--reportFmt");
     String splitSuffix = (String) opts.get("--splitSfx");
@@ -859,8 +867,8 @@ public class GraphLoader {
     System.out.println(String.format(
         "GraphLoader: {coordLoc: %s, masters: %s, graphName: %s, "
         + "numLoaders: %d, loaderIdx: %d, numThreads: %d, txSize: %d, "
-        + "txRetries: %d, txBackoff: %d, splitSfx: %s, reportFmt: %s, "
-        + "inputDir: %s, command: %s}",
+        + "txRetries: %d, txBackoff: %d, txBoffCeil: %d, splitSfx: %s, "
+        + "reportFmt: %s, inputDir: %s, command: %s}",
         (String) opts.get("--coordLoc"),
         (String) opts.get("--masters"),
         (String) opts.get("--graphName"),
@@ -870,6 +878,7 @@ public class GraphLoader {
         txSize,
         txRetries,
         txBackoff,
+        txBoffCeil,
         splitSuffix,
         formatString,
         inputDir,
@@ -937,18 +946,18 @@ public class GraphLoader {
     } else if (command.equals("props")) {
       loadList.add(new LoadUnit(SnbEntity.PERSON,
           Paths.get(inputDir + "/person_email_emailaddress_0_0.csv"), true));
-      
+
       System.out.println(String.format(
-                    "Found %d file parts for %s email properties",
-                    1, SnbEntity.PERSON.name));
-      
+          "Found %d file parts for %s email properties",
+          1, SnbEntity.PERSON.name));
+
       loadList.add(new LoadUnit(SnbEntity.PERSON,
           Paths.get(inputDir + "/person_speaks_language_0_0.csv"), true));
-      
+
       System.out.println(String.format(
-                    "Found %d file parts for %s speaks properties",
-                    1, SnbEntity.PERSON.name));
-      
+          "Found %d file parts for %s speaks properties",
+          1, SnbEntity.PERSON.name));
+
       System.out.println(String.format("Found %d total property files",
           loadList.size()));
     } else {
@@ -1052,7 +1061,7 @@ public class GraphLoader {
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
           threadLoadOffset, threadLoadSize, txSize, txRetries, txBackoff,
-          stats)));
+          txBoffCeil, stats)));
 
       threads.get(i).start();
 
