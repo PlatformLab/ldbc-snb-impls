@@ -16,7 +16,18 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
+import static org.neo4j.driver.v1.Values.parameters;
+
 import com.ldbc.driver.DbConnectionState;
+
+import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.Config;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Record;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.Transaction;
 
 import java.io.IOException;
 import java.util.Map;
@@ -24,15 +35,14 @@ import java.util.Map;
 /**
  * Encapsulates the state of a connection to a Neo4j database. An instance of
  * this object is created on benchmark initialization, and then subsequently
- * passed to each query on execution. The encapsulated state is made
- * thread-local, so that even if this object is shared among threads, each
- * thread has its own connection state to the database.
+ * passed to each query on execution. It is essentially a wrapper for the Neo4j
+ * Bolt driver, which maintains all connection state to the Neo4j cluster.
  *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
 public class Neo4jDbConnectionState extends DbConnectionState {
 
-  private ThreadLocal<Neo4jTransactionDriver> driver;
+  private Driver driver;
 
   public Neo4jDbConnectionState(Map<String, String> props) {
     
@@ -52,24 +62,30 @@ public class Neo4jDbConnectionState extends DbConnectionState {
     } else {
       port = "7474";
     }
-    
-    this.driver = ThreadLocal.withInitial(() -> {
-      return new Neo4jTransactionDriver(host, port);
-    });
-  }
 
-  @Override
-  public void close() throws IOException {
-
+    /*
+     * Configure driver to NOT use encryption (for lowest possible latency),
+     * and no authentication.
+     */
+    this.driver = GraphDatabase.driver("bolt://" + host, 
+        Config.build().withEncryptionLevel(Config.EncryptionLevel.NONE)
+        .toConfig());
   }
 
   /**
-   * Returns the Neo4jTransactionDriver for the calling thread. Each thread
-   * gets its own private instance of a Neo4jTransactionDriver.
-   *
-   * @return Thread-local Neo4jTransactionDriver.
+   * Closes the connection to the cluster.
    */
-  public Neo4jTransactionDriver getTxDriver() {
-    return driver.get();
+  @Override
+  public void close() throws IOException {
+    driver.close();
+  }
+
+  /**
+   * Returns the encapsulated Neo4j Bolt driver.
+   *
+   * @return Neo4j Bolt driver.
+   */
+  public Driver getDriver() {
+    return driver;
   }
 }

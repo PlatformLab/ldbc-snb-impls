@@ -17,6 +17,7 @@
 package net.ellitron.ldbcsnbimpls.interactive.neo4j.util;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * A collection of static methods used as helper methods in the implementation
@@ -27,26 +28,18 @@ import java.util.List;
 public class DbHelper {
 
   /**
-   * Take a list of Objects and serialize it to a JSON formatted array of
-   * strings.
+   * Take a list of Longs and convert it to a list of Strings. 
    *
-   * @param list List of objects.
+   * @param list List of Longs.
    *
-   * @return Serialized JSON formatted string representing this list of
-   * objects.
+   * @return List of Strings.
    */
-  public static String listToJsonArray(List<?> list) {
-    StringBuilder sb = new StringBuilder();
-    sb.append("[");
-    for (int i = 0; i < list.size(); i++) {
-      if (i > 0) {
-        sb.append(", \"").append(list.get(i).toString()).append("\"");
-      } else {
-        sb.append("\"").append(list.get(i).toString()).append("\"");
-      }
+  public static List<String> listLongToListString(List<Long> list) {
+    List<String> stringList = new ArrayList<>(list.size());
+    for (Long l : list) {
+      stringList.add(String.valueOf(l));
     }
-    sb.append("]");
 
-    return sb.toString();
+    return stringList;
   }
 }
