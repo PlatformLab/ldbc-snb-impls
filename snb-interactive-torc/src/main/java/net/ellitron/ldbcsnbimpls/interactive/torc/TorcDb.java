@@ -19,8 +19,7 @@ package net.ellitron.ldbcsnbimpls.interactive.torc;
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.decr;
-import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
-import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
+import static org.apache.tinkerpop.gremlin.process.traversal.P.*;
 
 import net.ellitron.torc.util.UInt128;
 
@@ -863,7 +862,10 @@ public class TorcDb extends Db {
                 .by(select("friend").values("firstName"))
                 .by(select("friend").values("lastName"))
                 .by(select("message").id())
-                .by(select("message").values("content"))
+                .by(select("message")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
                 .by(select("message").values("creationDate"))
             .map(t -> new LdbcQuery2Result(
                 ((UInt128)t.get().get("personId")).getLowerLong(),
