@@ -158,6 +158,8 @@ public class TorcDb extends Db {
      */
     registerOperationHandler(LdbcQuery1.class,
         LdbcQuery1Handler.class);
+    registerOperationHandler(LdbcQuery2.class,
+        LdbcQuery2Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
