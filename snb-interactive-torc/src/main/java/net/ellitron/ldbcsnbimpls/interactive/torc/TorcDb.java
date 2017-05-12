@@ -833,19 +833,19 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       
+      // Parameters of this query
+      final long personId = operation.personId();
+      final long maxDate = operation.maxDate().getTime();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        // Parameters of this query
-        final long personId = operation.personId();
-        final long maxDate = operation.maxDate().getTime();
-        final int limit = operation.limit();
-        
-        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
-
         GraphTraversalSource g = graph.traversal();
-
-        UInt128 torcPersonId = 
-            new UInt128(TorcEntity.PERSON.idSpace, personId);
 
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
