@@ -16,11 +16,9 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.count;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.select;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.unfold;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
+import static org.apache.tinkerpop.gremlin.process.traversal.Order.decr;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
 
@@ -34,20 +32,33 @@ import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
@@ -820,9 +831,62 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery2 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        // Parameters of this query
+        final long personId = operation.personId();
+        final long maxDate = operation.maxDate().getTime();
+        final int limit = operation.limit();
+        
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
+        GraphTraversalSource g = graph.traversal();
+
+        UInt128 torcPersonId = 
+            new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+        List<LdbcQuery2Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId)
+            .out("knows").as("friend")
+            .in("hasCreator").as("message")
+            .order().by("creationDate", decr).by(id(), incr)
+            .filter(t -> 
+                Long.valueOf(t.get().value("creationDate")) <= maxDate)
+            .limit(limit)
+            .project("personId", "firstName", "lastName", "messageId", 
+                "content", "creationDate")
+                .by(select("friend").id())
+                .by(select("friend").values("firstName"))
+                .by(select("friend").values("lastName"))
+                .by(select("message").id())
+                .by(select("message").values("content"))
+                .by(select("message").values("creationDate"))
+            .map(t -> new LdbcQuery2Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("firstName"), 
+                (String)t.get().get("lastName"),
+                ((UInt128)t.get().get("messageId")).getLowerLong(), 
+                (String)t.get().get("content"),
+                Long.valueOf((String)t.get().get("creationDate"))))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
