@@ -161,6 +161,8 @@ public class TorcDb extends Db {
         LdbcQuery2Handler.class);
     registerOperationHandler(LdbcQuery7.class,
         LdbcQuery7Handler.class);
+    registerOperationHandler(LdbcQuery8.class,
+        LdbcQuery8Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -1110,9 +1112,69 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery8 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery8Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .in("hasCreator").as("message")
+            .in("replyOf").as("comment")
+            .order()
+                .by(select("comment").values("creationDate"), decr)
+                .by(select("comment").id(), incr)
+            .limit(limit)
+            .out("hasCreator").as("commenter")
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "commentCreationDate", 
+                "commentId",
+                "commentContent")
+                .by(select("commenter").id())
+                .by(select("commenter").values("firstName"))
+                .by(select("commenter").values("lastName"))
+                .by(select("comment").values("creationDate"))
+                .by(select("comment").id())
+                .by(select("comment")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
+            .map(t -> new LdbcQuery8Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                Long.valueOf((String)t.get().get("commentCreationDate")),
+                ((UInt128)t.get().get("commentId")).getLowerLong(), 
+                (String)t.get().get("commentContent")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
