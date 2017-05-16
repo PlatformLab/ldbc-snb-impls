@@ -159,6 +159,8 @@ public class TorcDb extends Db {
         LdbcQuery1Handler.class);
     registerOperationHandler(LdbcQuery2.class,
         LdbcQuery2Handler.class);
+    registerOperationHandler(LdbcQuery7.class,
+        LdbcQuery7Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -1010,9 +1012,84 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery7 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery7Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .in("hasCreator").as("message")
+            .inE("likes").as("like")
+            .outV().as("liker")
+            .order()
+                .by(select("like").values("creationDate"), decr)
+                .by(select("message").id(), incr)
+            .dedup()
+                .by(select("liker"))
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "likeCreationDate", 
+                "commentOrPostId",
+                "commentOrPostContent",
+                "commentOrPostCreationDate",
+                "isNew") 
+                .by(select("liker").id())
+                .by(select("liker").values("firstName"))
+                .by(select("liker").values("lastName"))
+                .by(select("like").values("creationDate")
+                    .map(t -> Long.valueOf((String)t.get())))
+                .by(select("message").id())
+                .by(select("message")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
+                .by(select("message").values("creationDate")
+                    .map(t -> Long.valueOf((String)t.get())))
+                .by(choose(
+                    where(select("person").out("knows").as("liker")),
+                    constant(false),
+                    constant(true)))
+            .map(t -> new LdbcQuery7Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                (Long)t.get().get("likeCreationDate"),
+                ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
+                (String)t.get().get("commentOrPostContent"),
+                (int)(((Long)t.get().get("likeCreationDate") 
+                    - (Long)t.get().get("commentOrPostCreationDate")) 
+                    / (1000l * 60l)),
+                (Boolean)t.get().get("isNew")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
