@@ -20,6 +20,9 @@ import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.decr;
 import static org.apache.tinkerpop.gremlin.process.traversal.P.*;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 
 import net.ellitron.torc.util.UInt128;
 
@@ -101,6 +104,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for TorcDB.
@@ -163,6 +167,8 @@ public class TorcDb extends Db {
         LdbcQuery7Handler.class);
     registerOperationHandler(LdbcQuery8.class,
         LdbcQuery8Handler.class);
+    registerOperationHandler(LdbcQuery10.class,
+        LdbcQuery10Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -1227,9 +1233,92 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery10 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int month = operation.month() - 1; // make month zero based
+      final int limit = operation.limit();
+
+      Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery10Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .aggregate("done")
+            .out("hasInterest").values("name")
+            .aggregate("personInterests")
+            .select("person").out("knows")
+            .aggregate("done")
+            .out("knows").where(without("done")).dedup()
+            .filter(t -> {
+                calendar.setTimeInMillis(
+                    Long.valueOf(t.get().value("birthday")));
+                int bmonth = calendar.get(Calendar.MONTH); // zero based 
+                int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
+                if ((bmonth == month && bday >= 21) || 
+                  (bmonth == ((month + 1) % 12) && bday < 22)) {
+                  return true;
+                }
+                return false;
+            }).as("friend2")
+            .sack(assign)
+                .by(in("hasCreator").hasLabel("Post")
+                    .where(out("hasTag").values("name")
+                        .where(within("personInterests")))
+                    .count())
+            .sack(mult).by(constant(2))
+            .sack(minus)
+                .by(in("hasCreator").hasLabel("Post").count())
+            .order()
+                .by(sack(), decr)
+                .by(select("friend2").id(), incr)
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "commonInterestScore", 
+                "personGender",
+                "personCityName")
+                .by(select("friend2").id())
+                .by(select("friend2").values("firstName"))
+                .by(select("friend2").values("lastName"))
+                .by(sack())
+                .by(select("friend2").values("gender"))
+                .by(select("friend2").out("isLocatedIn").values("name"))
+            .map(t -> new LdbcQuery10Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                ((Long)t.get().get("commonInterestScore")).intValue(),
+                (String)t.get().get("personGender"), 
+                (String)t.get().get("personCityName")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
 
     }
-
   }
 
   /**
