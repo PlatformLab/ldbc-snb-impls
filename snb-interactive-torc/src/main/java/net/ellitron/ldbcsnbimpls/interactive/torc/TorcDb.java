@@ -169,6 +169,8 @@ public class TorcDb extends Db {
         LdbcQuery8Handler.class);
     registerOperationHandler(LdbcQuery10.class,
         LdbcQuery10Handler.class);
+    registerOperationHandler(LdbcQuery11.class,
+        LdbcQuery11Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -1317,7 +1319,6 @@ public class TorcDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
     }
   }
 
@@ -1339,9 +1340,72 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery11 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String countryName = operation.countryName();
+      final int workFromYear = operation.workFromYear();
+      final int limit = operation.limit();
 
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery11Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .aggregate("done")
+            .union(
+                out("knows"),
+                out("knows").out("knows"))
+            .dedup().where(without("done")).as("friend")
+            .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
+            .as("workAt")
+            .inV().as("company")
+            .out("isLocatedIn").has("name", countryName)
+            .order()
+                .by(select("workAt").values("workFrom"), incr)
+                .by(select("friend").id())
+                .by(select("company").values("name"), decr)
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "organizationName", 
+                "organizationWorkFromYear")
+                .by(select("friend").id())
+                .by(select("friend").values("firstName"))
+                .by(select("friend").values("lastName"))
+                .by(select("company").values("name"))
+                .by(select("workAt").values("workFrom"))
+            .map(t -> new LdbcQuery11Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                (String)t.get().get("organizationName"),
+                Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
