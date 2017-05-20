@@ -23,6 +23,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.P.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
+import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
 
 import net.ellitron.torc.util.UInt128;
 
@@ -171,6 +172,8 @@ public class TorcDb extends Db {
         LdbcQuery10Handler.class);
     registerOperationHandler(LdbcQuery11.class,
         LdbcQuery11Handler.class);
+    registerOperationHandler(LdbcQuery13.class,
+        LdbcQuery13Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -1450,9 +1453,56 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long person1Id = operation.person1Id();
+      final long person2Id = operation.person2Id();
 
+      if (person1Id == person2Id) {
+        resultReporter.report(1, new LdbcQuery13Result(0), operation);
+        return;        
+      }
+
+      final UInt128 torcPerson1Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person1Id);
+      final UInt128 torcPerson2Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person2Id);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        Long pathLength = g.V(torcPerson1Id)
+            .choose(where(out("knows")),
+                repeat(out("knows").simplePath())
+                    .until(hasId(torcPerson2Id)
+                        .or()
+                        .path().count(local).is(gt(5)))
+                .limit(1)
+                .choose(id().is(eq(torcPerson2Id)), 
+                    union(path().count(local), constant(-1l)).sum(),
+                    constant(-1l)),
+                constant(-1l))
+            .next();
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(1, new LdbcQuery13Result(pathLength.intValue()), 
+            operation);
+        break;
+      }
     }
-
   }
 
   /**
