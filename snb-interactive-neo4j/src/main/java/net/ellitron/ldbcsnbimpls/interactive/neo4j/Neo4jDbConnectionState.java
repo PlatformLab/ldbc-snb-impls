@@ -63,11 +63,18 @@ public class Neo4jDbConnectionState extends DbConnectionState {
       port = "7474";
     }
 
+    String protocol;
+    if (props.containsKey("protocol")) {
+      protocol = props.get("protocol");
+    } else {
+      protocol = "bolt";
+    }
+
     /*
      * Configure driver to NOT use encryption (for lowest possible latency),
      * and no authentication.
      */
-    this.driver = GraphDatabase.driver("bolt://" + host, 
+    this.driver = GraphDatabase.driver(protocol + "://" + host, 
         Config.build().withEncryptionLevel(Config.EncryptionLevel.NONE)
         .toConfig());
   }
