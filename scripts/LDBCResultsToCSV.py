@@ -1,4 +1,9 @@
 #!/usr/bin/python
+# ./LDBCResultsToCSV.py /path/to/ldbc_driver/results/LDBC-results.json
+#
+# Given an LDBC-results.json file (JSON formatted output file summarizing query
+# stats for a run of the LDBC Social Network Benchmark), produces a CSV
+# formatted version of the data.
 
 import json
 import sys
