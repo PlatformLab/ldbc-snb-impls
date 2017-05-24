@@ -16,13 +16,14 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.count;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.id;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.select;
-import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.unfold;
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Order.incr;
-import static org.apache.tinkerpop.gremlin.process.traversal.P.lt;
-import static org.apache.tinkerpop.gremlin.process.traversal.P.without;
+import static org.apache.tinkerpop.gremlin.process.traversal.Order.decr;
+import static org.apache.tinkerpop.gremlin.process.traversal.P.*;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
+import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
+import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
 
 import net.ellitron.torc.util.UInt128;
 
@@ -34,20 +35,33 @@ import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
-import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14Result;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
@@ -91,6 +105,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for TorcDB.
@@ -147,6 +162,18 @@ public class TorcDb extends Db {
      */
     registerOperationHandler(LdbcQuery1.class,
         LdbcQuery1Handler.class);
+    registerOperationHandler(LdbcQuery2.class,
+        LdbcQuery2Handler.class);
+    registerOperationHandler(LdbcQuery7.class,
+        LdbcQuery7Handler.class);
+    registerOperationHandler(LdbcQuery8.class,
+        LdbcQuery8Handler.class);
+    registerOperationHandler(LdbcQuery10.class,
+        LdbcQuery10Handler.class);
+    registerOperationHandler(LdbcQuery11.class,
+        LdbcQuery11Handler.class);
+    registerOperationHandler(LdbcQuery13.class,
+        LdbcQuery13Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -820,9 +847,65 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery2 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final long maxDate = operation.maxDate().getTime();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery2Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId)
+            .out("knows").as("friend")
+            .in("hasCreator").as("message")
+            .order().by("creationDate", decr).by(id(), incr)
+            .filter(t -> 
+                Long.valueOf(t.get().value("creationDate")) <= maxDate)
+            .limit(limit)
+            .project("personId", "firstName", "lastName", "messageId", 
+                "content", "creationDate")
+                .by(select("friend").id())
+                .by(select("friend").values("firstName"))
+                .by(select("friend").values("lastName"))
+                .by(select("message").id())
+                .by(select("message")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
+                .by(select("message").values("creationDate"))
+            .map(t -> new LdbcQuery2Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("firstName"), 
+                (String)t.get().get("lastName"),
+                ((UInt128)t.get().get("messageId")).getLowerLong(), 
+                (String)t.get().get("content"),
+                Long.valueOf((String)t.get().get("creationDate"))))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
@@ -942,9 +1025,84 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery7 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery7Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .in("hasCreator").as("message")
+            .inE("likes").as("like")
+            .outV().as("liker")
+            .order()
+                .by(select("like").values("creationDate"), decr)
+                .by(select("message").id(), incr)
+            .dedup()
+                .by(select("liker"))
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "likeCreationDate", 
+                "commentOrPostId",
+                "commentOrPostContent",
+                "commentOrPostCreationDate",
+                "isNew") 
+                .by(select("liker").id())
+                .by(select("liker").values("firstName"))
+                .by(select("liker").values("lastName"))
+                .by(select("like").values("creationDate")
+                    .map(t -> Long.valueOf((String)t.get())))
+                .by(select("message").id())
+                .by(select("message")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
+                .by(select("message").values("creationDate")
+                    .map(t -> Long.valueOf((String)t.get())))
+                .by(choose(
+                    where(select("person").out("knows").as("liker")),
+                    constant(false),
+                    constant(true)))
+            .map(t -> new LdbcQuery7Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                (Long)t.get().get("likeCreationDate"),
+                ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
+                (String)t.get().get("commentOrPostContent"),
+                (int)(((Long)t.get().get("likeCreationDate") 
+                    - (Long)t.get().get("commentOrPostCreationDate")) 
+                    / (1000l * 60l)),
+                (Boolean)t.get().get("isNew")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
@@ -965,9 +1123,69 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery8 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery8Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .in("hasCreator").as("message")
+            .in("replyOf").as("comment")
+            .order()
+                .by(select("comment").values("creationDate"), decr)
+                .by(select("comment").id(), incr)
+            .limit(limit)
+            .out("hasCreator").as("commenter")
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "commentCreationDate", 
+                "commentId",
+                "commentContent")
+                .by(select("commenter").id())
+                .by(select("commenter").values("firstName"))
+                .by(select("commenter").values("lastName"))
+                .by(select("comment").values("creationDate"))
+                .by(select("comment").id())
+                .by(select("comment")
+                    .choose(values("content").is(neq("")),
+                        values("content"),
+                        values("imageFile")))
+            .map(t -> new LdbcQuery8Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                Long.valueOf((String)t.get().get("commentCreationDate")),
+                ((UInt128)t.get().get("commentId")).getLowerLong(), 
+                (String)t.get().get("commentContent")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
@@ -1020,9 +1238,91 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery10 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final int month = operation.month() - 1; // make month zero based
+      final int limit = operation.limit();
 
+      Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery10Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .aggregate("done")
+            .out("hasInterest").values("name")
+            .aggregate("personInterests")
+            .select("person").out("knows")
+            .aggregate("done")
+            .out("knows").where(without("done")).dedup()
+            .filter(t -> {
+                calendar.setTimeInMillis(
+                    Long.valueOf(t.get().value("birthday")));
+                int bmonth = calendar.get(Calendar.MONTH); // zero based 
+                int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
+                if ((bmonth == month && bday >= 21) || 
+                  (bmonth == ((month + 1) % 12) && bday < 22)) {
+                  return true;
+                }
+                return false;
+            }).as("friend2")
+            .sack(assign)
+                .by(in("hasCreator").hasLabel("Post")
+                    .where(out("hasTag").values("name")
+                        .where(within("personInterests")))
+                    .count())
+            .sack(mult).by(constant(2))
+            .sack(minus)
+                .by(in("hasCreator").hasLabel("Post").count())
+            .order()
+                .by(sack(), decr)
+                .by(select("friend2").id(), incr)
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "commonInterestScore", 
+                "personGender",
+                "personCityName")
+                .by(select("friend2").id())
+                .by(select("friend2").values("firstName"))
+                .by(select("friend2").values("lastName"))
+                .by(sack())
+                .by(select("friend2").values("gender"))
+                .by(select("friend2").out("isLocatedIn").values("name"))
+            .map(t -> new LdbcQuery10Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                ((Long)t.get().get("commonInterestScore")).intValue(),
+                (String)t.get().get("personGender"), 
+                (String)t.get().get("personCityName")))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
@@ -1043,9 +1343,72 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery11 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String countryName = operation.countryName();
+      final int workFromYear = operation.workFromYear();
+      final int limit = operation.limit();
 
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery11Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .aggregate("done")
+            .union(
+                out("knows"),
+                out("knows").out("knows"))
+            .dedup().where(without("done")).as("friend")
+            .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
+            .as("workAt")
+            .inV().as("company")
+            .out("isLocatedIn").has("name", countryName)
+            .order()
+                .by(select("workAt").values("workFrom"), incr)
+                .by(select("friend").id())
+                .by(select("company").values("name"), decr)
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "organizationName", 
+                "organizationWorkFromYear")
+                .by(select("friend").id())
+                .by(select("friend").values("firstName"))
+                .by(select("friend").values("lastName"))
+                .by(select("company").values("name"))
+                .by(select("workAt").values("workFrom"))
+            .map(t -> new LdbcQuery11Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("personFirstName"), 
+                (String)t.get().get("personLastName"),
+                (String)t.get().get("organizationName"),
+                Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
     }
-
   }
 
   /**
@@ -1090,9 +1453,56 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      
+      // Parameters of this query
+      final long person1Id = operation.person1Id();
+      final long person2Id = operation.person2Id();
 
+      if (person1Id == person2Id) {
+        resultReporter.report(1, new LdbcQuery13Result(0), operation);
+        return;        
+      }
+
+      final UInt128 torcPerson1Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person1Id);
+      final UInt128 torcPerson2Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person2Id);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        Long pathLength = g.V(torcPerson1Id)
+            .choose(where(out("knows")),
+                repeat(out("knows").simplePath())
+                    .until(hasId(torcPerson2Id)
+                        .or()
+                        .path().count(local).is(gt(5)))
+                .limit(1)
+                .choose(id().is(eq(torcPerson2Id)), 
+                    union(path().count(local), constant(-1l)).sum(),
+                    constant(-1l)),
+                constant(-1l))
+            .next();
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(1, new LdbcQuery13Result(pathLength.intValue()), 
+            operation);
+        break;
+      }
     }
-
   }
 
   /**
