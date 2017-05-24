@@ -45,24 +45,26 @@ tmux new-window -n GraphLoader
 for (( i=0; i<$numLoaders-1; i++ ))
 do
   tmux split-window -h
-  tmux select-layout tiled
+  tmux select-layout tiled > /dev/null
 done
 
 # Setup the panes for loading but stop before executing GraphLoader.
 for mode in nodes edges props
 do
   rm -rf ./pids
+  echo -n "Executing $mode phase... "
   for (( i=0; i<$numLoaders; i++ ))
   do
-    tmux select-pane -t $i
-    tmux send-keys "echo \"Loading $mode\"" C-m
+#    tmux select-window -t GraphLoader
+#    tmux select-pane -t $i
+    tmux send-keys -t GraphLoader.$i "echo \"Loading $mode\"" C-m
     if [ -z ${splitSfx+x} ]
     then
-      tmux send-keys "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
+      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
     else
-      tmux send-keys "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --splitSfx \\\"$splitSfx\\\" --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
+      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --splitSfx \\\"$splitSfx\\\" --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
     fi
-    tmux send-keys "echo \$! >> ./pids" C-m
+    tmux send-keys -t GraphLoader.$i "echo \$! >> ./pids" C-m
   done
 
   for pid in $(cat pids)
@@ -73,5 +75,7 @@ do
     done
   done
 
-  echo "All Done!"
+  echo "Done!"
 done
+
+rm -rf ./pids
