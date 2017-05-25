@@ -32,7 +32,13 @@ pushd `dirname $0`/.. > /dev/null
 rootDir=`pwd`                                                                   
 popd > /dev/null                                                                
 
-# Create an array of the client hostnames
+# Get full path of data directory in case given directory is relative
+pushd $dataDir > /dev/null
+dataDir=`pwd`
+popd > /dev/null
+
+# Create an array of the client hostnames available for launching GraphLoader
+# instances.
 i=0
 for j in {75..80}
 do
@@ -55,14 +61,12 @@ do
   echo -n "Executing $mode phase... "
   for (( i=0; i<$numLoaders; i++ ))
   do
-#    tmux select-window -t GraphLoader
-#    tmux select-pane -t $i
     tmux send-keys -t GraphLoader.$i "echo \"Loading $mode\"" C-m
-    if [ -z ${splitSfx+x} ]
+    if [ -n "${splitSfx:+x}" ]
     then
-      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
-    else
       tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --splitSfx \\\"$splitSfx\\\" --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
+    else
+      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
     fi
     tmux send-keys -t GraphLoader.$i "echo \$! >> ./pids" C-m
   done
