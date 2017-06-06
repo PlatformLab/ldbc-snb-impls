@@ -1259,7 +1259,7 @@ public class TorcDb extends Db {
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
             .aggregate("done")
-            .out("hasInterest").values("name")
+            .out("hasInterest")
             .aggregate("personInterests")
             .select("person").out("knows")
             .aggregate("done")
@@ -1277,8 +1277,7 @@ public class TorcDb extends Db {
             }).as("friend2")
             .sack(assign)
                 .by(in("hasCreator").hasLabel("Post")
-                    .where(out("hasTag").values("name")
-                        .where(within("personInterests")))
+                    .where(out("hasTag").where(within("personInterests")))
                     .count())
             .sack(mult).by(constant(2))
             .sack(minus)
