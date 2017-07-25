@@ -86,6 +86,8 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.DefaultGraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -1257,7 +1259,7 @@ public class TorcDb extends Db {
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
+        GraphTraversal trav = g.withSideEffect("result", result).V(torcPersonId).as("person")
             .aggregate("done")
             .out("hasInterest")
             .aggregate("personInterests")
@@ -1305,7 +1307,11 @@ public class TorcDb extends Db {
                 ((Long)t.get().get("commonInterestScore")).intValue(),
                 (String)t.get().get("personGender"), 
                 (String)t.get().get("personCityName")))
-            .store("result").iterate(); 
+            .store("result").profile("metrics"); 
+
+        trav.iterate();
+
+        System.out.println(((DefaultGraphTraversal)trav).getSideEffects().get("metrics").toString());
 
         if (doTransactionalReads) {
           try {
