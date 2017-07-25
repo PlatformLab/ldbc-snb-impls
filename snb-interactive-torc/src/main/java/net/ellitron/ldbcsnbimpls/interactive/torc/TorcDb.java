@@ -26,6 +26,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
 
 import net.ellitron.torc.util.UInt128;
+import net.ellitron.torc.TorcGraph;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -1257,6 +1258,8 @@ public class TorcDb extends Db {
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
+        System.out.println("Accumulated time: " + ((TorcGraph)graph).getAccumulatedTime());
+
         g.withSideEffect("result", result).V(torcPersonId).as("person")
             .aggregate("done")
             .out("hasInterest")
@@ -1306,6 +1309,10 @@ public class TorcDb extends Db {
                 (String)t.get().get("personGender"), 
                 (String)t.get().get("personCityName")))
             .store("result").iterate(); 
+
+        System.out.println("Accumulated time: " + ((TorcGraph)graph).getAccumulatedTime());
+
+        ((TorcGraph)graph).resetAccumulatedTime();
 
         if (doTransactionalReads) {
           try {
