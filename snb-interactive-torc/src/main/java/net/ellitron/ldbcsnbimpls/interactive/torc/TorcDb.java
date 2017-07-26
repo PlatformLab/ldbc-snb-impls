@@ -1258,8 +1258,6 @@ public class TorcDb extends Db {
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
-        System.out.println("Accumulated time: " + ((TorcGraph)graph).getAccumulatedTime());
-
         g.withSideEffect("result", result).V(torcPersonId).as("person")
             .aggregate("done")
             .out("hasInterest")
@@ -1310,9 +1308,7 @@ public class TorcDb extends Db {
                 (String)t.get().get("personCityName")))
             .store("result").iterate(); 
 
-        System.out.println("Accumulated time: " + ((TorcGraph)graph).getAccumulatedTime());
-
-        ((TorcGraph)graph).resetAccumulatedTime();
+        System.out.println("Accumulated time: " + ((TorcGraph.TorcGraphTransaction)graph.tx()).getAccumulatedTime());
 
         if (doTransactionalReads) {
           try {
