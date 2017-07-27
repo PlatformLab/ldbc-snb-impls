@@ -1265,7 +1265,9 @@ public class TorcDb extends Db {
             .aggregate("personInterests")
             .select("person").out("knows")
             .aggregate("done")
+            .barrier()
             .out("knows").where(without("done")).dedup()
+            .barrier()
             .filter(t -> {
                 calendar.setTimeInMillis(
                     Long.valueOf(t.get().value("birthday")));
@@ -1277,17 +1279,21 @@ public class TorcDb extends Db {
                 }
                 return false;
             }).as("friend2")
+            .barrier()
             .sack(assign)
                 .by(in("hasCreator").hasLabel("Post")
                     .where(out("hasTag").where(within("personInterests")))
                     .count())
+            .barrier()
             .sack(mult).by(constant(2))
             .sack(minus)
                 .by(in("hasCreator").hasLabel("Post").count())
+            .barrier()
             .order()
                 .by(sack(), decr)
                 .by(select("friend2").id(), incr)
             .limit(limit)
+            .barrier()
             .project("personId", 
                 "personFirstName", 
                 "personLastName", 
