@@ -1278,21 +1278,17 @@ public class TorcDb extends Db {
                 }
                 return false;
             }).as("friend2")
-            .barrier()
             .sack(assign)
                 .by(in("hasCreator").hasLabel("Post")
                     .where(out("hasTag").where(within("personInterests")))
                     .count())
-            .barrier()
             .sack(mult).by(constant(2))
             .sack(minus)
                 .by(in("hasCreator").hasLabel("Post").count())
             .order()
                 .by(sack(), decr)
                 .by(select("friend2").id(), incr)
-            .barrier()
             .limit(limit)
-            .barrier()
             .project("personId", 
                 "personFirstName", 
                 "personLastName", 
