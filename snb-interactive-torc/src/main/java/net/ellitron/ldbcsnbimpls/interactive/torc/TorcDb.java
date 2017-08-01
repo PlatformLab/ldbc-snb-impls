@@ -26,6 +26,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
 
 import net.ellitron.torc.util.UInt128;
+import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -1257,7 +1258,9 @@ public class TorcDb extends Db {
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
+        g.withSideEffect("result", result)
+            .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+            .V(torcPersonId).as("person")
             .aggregate("done")
             .out("hasInterest")
             .aggregate("personInterests")
@@ -1275,17 +1278,21 @@ public class TorcDb extends Db {
                 }
                 return false;
             }).as("friend2")
+            .barrier()
             .sack(assign)
                 .by(in("hasCreator").hasLabel("Post")
                     .where(out("hasTag").where(within("personInterests")))
                     .count())
+            .barrier()
             .sack(mult).by(constant(2))
             .sack(minus)
                 .by(in("hasCreator").hasLabel("Post").count())
             .order()
                 .by(sack(), decr)
                 .by(select("friend2").id(), incr)
+            .barrier()
             .limit(limit)
+            .barrier()
             .project("personId", 
                 "personFirstName", 
                 "personLastName", 
