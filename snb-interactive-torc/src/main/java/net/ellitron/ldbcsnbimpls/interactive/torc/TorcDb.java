@@ -99,14 +99,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
+import java.util.*;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for TorcDB.
@@ -1256,9 +1249,11 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        List<LdbcQuery10Result> result = new ArrayList<>(limit);
+        List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
+        List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
 
-        g.withSideEffect("result", result)
+        g.withSideEffect("postCountMap", postCountMap)
+            .withSideEffect("commonPostCountMap", commonPostCountMap)
             .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
             .V(torcPersonId).as("person")
             .aggregate("done")
@@ -1278,37 +1273,111 @@ public class TorcDb extends Db {
                 }
                 return false;
             }).as("friend2")
-            .sack(assign)
-                .by(in("hasCreator").hasLabel("Post")
-                    .where(out("hasTag").where(within("personInterests")))
-                    .count())
-            .sack(mult).by(constant(2))
-            .sack(minus)
-                .by(in("hasCreator").hasLabel("Post").count())
-            .order()
-                .by(sack(), decr)
-                .by(select("friend2").id(), incr)
-            .limit(limit)
+            .in("hasCreator").hasLabel("Post").as("posts")
+            .union(
+                groupCount().by(select("friend2").id()).store("postCountMap"),
+                out("hasTag").where(within("personInterests")).select("posts").groupCount().by(select("friend2").id()).store("commonPostCountMap")
+                )
+            .iterate();
+
+//            System.out.println(String.format("postCountMap: %s",
+//                  postCountMap.toString()));
+//            System.out.println(String.format("commonPostCountMap: %s",
+//                  commonPostCountMap.toString()));
+
+        Map<UInt128, Long> totalMap = postCountMap.get(0);
+        Map<UInt128, Long> commonMap = commonPostCountMap.get(0);
+        Map<UInt128, Long> scoreMap = new HashMap<>();
+
+        for (Map.Entry<UInt128, Long> entry : totalMap.entrySet()) {
+          UInt128 id = entry.getKey();
+          Long totalPosts = entry.getValue();
+
+          Long commonPosts = 0l;
+          if (commonMap.containsKey(id)) {
+            commonPosts = commonMap.get(id);
+          }
+
+          Long commonInterestScore = 2*commonPosts - totalPosts;
+
+          scoreMap.put(id, commonInterestScore);
+        }
+
+        List<Map.Entry<UInt128, Long>> scoreList =
+            new LinkedList<>(scoreMap.entrySet());
+
+        Collections.sort(scoreList, 
+            new Comparator<Map.Entry<UInt128, Long>>() {
+              public int compare( Map.Entry<UInt128, Long> o1, 
+                  Map.Entry<UInt128, Long> o2 ) {
+                if ((o1.getValue()).compareTo(o2.getValue()) != 0) {
+                  return -1*(o1.getValue()).compareTo(o2.getValue());
+                } else {
+                  return (o1.getKey()).compareTo(o2.getKey());
+                }
+              }
+            } 
+        );
+
+        List<UInt128> topFriends = new ArrayList<>();
+
+        for (int i = 0; i < limit; i++) {
+          topFriends.add(scoreList.get(i).getKey());
+        }
+
+//        for (Map.Entry<UInt128, Long> entry : scoreList) {
+//          System.out.println(String.format("%s", entry.toString()));
+//        }
+//
+//        System.out.println(String.format("topFriends: %s", topFriends.toString()));
+
+        List<LdbcQuery10Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result)
+            .V(topFriends.toArray())
             .project("personId", 
                 "personFirstName", 
                 "personLastName", 
-                "commonInterestScore", 
                 "personGender",
                 "personCityName")
-                .by(select("friend2").id())
-                .by(select("friend2").values("firstName"))
-                .by(select("friend2").values("lastName"))
-                .by(sack())
-                .by(select("friend2").values("gender"))
-                .by(select("friend2").out("isLocatedIn").values("name"))
+                .by(id())
+                .by(values("firstName"))
+                .by(values("lastName"))
+                .by(values("gender"))
+                .by(out("isLocatedIn").values("name"))
             .map(t -> new LdbcQuery10Result(
                 ((UInt128)t.get().get("personId")).getLowerLong(),
                 (String)t.get().get("personFirstName"), 
                 (String)t.get().get("personLastName"),
-                ((Long)t.get().get("commonInterestScore")).intValue(),
+                scoreMap.get(t.get().get("personId")).intValue(),
                 (String)t.get().get("personGender"), 
                 (String)t.get().get("personCityName")))
             .store("result").iterate(); 
+
+//            .order()
+//                .by(sack(), decr)
+//                .by(select("friend2").id(), incr)
+//            .limit(limit)
+//            .project("personId", 
+//                "personFirstName", 
+//                "personLastName", 
+//                "commonInterestScore", 
+//                "personGender",
+//                "personCityName")
+//                .by(select("friend2").id())
+//                .by(select("friend2").values("firstName"))
+//                .by(select("friend2").values("lastName"))
+//                .by(sack())
+//                .by(select("friend2").values("gender"))
+//                .by(select("friend2").out("isLocatedIn").values("name"))
+//            .map(t -> new LdbcQuery10Result(
+//                ((UInt128)t.get().get("personId")).getLowerLong(),
+//                (String)t.get().get("personFirstName"), 
+//                (String)t.get().get("personLastName"),
+//                ((Long)t.get().get("commonInterestScore")).intValue(),
+//                (String)t.get().get("personGender"), 
+//                (String)t.get().get("personCityName")))
+//            .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
