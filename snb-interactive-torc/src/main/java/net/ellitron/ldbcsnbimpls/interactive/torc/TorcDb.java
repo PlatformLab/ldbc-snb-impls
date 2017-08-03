@@ -1251,9 +1251,11 @@ public class TorcDb extends Db {
 
         List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
         List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
+        List<UInt128> friendIds = new ArrayList<>();
 
         g.withSideEffect("postCountMap", postCountMap)
             .withSideEffect("commonPostCountMap", commonPostCountMap)
+            .withSideEffect("friendIds", friendIds)
             .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
             .V(torcPersonId).as("person")
             .aggregate("done")
@@ -1273,10 +1275,11 @@ public class TorcDb extends Db {
                 }
                 return false;
             }).as("friend2")
+            .sideEffect(id().store("friendIds"))
             .in("hasCreator").hasLabel("Post").as("posts")
             .union(
                 groupCount().by(select("friend2").id()).store("postCountMap"),
-                out("hasTag").where(within("personInterests")).select("posts").groupCount().by(select("friend2").id()).store("commonPostCountMap")
+                out("hasTag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
                 )
             .iterate();
 
@@ -1301,6 +1304,12 @@ public class TorcDb extends Db {
           Long commonInterestScore = 2*commonPosts - totalPosts;
 
           scoreMap.put(id, commonInterestScore);
+        }
+
+        for (UInt128 friendId : friendIds) {
+          if (!scoreMap.containsKey(friendId)) {
+            scoreMap.put(friendId, 0l);
+          }
         }
 
         List<Map.Entry<UInt128, Long>> scoreList =
