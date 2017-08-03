@@ -1283,11 +1283,6 @@ public class TorcDb extends Db {
                 )
             .iterate();
 
-//            System.out.println(String.format("postCountMap: %s",
-//                  postCountMap.toString()));
-//            System.out.println(String.format("commonPostCountMap: %s",
-//                  commonPostCountMap.toString()));
-
         Map<UInt128, Long> totalMap = postCountMap.get(0);
         Map<UInt128, Long> commonMap = commonPostCountMap.get(0);
         Map<UInt128, Long> scoreMap = new HashMap<>();
@@ -1334,12 +1329,6 @@ public class TorcDb extends Db {
           topFriends.add(scoreList.get(i).getKey());
         }
 
-//        for (Map.Entry<UInt128, Long> entry : scoreList) {
-//          System.out.println(String.format("%s", entry.toString()));
-//        }
-//
-//        System.out.println(String.format("topFriends: %s", topFriends.toString()));
-
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result)
@@ -1362,31 +1351,6 @@ public class TorcDb extends Db {
                 (String)t.get().get("personGender"), 
                 (String)t.get().get("personCityName")))
             .store("result").iterate(); 
-
-//            .order()
-//                .by(sack(), decr)
-//                .by(select("friend2").id(), incr)
-//            .limit(limit)
-//            .project("personId", 
-//                "personFirstName", 
-//                "personLastName", 
-//                "commonInterestScore", 
-//                "personGender",
-//                "personCityName")
-//                .by(select("friend2").id())
-//                .by(select("friend2").values("firstName"))
-//                .by(select("friend2").values("lastName"))
-//                .by(sack())
-//                .by(select("friend2").values("gender"))
-//                .by(select("friend2").out("isLocatedIn").values("name"))
-//            .map(t -> new LdbcQuery10Result(
-//                ((UInt128)t.get().get("personId")).getLowerLong(),
-//                (String)t.get().get("personFirstName"), 
-//                (String)t.get().get("personLastName"),
-//                ((Long)t.get().get("commonInterestScore")).intValue(),
-//                (String)t.get().get("personGender"), 
-//                (String)t.get().get("personCityName")))
-//            .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
