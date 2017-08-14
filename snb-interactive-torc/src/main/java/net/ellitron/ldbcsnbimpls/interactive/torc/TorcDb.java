@@ -1259,11 +1259,11 @@ public class TorcDb extends Db {
             .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
             .V(torcPersonId).as("person")
             .aggregate("done")
-            .out("hasInterest")
+            .out("hasInterest").hasLabel("Tag")
             .aggregate("personInterests")
-            .select("person").out("knows")
+            .select("person").out("knows").hasLabel("Person")
             .aggregate("done")
-            .out("knows").where(without("done")).dedup()
+            .out("knows").hasLabel("Person").where(without("done")).dedup()
             .filter(t -> {
                 calendar.setTimeInMillis(
                     Long.valueOf(t.get().value("birthday")));
@@ -1279,7 +1279,7 @@ public class TorcDb extends Db {
             .in("hasCreator").hasLabel("Post").as("posts")
             .union(
                 groupCount().by(select("friend2").id()).store("postCountMap"),
-                out("hasTag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
+                out("hasTag").hasLabel("Tag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
                 )
             .iterate();
 
