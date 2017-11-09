@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ./ParallelGraphLoader.sh /path/to/ldbc/snb/social_network basic+udp:host=192.168.1.101,port=12246 ldbcsnbsfXXXX
+# ./GraphLoaderLauncher.sh /path/to/ldbc/snb/social_network basic+udp:host=192.168.1.101,port=12246 ldbcsnbsfXXXX
 #
 # Loads an LDBC SNB graph into TorcDB in parallel using multiple machines, each
 # in a separate tmux window for progress monitoring.
