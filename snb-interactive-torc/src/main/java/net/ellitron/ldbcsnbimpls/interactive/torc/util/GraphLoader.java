@@ -32,6 +32,7 @@ import org.docopt.Docopt;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -132,17 +133,6 @@ public class GraphLoader {
       + "                    time range to be [0,txBoffCeil]. The units of\n"
       + "                    this parameter is in milliseconds.\n"
       + "                    [default: 10000].\n"
-      + "  --splitSfx=<sf>   The presence of this option indicates that the\n"
-      + "                    dataset files have been split with each part\n"
-      + "                    still containing the original file's header as\n"
-      + "                    the first line. The value of this option is a\n"
-      + "                    format string for the suffix used for the\n"
-      + "                    parts. For example, .part%2d for part suffixes\n"
-      + "                    that look like .part00, .part01, etc.\n The\n"
-      + "                    presence of this option indicates that ALL\n"
-      + "                    files have been split in this way. Also note\n"
-      + "                    that this string must contain exactly 1 %d\n"
-      + "                    somewhere in the string.\n"
       + "  --reportInt=<i>   Number of seconds between reporting status to\n"
       + "                    the screen. [default: 10].\n"
       + "  --reportFmt=<s>   Format options for status report output.\n"
@@ -853,7 +843,6 @@ public class GraphLoader {
     int txBoffCeil = Integer.decode((String) opts.get("--txBoffCeil"));
     long reportInterval = Long.decode((String) opts.get("--reportInt"));
     String formatString = (String) opts.get("--reportFmt");
-    String splitSuffix = (String) opts.get("--splitSfx");
     String inputDir = (String) opts.get("SOURCE");
 
     String command;
@@ -868,7 +857,7 @@ public class GraphLoader {
     System.out.println(String.format(
         "GraphLoader: {coordLoc: %s, masters: %s, graphName: %s, "
         + "numLoaders: %d, loaderIdx: %d, numThreads: %d, txSize: %d, "
-        + "txRetries: %d, txBackoff: %d, txBoffCeil: %d, splitSfx: %s, "
+        + "txRetries: %d, txBackoff: %d, txBoffCeil: %d, "
         + "reportFmt: %s, inputDir: %s, command: %s}",
         (String) opts.get("--coordLoc"),
         (String) opts.get("--masters"),
@@ -880,7 +869,6 @@ public class GraphLoader {
         txRetries,
         txBackoff,
         txBoffCeil,
-        splitSuffix,
         formatString,
         inputDir,
         command));
@@ -902,72 +890,64 @@ public class GraphLoader {
      * need to be loaded. Otherwise it will be a list of edge files.
      */
     List<LoadUnit> loadList = new ArrayList<>();
+    File dir = new File(inputDir);
     if (command.equals("nodes")) {
       for (SnbEntity snbEntity : SnbEntity.values()) {
-
-        String baseFileName = snbEntity.name + "_0_0.csv";
-
-        if (splitSuffix != null) {
-          for (int i = 0;; i++) {
-            String fileName =
-                String.format("%s" + splitSuffix, baseFileName, i);
-            File f = new File(inputDir + "/" + fileName);
-            if (f.exists() && f.isFile()) {
-              loadList.add(new LoadUnit(snbEntity,
-                  Paths.get(inputDir + "/" + fileName), false));
-            } else {
-              if (i == 0) {
-                System.out.println(String.format(
-                    "Missing file for %s nodes (%s)",
-                    snbEntity.name, fileName));
-              } else {
-                System.out.println(String.format(
-                    "Found %d file parts for %s nodes",
-                    i, snbEntity.name));
+        File [] fileList = dir.listFiles(new FilenameFilter() {
+              @Override
+              public boolean accept(File dir, String name) {
+                return name.matches(
+                    "^" + snbEntity.name + "_[0-9]+_[0-9]+\\.csv");
               }
-              break;
-            }
+            });
+
+        if (fileList.length > 0) {
+          for (File f : fileList) {
+            loadList.add(new LoadUnit(snbEntity, f.toPath(), false));
+            System.out.println(String.format("Found file for %s nodes (%s)",
+                snbEntity.name, f.getName()));
           }
         } else {
-          File f = new File(inputDir + "/" + baseFileName);
-          if (f.exists() && f.isFile()) {
-            loadList.add(new LoadUnit(snbEntity,
-                Paths.get(inputDir + "/" + baseFileName), false));
-            System.out.println(String.format("Found file for %s nodes (%s)",
-                snbEntity.name, baseFileName));
-          } else {
-            System.out.println(String.format("Missing file for %s nodes (%s)",
-                snbEntity.name, baseFileName));
-          }
+          System.out.println(String.format("Missing files for %s nodes",
+              snbEntity.name));
         }
       }
 
       System.out.println(String.format("Found %d total node files",
           loadList.size()));
     } else if (command.equals("props")) {
-      loadList.add(new LoadUnit(SnbEntity.PERSON,
-          Paths.get(inputDir + "/person_email_emailaddress_0_0.csv"), true));
+      File [] fileList = dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+              return name.matches(
+                  "^person_email_emailaddress_[0-9]+_[0-9]+\\.csv");
+            }
+          });
 
-      System.out.println(String.format(
-          "Found %d file parts for %s email properties",
-          1, SnbEntity.PERSON.name));
+      for (File f : fileList) {
+        loadList.add(new LoadUnit(SnbEntity.PERSON, f.toPath(), true));
+        System.out.println(String.format(
+            "Found file for person email properties (%s)", f.getName()));
+      }
 
-      loadList.add(new LoadUnit(SnbEntity.PERSON,
-          Paths.get(inputDir + "/person_speaks_language_0_0.csv"), true));
+      fileList = dir.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+              return name.matches(
+                  "^person_speaks_language_[0-9]+_[0-9]+\\.csv");
+            }
+          });
 
-      System.out.println(String.format(
-          "Found %d file parts for %s speaks properties",
-          1, SnbEntity.PERSON.name));
+      for (File f : fileList) {
+        loadList.add(new LoadUnit(SnbEntity.PERSON, f.toPath(), true));
+        System.out.println(String.format(
+            "Found file for person speaks properties (%s)", f.getName()));
+      }
 
       System.out.println(String.format("Found %d total property files",
           loadList.size()));
     } else {
       for (SnbRelation snbRelation : SnbRelation.values()) {
-
-        String baseFileName = String.format("%s_%s_%s_0_0.csv",
-            snbRelation.tail.name,
-            snbRelation.name,
-            snbRelation.head.name);
 
         String edgeFormatStr;
         if (snbRelation.directed) {
@@ -981,38 +961,26 @@ public class GraphLoader {
             snbRelation.name,
             snbRelation.head.name);
 
-        if (splitSuffix != null) {
-          for (int i = 0;; i++) {
-            String fileName =
-                String.format("%s" + splitSuffix, baseFileName, i);
-            File f = new File(inputDir + "/" + fileName);
-            if (f.exists() && f.isFile()) {
-              loadList.add(new LoadUnit(snbRelation,
-                  Paths.get(inputDir + "/" + fileName)));
-            } else {
-              if (i == 0) {
-                System.out.println(String.format(
-                    "Missing file for %s edges (%s)",
-                    edgeStr, fileName));
-              } else {
-                System.out.println(String.format(
-                    "Found %d file parts for %s edges",
-                    i, edgeStr));
+        File [] fileList = dir.listFiles(new FilenameFilter() {
+              @Override
+              public boolean accept(File dir, String name) {
+                return name.matches(
+                    "^" + snbRelation.tail.name + 
+                    "_" + snbRelation.name + 
+                    "_" + snbRelation.head.name + 
+                    "_[0-9]+_[0-9]+\\.csv");
               }
-              break;
-            }
+            });
+
+        if (fileList.length > 0) {
+          for (File f : fileList) {
+            loadList.add(new LoadUnit(snbRelation, f.toPath()));
+            System.out.println(String.format("Found file for %s edges (%s)",
+                edgeStr, f.getName()));
           }
         } else {
-          File f = new File(inputDir + "/" + baseFileName);
-          if (f.exists() && f.isFile()) {
-            loadList.add(new LoadUnit(snbRelation,
-                Paths.get(inputDir + "/" + baseFileName)));
-            System.out.println(String.format("Found file for %s edges (%s)",
-                edgeStr, baseFileName));
-          } else {
-            System.out.println(String.format("Missing file for %s edges (%s)",
-                edgeStr, baseFileName));
-          }
+          System.out.println(String.format("Missing file for %s edges",
+              edgeStr));
         }
       }
 
