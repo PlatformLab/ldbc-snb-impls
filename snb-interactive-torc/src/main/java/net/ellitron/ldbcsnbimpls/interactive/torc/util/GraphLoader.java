@@ -284,8 +284,8 @@ public class GraphLoader {
 
     private final Graph graph;
     private final List<LoadUnit> loadList;
-    private final int startIndex;
-    private final int length;
+    private final int totalThreads;
+    private final int threadIdx;
     private final int txSize;
     private final int txRetries;
     private final int txBackoff;
@@ -312,9 +312,8 @@ public class GraphLoader {
      * @param graph Graph into which to load the files.
      * @param loadList Master list of all files in the dataset. All loader
      * threads have a copy of this.
-     * @param startIndex The index in the load list at which this thread's
-     * loading work starts.
-     * @param length The segment length in the load list for this thread.
+     * @param totalThreads Total number of loader threads in the system.
+     * @param threadIdx The index of this particular loader thread.
      * @param txSize The number of lines to process within a single
      * transaction.
      * @param txRetries The maximum number of times to retry a failed
@@ -328,13 +327,13 @@ public class GraphLoader {
      * @param stats ThreadStats instance to update with loading statistics
      * info.
      */
-    public LoaderThread(Graph graph, List<LoadUnit> loadList, int startIndex,
-        int length, int txSize, int txRetries, int txBackoff, int txBoffCeil,
+    public LoaderThread(Graph graph, List<LoadUnit> loadList, int totalThreads,
+        int threadIdx, int txSize, int txRetries, int txBackoff, int txBoffCeil,
         ThreadStats stats) {
       this.graph = graph;
       this.loadList = loadList;
-      this.startIndex = startIndex;
-      this.length = length;
+      this.totalThreads = totalThreads;
+      this.threadIdx = threadIdx;
       this.txSize = txSize;
       this.txRetries = txRetries;
       this.txBackoff = txBackoff;
@@ -354,11 +353,27 @@ public class GraphLoader {
     @Override
     public void run() {
       // Update this thread's total file load stat.
-      stats.totalFilesToProcess = length;
+      int q = loadList.size() / totalThreads;
+      int r = loadList.size() % totalThreads;
+      int totalFiles;
+      if ( threadIdx < r )
+        totalFiles = q + 1;
+      else
+        totalFiles = q;
 
-      // Load every file in the range [startIndex, startIndex + length)
-      for (int fIndex = startIndex; fIndex < startIndex + length; fIndex++) {
-        LoadUnit loadUnit = loadList.get(fIndex);
+      stats.totalFilesToProcess = totalFiles;
+
+      /* Load every (totalThreads)th file, starting with threadIdx, so:
+       * loadList[threadIdx]
+       * loadList[totalThreads + threadIdx]
+       * loadList[2 * totalThreads + threadIdx]
+       * loadList[3 * totalThreads + threadIdx]
+       * ...
+       * Picking files this way distributes work more evenly across the threads
+       * when large files are grouped together in the list.
+       */
+      for (int f = 0; f < totalFiles; f++) {
+        LoadUnit loadUnit = loadList.get(f * totalThreads + threadIdx);
         Path path = loadUnit.getFilePath();
 
         BufferedReader inFile;
@@ -368,6 +383,9 @@ public class GraphLoader {
           throw new RuntimeException(String.format("Encountered error opening "
               + "file %s", path.getFileName()));
         }
+
+        System.out.println(String.format("Thread %d: Loading file: %s",
+            threadIdx, path.getFileName().toString()));
 
         // First line of the file contains the column headers.
         String[] fieldNames;
@@ -989,48 +1007,16 @@ public class GraphLoader {
     }
 
     /*
-     * Calculate the segment of the list that this loader instance is
-     * responsible for loading.
-     */
-    int q = loadList.size() / numLoaders;
-    int r = loadList.size() % numLoaders;
-
-    int loadSize;
-    int loadOffset;
-    if (loaderIdx < r) {
-      loadSize = q + 1;
-      loadOffset = (q + 1) * loaderIdx;
-    } else {
-      loadSize = q;
-      loadOffset = ((q + 1) * r) + (q * (loaderIdx - r));
-    }
-
-    /*
-     * Divvy up the load and start the threads.
+     * Start the threads.
      */
     List<Thread> threads = new ArrayList<>();
     List<ThreadStats> threadStats = new ArrayList<>(numThreads);
     for (int i = 0; i < numThreads; i++) {
-      int qt = loadSize / numThreads;
-      int rt = loadSize % numThreads;
-
-      int threadLoadSize;
-      int threadLoadOffset;
-      if (i < rt) {
-        threadLoadSize = qt + 1;
-        threadLoadOffset = (qt + 1) * i;
-      } else {
-        threadLoadSize = qt;
-        threadLoadOffset = ((qt + 1) * rt) + (qt * (i - rt));
-      }
-
-      threadLoadOffset += loadOffset;
-
       ThreadStats stats = new ThreadStats();
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
-          threadLoadOffset, threadLoadSize, txSize, txRetries, txBackoff,
-          txBoffCeil, stats)));
+          numLoaders * numThreads, loaderIdx * numThreads + i, txSize, 
+          txRetries, txBackoff, txBoffCeil, stats)));
 
       threads.get(i).start();
 
