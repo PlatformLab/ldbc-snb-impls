@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1005,6 +1006,10 @@ public class GraphLoader {
       System.out.println(String.format("Found %d total edge files",
           loadList.size()));
     }
+
+    // Randomize the order of the files so that threads load a random
+    // distribution of files.
+    Collections.shuffle(loadList, new Random(42));
 
     /*
      * Start the threads.
