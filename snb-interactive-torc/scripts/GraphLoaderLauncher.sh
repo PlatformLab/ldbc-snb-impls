@@ -17,15 +17,14 @@ coordLoc=$2
 graphName=$3
 
 # Edit these parameters as necessary
-masters=4
-numLoaders=4
+masters=40
+numLoaders=25
 numThreads=4
-txSize=32
+txSize=8
 #txRetries=10
 #txBackoff=1000
-#splitSfx=".part%04d"
 reportInt=2
-reportFmt="OFDT"
+reportFmt="LFDT"
 
 # Directory of graph loader repository.
 pushd `dirname $0`/.. > /dev/null                                               
@@ -40,10 +39,13 @@ popd > /dev/null
 # Create an array of the client hostnames available for launching GraphLoader
 # instances.
 i=0
-for j in {75..80}
+for j in {01..43}
 do
-  hosts[i]=rc$j
-  (( i++ ))
+  if [[ $j != "16" && $j != "29" && $j != "34" ]]
+  then
+    hosts[i]=rc$j
+    (( i++ ))
+  fi
 done
 
 # Create a new window with the appropriate number of panes.
@@ -55,31 +57,28 @@ do
 done
 
 # Setup the panes for loading but stop before executing GraphLoader.
-for mode in nodes edges props
+#for mode in nodes edges props
+for mode in nodes
 do
   rm -rf ./pids
   echo -n "Executing $mode phase... "
   for (( i=0; i<$numLoaders; i++ ))
   do
     tmux send-keys -t GraphLoader.$i "echo \"Loading $mode\"" C-m
-    if [ -n "${splitSfx:+x}" ]
-    then
-      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --splitSfx \\\"$splitSfx\\\" --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
-    else
-      tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]} \"cd $rootDir; mvn exec:java -Dexec.mainClass=\\\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\\\" -Dexec.args=\\\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\\\"; exit\" &" C-m
-    fi
-    tmux send-keys -t GraphLoader.$i "echo \$! >> ./pids" C-m
+    tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]}" C-m
+    tmux send-keys -t GraphLoader.$i "cd $rootDir; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\" -Dexec.args=\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\"; exit" C-m
+#    tmux send-keys -t GraphLoader.$i "echo \$! >> ./pids" C-m
   done
 
-  for pid in $(cat pids)
-  do
-    while [ -e /proc/$pid ]
-    do
-      sleep 1
-    done
-  done
-
-  echo "Done!"
+#  for pid in $(cat pids)
+#  do
+#    while [ -e /proc/$pid ]
+#    do
+#      sleep 1
+#    done
+#  done
+#
+#  echo "Done!"
 done
 
 rm -rf ./pids
