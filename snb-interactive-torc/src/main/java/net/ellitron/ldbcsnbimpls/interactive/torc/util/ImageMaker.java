@@ -397,136 +397,88 @@ public class ImageMaker {
             stats.linesProcessed++;
           }
         } else if (loadUnit.isRelation()) {
+          SnbRelation snbRelation = loadUnit.getSnbRelation();
+
+          // Normally edges are listed started with the vertex on the tail end
+          // of the edge, followed by the vertex on the head end of the edge.
+          // But in reverse indexes, it is the opposite.
+          TorcEntity baseEntity;
+          TorcEntity neighborEntity;
+          TorcEdgeDirection edgeDir;
           if (loadUnit.isReverseIndex()) {
-            // Edge list reverse index file
-
+            baseEntity = TorcEntity.valueOf(snbRelation.head);
+            neighborEntity = TorcEntity.valueOf(snbRelation.tail);
+            edgeDir = TorcEdgeDirection.DIRECTED_IN;
           } else {
-            // Regular edge list file
-
+            baseEntity = TorcEntity.valueOf(snbRelation.tail);
+            neighborEntity = TorcEntity.valueOf(snbRelation.head);
+            edgeDir = TorcEdgeDirection.DIRECTED_OUT;
           }
-        }
 
-        boolean hasLinesLeft = true;
-        while (hasLinesLeft) {
-          /*
-           * Buffer txSize lines at a time from the input file and keep it
-           * around until commit time. If the commit succeeds we can forget
-           * about it, otherwise we'll use it again to retry the transaction.
-           */
-//          long startTime = System.nanoTime();
+          UInt128 curBaseVertexId = null;
+          List<UInt128> neighborIds = new ArrayList<>(32);
+          List<Map<String, List<String>>> propMaps = new HashMap<>();
           String line;
-          List<String> lineBuffer = new ArrayList<>(txSize);
-          try {
-            while ((line = inFile.readLine()) != null) {
-              lineBuffer.add(line);
+          while ((line = inFile.readLine()) != null) {
+            String[] fieldValues = line.split("\\|");
+            
+            UInt128 baseVertexId = 
+              new UInt128(baseEntity.idSpace, Long.decode(fieldValues[0]));
 
-              /*
-               * Estimate the bytes we've read and add it to the
-               * bytes-read-from-disk statistic. The file encoding is UTF-8,
-               * which means ASCII characters are encoded with 1 byte, which
-               * the vast majority of characters in the file ought to be.
-               */
-              stats.bytesReadFromDisk += line.length();
-
-              if (lineBuffer.size() == txSize) {
-                break;
-              }
-            }
-          } catch (IOException ex) {
-            throw new RuntimeException(String.format("Encountered error "
-                + "reading lines of file %s", path.getFileName()));
-          }
-//          long endTime = System.nanoTime();
-
-//          System.out.println(String.format("Time to fill lineBuffer: %dns",
-//                (endTime - startTime)));
-
-          // Catch when we've read all the lines in the file.
-          if (line == null) {
-            hasLinesLeft = false;
-          }
-
-          /*
-           * Parse the lines in the buffer and write them into the database. If
-           * the commit fails for any reason, retry the transaction up to
-           * txRetries number of times. After that, enter multiplicative
-           * backoff mode.
-           */
-          int txFailCount = 0;
-          int backoffMultiplier = 1;
-          while (true) {
-            try {
-              lineGobbler.accept(lineBuffer);
-            } catch (Exception ex) {
-              throw new RuntimeException(String.format(
-                  "Encountered error processing lines in range [%d, %d] of "
-                  + "file %s",
-                  localLinesProcessed + 2,
-                  localLinesProcessed + 1 + lineBuffer.size(),
-                  path.getFileName()), ex);
+            if (curBaseVertexId == null) {
+              curBaseVertexId = baseVertexId;
+            } else if (!baseVertexId.equals(curBaseVertexId)) {
+              // We hit a new set of edges in the file, so we should write out
+              // the edge list that we currently have buffered before starting
+              // on this new edge list.
+              graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
+                  neighborEntity.label, neighborIds.toArray(), 
+                  propMaps.toArray());
+              
+              curBaseVertexId = baseVertexId;
+              neighborIds.clear();
+              propMaps.clear();
             }
 
-            if (writeImages) {
-                localLinesProcessed += lineBuffer.size();
-                stats.linesProcessed += lineBuffer.size();
-                break;
-            } else {
+            UInt128 neighborId = 
+              new UInt128(neighborEntity.idSpace, Long.decode(fieldValues[1]));
+
+            Map<String, List<String>> propMap = new HashMap<>();
+            for (int j = 0; j < fieldValues.length; j++) {
               try {
-//                startTime = System.nanoTime();
-                graph.tx().commit();
-//                endTime = System.nanoTime();
-
-//                System.out.println(String.format("Time for graph.tx().commit(): %dns",
-//                      (endTime - startTime)));
-
-                localLinesProcessed += lineBuffer.size();
-                stats.linesProcessed += lineBuffer.size();
-                break;
-              } catch (Exception e) {
-                /*
-                 * The transaction failed due to either a conflict or a timeout.
-                 * In this case we want to retry the transaction, but only up to
-                 * the txRetries limit.
-                 */
-                txFailCount++;
-                stats.txFailures++;
-
-                if (txFailCount > txRetries) {
-                  try {
-                    int sleepTimeBound;
-                    if (backoffMultiplier * txBackoff < txBoffCeil) {
-                      sleepTimeBound = backoffMultiplier * txBackoff;
-                      backoffMultiplier *= 2;
-                    } else {
-                      sleepTimeBound = txBoffCeil;
-                    }
-
-                    int sleepTime = rand.nextInt(sleepTimeBound + 1);
-
-                    logger.debug(String.format("Thread %d txFailCount reached %d "
-                        + "on lines [%d, %d] of file %s. Sleeping for %dms.",
-                        Thread.currentThread().getId(), txFailCount,
-                        localLinesProcessed + 2,
-                        localLinesProcessed + 1 + lineBuffer.size(),
-                        path.getFileName(), sleepTime));
-
-                    Thread.sleep(sleepTime);
-                  } catch (InterruptedException ex) {
-                    // Our slumber has been cut short, most likely due to a
-                    // terminate signal. In this case we should terminate.
-                    try {
-                      inFile.close();
-                    } catch (IOException ex1) {
-                      throw new RuntimeException(String.format("Encountered "
-                          + "error closing file %s", path.getFileName()));
-                    }
-
-                    return;
-                  }
+                List<String> propValues = new ArrayList<>(8);
+                if (fieldNames[j].equals("creationDate") || 
+                    fieldNames[j].equals("joinDate")) {
+                  propValues.add(String.valueOf(
+                      creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                } else {
+                  propValues.add(fieldValues[j]);
                 }
+
+                if (propMap.containsKey(fieldNames[j])) {
+                  propMap.get(fieldNames[j]).addAll(propValues);
+                } else {
+                  propMap.put(fieldNames[j], propValues);
+                }
+              } catch (Exception ex) {
+                throw new RuntimeException(String.format("Encountered "
+                    + "error processing field %s with value %s of line %d "
+                    + "in the line buffer. Line: \"%s\"", fieldNames[j],
+                    fieldValues[j], localLinesProcessed + 1, line), ex);
               }
             }
+
+            neighborIds.add(neighborId);
+            propMaps.add(propMap);
+
+            localLinesProcessed++;
+            stats.linesProcessed++;
+            stats.bytesReadFromDisk += line.length();
           }
+
+
+          graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
+              neighborEntity.label, neighborIds.toArray(), propMaps.toArray());
         }
 
         try {
@@ -833,13 +785,6 @@ public class ImageMaker {
           totalEdgeFiles));
     }
 
-    // Create TorcGraph configuration.
-    Map<String, String> torcConfig = new HashMap<>();
-    torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_CREATION_MODE, "yes");
-    torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_DIRECTORY, outputDir);
-    torcConfig.put(TorcGraph.CONFIG_GRAPH_NAME,
-        (String) opts.get("--graphName"));
-
     /*
      * Start the threads.
      */
@@ -848,6 +793,14 @@ public class ImageMaker {
     List<TorcGraph> threadGraphs = new ArrayList<>(numThreads);
     for (int i = 0; i < numThreads; i++) {
       ThreadStats stats = new ThreadStats();
+
+      // Create TorcGraph configuration.
+      Map<String, String> torcConfig = new HashMap<>();
+      torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_CREATION_MODE, "yes");
+      torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_DIRECTORY, outputDir);
+      torcConfig.put(TorcGraph.CONFIG_GRAPH_NAME, 
+          String.format("%s.part%04d", (String) opts.get("--graphName"), i));
+
       TorcGraph graph = TorcGraph.open(torcConfig);
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
