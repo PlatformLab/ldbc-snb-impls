@@ -91,12 +91,6 @@ public class GraphLoader {
       + "                    [default: tcp:host=127.0.0.1,port=12246].\n"
       + "  --masters=<n>     Number of RAMCloud master servers to use to\n"
       + "                    store the graph [default: 1].\n"
-      + "  --writeImages     Instead of loading data into a running RAMCloud\n"
-      + "                    instance, write out keys and values into image\n"
-      + "                    files on disk that can uploaded later. If this\n"
-      + "                    option is present, --coordLoc and --masters are\n"
-      + "                    ignored.\n"
-      + "  --outputDir=<d>   Directory to write image files [default: ./].\n"
       + "  --graphName=<g>   The name to give the graph in RAMCloud\n"
       + "                    [default: graph].\n"
       + "  --numLoaders=<n>  The total number of loader instances loading\n"
@@ -297,7 +291,6 @@ public class GraphLoader {
     private final int txRetries;
     private final int txBackoff;
     private final int txBoffCeil;
-    private final boolean writeImages;
     private final ThreadStats stats;
 
     /*
@@ -332,14 +325,12 @@ public class GraphLoader {
      * @param txBackoff The maximum time range, in milliseconds, in which to
      * select a random time to back-off in the case of txRetries transaction
      * failures.
-     * @param writeImages Whether or not we are writing out images to disk
-     * versus writing to a RAMCloud instance.
      * @param stats ThreadStats instance to update with loading statistics
      * info.
      */
     public LoaderThread(Graph graph, List<LoadUnit> loadList, int totalThreads,
         int threadIdx, int txSize, int txRetries, int txBackoff, int txBoffCeil,
-        boolean writeImages, ThreadStats stats) {
+        ThreadStats stats) {
       this.graph = graph;
       this.loadList = loadList;
       this.totalThreads = totalThreads;
@@ -348,7 +339,6 @@ public class GraphLoader {
       this.txRetries = txRetries;
       this.txBackoff = txBackoff;
       this.txBoffCeil = txBoffCeil;
-      this.writeImages = writeImages;
       this.stats = stats;
 
       this.birthdayDateFormat =
@@ -449,7 +439,6 @@ public class GraphLoader {
                  * speaks, ...), splitting the field value by the array
                  * separator and creating a property for each of the elements.
                  */
-//                long startTime = System.nanoTime();
                 String[] fieldValues = lineBuffer.get(i).split("\\|");
                 Map<Object, Object> propMap = new HashMap<>();
                 for (int j = 0; j < fieldValues.length; j++) {
@@ -496,17 +485,8 @@ public class GraphLoader {
                   keyValues.add(key);
                   keyValues.add(val);
                 });
-//                long endTime = System.nanoTime();
 
-//                System.out.println(String.format("\tTime to create keyValues: %dns",
-//                      (endTime - startTime)));
-
-//                startTime = System.nanoTime();
-                ((TorcGraph)graph).loadVertex(keyValues.toArray());
-//                endTime = System.nanoTime();
-
-//                System.out.println(String.format("\tTime to graph.loadVertex(): %dns",
-//                      (endTime - startTime)));
+                graph.addVertex(keyValues.toArray());
               }
             };
           }
@@ -578,7 +558,6 @@ public class GraphLoader {
            * around until commit time. If the commit succeeds we can forget
            * about it, otherwise we'll use it again to retry the transaction.
            */
-//          long startTime = System.nanoTime();
           String line;
           List<String> lineBuffer = new ArrayList<>(txSize);
           try {
@@ -601,10 +580,6 @@ public class GraphLoader {
             throw new RuntimeException(String.format("Encountered error "
                 + "reading lines of file %s", path.getFileName()));
           }
-//          long endTime = System.nanoTime();
-
-//          System.out.println(String.format("Time to fill lineBuffer: %dns",
-//                (endTime - startTime)));
 
           // Catch when we've read all the lines in the file.
           if (line == null) {
@@ -631,63 +606,51 @@ public class GraphLoader {
                   path.getFileName()), ex);
             }
 
-            if (writeImages) {
-                localLinesProcessed += lineBuffer.size();
-                stats.linesProcessed += lineBuffer.size();
-                break;
-            } else {
-              try {
-//                startTime = System.nanoTime();
-                graph.tx().commit();
-//                endTime = System.nanoTime();
+            try {
+              graph.tx().commit();
+              localLinesProcessed += lineBuffer.size();
+              stats.linesProcessed += lineBuffer.size();
+              break;
+            } catch (Exception e) {
+              /*
+               * The transaction failed due to either a conflict or a timeout.
+               * In this case we want to retry the transaction, but only up to
+               * the txRetries limit.
+               */
+              txFailCount++;
+              stats.txFailures++;
 
-//                System.out.println(String.format("Time for graph.tx().commit(): %dns",
-//                      (endTime - startTime)));
-
-                localLinesProcessed += lineBuffer.size();
-                stats.linesProcessed += lineBuffer.size();
-                break;
-              } catch (Exception e) {
-                /*
-                 * The transaction failed due to either a conflict or a timeout.
-                 * In this case we want to retry the transaction, but only up to
-                 * the txRetries limit.
-                 */
-                txFailCount++;
-                stats.txFailures++;
-
-                if (txFailCount > txRetries) {
-                  try {
-                    int sleepTimeBound;
-                    if (backoffMultiplier * txBackoff < txBoffCeil) {
-                      sleepTimeBound = backoffMultiplier * txBackoff;
-                      backoffMultiplier *= 2;
-                    } else {
-                      sleepTimeBound = txBoffCeil;
-                    }
-
-                    int sleepTime = rand.nextInt(sleepTimeBound + 1);
-
-                    logger.debug(String.format("Thread %d txFailCount reached %d "
-                        + "on lines [%d, %d] of file %s. Sleeping for %dms.",
-                        Thread.currentThread().getId(), txFailCount,
-                        localLinesProcessed + 2,
-                        localLinesProcessed + 1 + lineBuffer.size(),
-                        path.getFileName(), sleepTime));
-
-                    Thread.sleep(sleepTime);
-                  } catch (InterruptedException ex) {
-                    // Our slumber has been cut short, most likely due to a
-                    // terminate signal. In this case we should terminate.
-                    try {
-                      inFile.close();
-                    } catch (IOException ex1) {
-                      throw new RuntimeException(String.format("Encountered "
-                          + "error closing file %s", path.getFileName()));
-                    }
-
-                    return;
+              if (txFailCount > txRetries) {
+                try {
+                  int sleepTimeBound;
+                  if (backoffMultiplier * txBackoff < txBoffCeil) {
+                    sleepTimeBound = backoffMultiplier * txBackoff;
+                    backoffMultiplier *= 2;
+                  } else {
+                    sleepTimeBound = txBoffCeil;
                   }
+
+                  int sleepTime = rand.nextInt(sleepTimeBound + 1);
+
+                  logger.debug(String.format("Thread %d txFailCount reached %d "
+                      + "on lines [%d, %d] of file %s. Sleeping for %dms.",
+                      Thread.currentThread().getId(), txFailCount,
+                      localLinesProcessed + 2,
+                      localLinesProcessed + 1 + lineBuffer.size(),
+                      path.getFileName(), sleepTime));
+
+                  Thread.sleep(sleepTime);
+                } catch (InterruptedException ex) {
+                  // Our slumber has been cut short, most likely due to a
+                  // terminate signal. In this case we should terminate.
+                  try {
+                    inFile.close();
+                  } catch (IOException ex1) {
+                    throw new RuntimeException(String.format("Encountered "
+                        + "error closing file %s", path.getFileName()));
+                  }
+
+                  return;
                 }
               }
             }
@@ -890,10 +853,6 @@ public class GraphLoader {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("GraphLoader 1.0").parse(args);
 
-    System.out.println(opts.toString());
-
-    boolean writeImages = (Boolean) opts.get("--writeImages");
-    String outputDir = (String) opts.get("--outputDir");
     int numLoaders = Integer.decode((String) opts.get("--numLoaders"));
     int loaderIdx = Integer.decode((String) opts.get("--loaderIdx"));
     int numThreads = Integer.decode((String) opts.get("--numThreads"));
@@ -914,62 +873,35 @@ public class GraphLoader {
       command = "edges";
     }
 
-    Graph graph;
+    System.out.println(String.format(
+        "GraphLoader: {coordLoc: %s, masters: %s, graphName: %s, "
+        + "numLoaders: %d, loaderIdx: %d, numThreads: %d, txSize: %d, "
+        + "txRetries: %d, txBackoff: %d, txBoffCeil: %d, "
+        + "reportFmt: %s, inputDir: %s, command: %s}",
+        (String) opts.get("--coordLoc"),
+        (String) opts.get("--masters"),
+        (String) opts.get("--graphName"),
+        numLoaders,
+        loaderIdx,
+        numThreads,
+        txSize,
+        txRetries,
+        txBackoff,
+        txBoffCeil,
+        formatString,
+        inputDir,
+        command));
 
-    if (writeImages) {
-      System.out.println(String.format(
-          "GraphLoader: {outputDir: %s, graphName: %s, "
-          + "numLoaders: %d, loaderIdx: %d, numThreads: %d, "
-          + "reportFmt: %s, inputDir: %s, command: %s}",
-          outputDir,
-          (String) opts.get("--graphName"),
-          numLoaders,
-          loaderIdx,
-          numThreads,
-          formatString,
-          inputDir,
-          command));
+    // Open a new TorcGraph with the supplied configuration.
+    Map<String, String> config = new HashMap<>();
+    config.put(TorcGraph.CONFIG_COORD_LOCATOR,
+        (String) opts.get("--coordLoc"));
+    config.put(TorcGraph.CONFIG_GRAPH_NAME,
+        (String) opts.get("--graphName"));
+    config.put(TorcGraph.CONFIG_NUM_MASTER_SERVERS,
+        (String) opts.get("--masters"));
 
-      // Open a new TorcGraph with the supplied configuration.
-      Map<String, String> config = new HashMap<>();
-      config.put(TorcGraph.CONFIG_RC_IMAGE_CREATION_MODE, "yes");
-      config.put(TorcGraph.CONFIG_RC_IMAGE_DIRECTORY, outputDir);
-      config.put(TorcGraph.CONFIG_GRAPH_NAME,
-          (String) opts.get("--graphName"));
-
-      graph = TorcGraph.open(config);
-    } else {
-      System.out.println(String.format(
-          "GraphLoader: {coordLoc: %s, masters: %s, graphName: %s, "
-          + "numLoaders: %d, loaderIdx: %d, numThreads: %d, txSize: %d, "
-          + "txRetries: %d, txBackoff: %d, txBoffCeil: %d, "
-          + "reportFmt: %s, inputDir: %s, command: %s}",
-          (String) opts.get("--coordLoc"),
-          (String) opts.get("--masters"),
-          (String) opts.get("--graphName"),
-          numLoaders,
-          loaderIdx,
-          numThreads,
-          txSize,
-          txRetries,
-          txBackoff,
-          txBoffCeil,
-          formatString,
-          inputDir,
-          command));
-
-      // Open a new TorcGraph with the supplied configuration.
-      Map<String, String> config = new HashMap<>();
-      config.put(TorcGraph.CONFIG_COORD_LOCATOR,
-          (String) opts.get("--coordLoc"));
-      config.put(TorcGraph.CONFIG_GRAPH_NAME,
-          (String) opts.get("--graphName"));
-      config.put(TorcGraph.CONFIG_NUM_MASTER_SERVERS,
-          (String) opts.get("--masters"));
-
-      graph = TorcGraph.open(config);
-    }    
-
+    Graph graph = TorcGraph.open(config);
 
     /*
      * Construct a list of all the files that need to be loaded. If we are
@@ -1089,7 +1021,7 @@ public class GraphLoader {
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
           numLoaders * numThreads, loaderIdx * numThreads + i, txSize, 
-          txRetries, txBackoff, txBoffCeil, writeImages, stats)));
+          txRetries, txBackoff, txBoffCeil, stats)));
 
       threads.get(i).start();
 
@@ -1107,12 +1039,6 @@ public class GraphLoader {
      */
     for (Thread thread : threads) {
       thread.join();
-    }
-
-    try {
-      graph.close();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 }
