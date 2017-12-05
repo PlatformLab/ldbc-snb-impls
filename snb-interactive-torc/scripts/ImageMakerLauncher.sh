@@ -17,12 +17,12 @@ mode=${4:-"all"}
 
 # Edit these parameters as necessary
 numLoaders=16
-numThreads=4
+numThreads=1
 reportInt=2
 reportFmt="LFDT"
 
 # Get full path of data directory in case given directory is relative
-dataDir="$( cd "$(dirname "$dataDir")" ; pwd -P )"
+dataDir="$( cd "$dataDir" ; pwd -P )"
 
 # Create an array of the client hostnames available for launching ImageMaker
 # instances.
@@ -47,6 +47,5 @@ for (( i=0; i<$numLoaders; i++ ))
 do
   tmux send-keys -t ImageMaker.$i "echo \"Loading $mode\"" C-m
   tmux send-keys -t ImageMaker.$i "ssh ${hosts[i]}" C-m
-  tmux send-keys -t ImageMaker.$i "cd ${SCRIPTPATH}/..; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.ImageMaker\" -Dexec.args=\"--mode $mode --outputDir $outputDir --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads--reportInt $reportInt --reportFmt $reportFmt $dataDir\"; exit" C-m
+  tmux send-keys -t ImageMaker.$i "cd ${SCRIPTPATH}/..; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.ImageMaker\" -Dexec.args=\"--mode $mode --outputDir $outputDir --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --reportInt $reportInt --reportFmt $reportFmt $dataDir\"; exit" C-m
 done
-
