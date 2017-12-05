@@ -19,6 +19,7 @@ package net.ellitron.ldbcsnbimpls.interactive.torc.util;
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbEntity;
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbRelation;
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcEntity;
+import net.ellitron.torc.TorcEdgeDirection;
 import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.TorcVertex;
 import net.ellitron.torc.util.UInt128;
@@ -343,142 +344,145 @@ public class ImageMaker {
         // Keep track of what lines we're on in this file.
         long localLinesProcessed = 0;
 
-        if (loadUnit.isEntity() && !loadUnit.isProperties()) {
-          // Vertex file
-          SnbEntity snbEntity = loadUnit.getSnbEntity();
-          long idSpace = TorcEntity.valueOf(snbEntity).idSpace;
-          String vertexLabel = TorcEntity.valueOf(snbEntity).label;
+        try {
+          if (loadUnit.isEntity() && !loadUnit.isProperties()) {
+            // Vertex file
+            SnbEntity snbEntity = loadUnit.getSnbEntity();
+            long idSpace = TorcEntity.valueOf(snbEntity).idSpace;
+            String vertexLabel = TorcEntity.valueOf(snbEntity).label;
 
-          String line;
-          while ((line = inFile.readLine()) != null) {
-            UInt128 vertexId;
-            Map<String, List<String>> propMap = new HashMap<>();
-            String[] fieldValues = line.split("\\|");
-            for (int j = 0; j < fieldValues.length; j++) {
-              try {
-                List<String> propValues = new ArrayList<>(8);
-                if (fieldNames[j].equals("id")) {
-                  vertexId = new UInt128(idSpace, Long.decode(fieldValues[j]));
-                } else if (fieldNames[j].equals("birthday")) {
-                  propValues.add(String.valueOf(
-                      birthdayDateFormat.parse(fieldValues[j]).getTime()));
-                } else if (fieldNames[j].equals("creationDate") || 
-                    fieldNames[j].equals("joinDate")) {
-                  propValues.add(String.valueOf(
-                      creationDateDateFormat.parse(fieldValues[j]).getTime()));
-                } else if (fieldNames[j].equals("emails") || 
-                    fieldNames[j].equals("speaks")) {
-                  String[] elements = fieldValues[j].split(";");
-                  for (String elem : elements) {
-                    if (elem.length() != 0) {
-                      propValues.add(elem);
+            String line;
+            while ((line = inFile.readLine()) != null) {
+              UInt128 vertexId = null;
+              Map<String, List<String>> propMap = new HashMap<>();
+              String[] fieldValues = line.split("\\|");
+              for (int j = 0; j < fieldValues.length; j++) {
+                try {
+                  List<String> propValues = new ArrayList<>(8);
+                  if (fieldNames[j].equals("id")) {
+                    vertexId = new UInt128(idSpace, Long.decode(fieldValues[j]));
+                  } else if (fieldNames[j].equals("birthday")) {
+                    propValues.add(String.valueOf(
+                        birthdayDateFormat.parse(fieldValues[j]).getTime()));
+                  } else if (fieldNames[j].equals("creationDate") || 
+                      fieldNames[j].equals("joinDate")) {
+                    propValues.add(String.valueOf(
+                        creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                  } else if (fieldNames[j].equals("emails") || 
+                      fieldNames[j].equals("speaks")) {
+                    String[] elements = fieldValues[j].split(";");
+                    for (String elem : elements) {
+                      if (elem.length() != 0) {
+                        propValues.add(elem);
+                      }
                     }
+                  } else {
+                    propValues.add(fieldValues[j]);
                   }
-                } else {
-                  propValues.add(fieldValues[j]);
-                }
 
-                if (propMap.containsKey(fieldNames[j])) {
-                  propMap.get(fieldNames[j]).addAll(propValues);
-                } else {
-                  propMap.put(fieldNames[j], propValues);
+                  if (propMap.containsKey(fieldNames[j])) {
+                    propMap.get(fieldNames[j]).addAll(propValues);
+                  } else {
+                    propMap.put(fieldNames[j], propValues);
+                  }
+                } catch (Exception ex) {
+                  throw new RuntimeException(String.format("Encountered "
+                      + "error processing field %s with value %s of line %d "
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j],
+                      fieldValues[j], localLinesProcessed + 1, line), ex);
                 }
-              } catch (Exception ex) {
-                throw new RuntimeException(String.format("Encountered "
-                    + "error processing field %s with value %s of line %d "
-                    + "in the line buffer. Line: \"%s\"", fieldNames[j],
-                    fieldValues[j], localLinesProcessed + 1, line), ex);
               }
+
+              graph.loadVertex(vertexId, vertexLabel, propMap);
+
+              localLinesProcessed++;
+              stats.linesProcessed++;
+            }
+          } else if (loadUnit.isRelation()) {
+            SnbRelation snbRelation = loadUnit.getSnbRelation();
+
+            // Normally edges are listed started with the vertex on the tail end
+            // of the edge, followed by the vertex on the head end of the edge.
+            // But in reverse indexes, it is the opposite.
+            TorcEntity baseEntity;
+            TorcEntity neighborEntity;
+            TorcEdgeDirection edgeDir;
+            if (loadUnit.isReverseIndex()) {
+              baseEntity = TorcEntity.valueOf(snbRelation.head);
+              neighborEntity = TorcEntity.valueOf(snbRelation.tail);
+              edgeDir = TorcEdgeDirection.DIRECTED_IN;
+            } else {
+              baseEntity = TorcEntity.valueOf(snbRelation.tail);
+              neighborEntity = TorcEntity.valueOf(snbRelation.head);
+              edgeDir = TorcEdgeDirection.DIRECTED_OUT;
             }
 
-            graph.loadVertex(vertexId, vertexLabel, propMap);
-
-            localLinesProcessed++;
-            stats.linesProcessed++;
-          }
-        } else if (loadUnit.isRelation()) {
-          SnbRelation snbRelation = loadUnit.getSnbRelation();
-
-          // Normally edges are listed started with the vertex on the tail end
-          // of the edge, followed by the vertex on the head end of the edge.
-          // But in reverse indexes, it is the opposite.
-          TorcEntity baseEntity;
-          TorcEntity neighborEntity;
-          TorcEdgeDirection edgeDir;
-          if (loadUnit.isReverseIndex()) {
-            baseEntity = TorcEntity.valueOf(snbRelation.head);
-            neighborEntity = TorcEntity.valueOf(snbRelation.tail);
-            edgeDir = TorcEdgeDirection.DIRECTED_IN;
-          } else {
-            baseEntity = TorcEntity.valueOf(snbRelation.tail);
-            neighborEntity = TorcEntity.valueOf(snbRelation.head);
-            edgeDir = TorcEdgeDirection.DIRECTED_OUT;
-          }
-
-          UInt128 curBaseVertexId = null;
-          List<UInt128> neighborIds = new ArrayList<>(32);
-          List<Map<String, List<String>>> propMaps = new HashMap<>();
-          String line;
-          while ((line = inFile.readLine()) != null) {
-            String[] fieldValues = line.split("\\|");
-            
-            UInt128 baseVertexId = 
-              new UInt128(baseEntity.idSpace, Long.decode(fieldValues[0]));
-
-            if (curBaseVertexId == null) {
-              curBaseVertexId = baseVertexId;
-            } else if (!baseVertexId.equals(curBaseVertexId)) {
-              // We hit a new set of edges in the file, so we should write out
-              // the edge list that we currently have buffered before starting
-              // on this new edge list.
-              graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
-                  neighborEntity.label, neighborIds.toArray(), 
-                  propMaps.toArray());
+            UInt128 curBaseVertexId = null;
+            List<UInt128> neighborIds = new ArrayList<>(32);
+            List<Map<String, List<String>>> propMaps = new ArrayList<>();
+            String line;
+            while ((line = inFile.readLine()) != null) {
+              String[] fieldValues = line.split("\\|");
               
-              curBaseVertexId = baseVertexId;
-              neighborIds.clear();
-              propMaps.clear();
-            }
+              UInt128 baseVertexId = 
+                new UInt128(baseEntity.idSpace, Long.decode(fieldValues[0]));
 
-            UInt128 neighborId = 
-              new UInt128(neighborEntity.idSpace, Long.decode(fieldValues[1]));
-
-            Map<String, List<String>> propMap = new HashMap<>();
-            for (int j = 0; j < fieldValues.length; j++) {
-              try {
-                List<String> propValues = new ArrayList<>(8);
-                if (fieldNames[j].equals("creationDate") || 
-                    fieldNames[j].equals("joinDate")) {
-                  propValues.add(String.valueOf(
-                      creationDateDateFormat.parse(fieldValues[j]).getTime()));
-                } else {
-                  propValues.add(fieldValues[j]);
-                }
-
-                if (propMap.containsKey(fieldNames[j])) {
-                  propMap.get(fieldNames[j]).addAll(propValues);
-                } else {
-                  propMap.put(fieldNames[j], propValues);
-                }
-              } catch (Exception ex) {
-                throw new RuntimeException(String.format("Encountered "
-                    + "error processing field %s with value %s of line %d "
-                    + "in the line buffer. Line: \"%s\"", fieldNames[j],
-                    fieldValues[j], localLinesProcessed + 1, line), ex);
+              if (curBaseVertexId == null) {
+                curBaseVertexId = baseVertexId;
+              } else if (!baseVertexId.equals(curBaseVertexId)) {
+                // We hit a new set of edges in the file, so we should write out
+                // the edge list that we currently have buffered before starting
+                // on this new edge list.
+                graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
+                    neighborEntity.label, neighborIds, propMaps);
+                
+                curBaseVertexId = baseVertexId;
+                neighborIds.clear();
+                propMaps.clear();
               }
+
+              UInt128 neighborId = 
+                new UInt128(neighborEntity.idSpace, Long.decode(fieldValues[1]));
+
+              Map<String, List<String>> propMap = new HashMap<>();
+              for (int j = 0; j < fieldValues.length; j++) {
+                try {
+                  List<String> propValues = new ArrayList<>(8);
+                  if (fieldNames[j].equals("creationDate") || 
+                      fieldNames[j].equals("joinDate")) {
+                    propValues.add(String.valueOf(
+                        creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                  } else {
+                    propValues.add(fieldValues[j]);
+                  }
+
+                  if (propMap.containsKey(fieldNames[j])) {
+                    propMap.get(fieldNames[j]).addAll(propValues);
+                  } else {
+                    propMap.put(fieldNames[j], propValues);
+                  }
+                } catch (Exception ex) {
+                  throw new RuntimeException(String.format("Encountered "
+                      + "error processing field %s with value %s of line %d "
+                      + "in the line buffer. Line: \"%s\"", fieldNames[j],
+                      fieldValues[j], localLinesProcessed + 1, line), ex);
+                }
+              }
+
+              neighborIds.add(neighborId);
+              propMaps.add(propMap);
+
+              localLinesProcessed++;
+              stats.linesProcessed++;
+              stats.bytesReadFromDisk += line.length();
             }
 
-            neighborIds.add(neighborId);
-            propMaps.add(propMap);
 
-            localLinesProcessed++;
-            stats.linesProcessed++;
-            stats.bytesReadFromDisk += line.length();
+            graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
+                neighborEntity.label, neighborIds, propMaps);
           }
-
-
-          graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
-              neighborEntity.label, neighborIds.toArray(), propMaps.toArray());
+        } catch (IOException ex) {
+          throw new RuntimeException(ex);
         }
 
         try {
@@ -615,10 +619,6 @@ public class ImageMaker {
                   currStats.filesProcessed, currStats.totalFilesToProcess)));
             }
 
-            if (formatString.contains("x")) {
-              sb.append(String.format(colFormatStr, currStats.txFailures));
-            }
-
             if (formatString.contains("d")) {
               sb.append(String.format(colFormatStr, (currByteRate / 1000l)
                   + "KB/s"));
@@ -627,7 +627,6 @@ public class ImageMaker {
             totalCurrLineRate += currLineRate;
             totalCurrByteRate += currByteRate;
             totalFilesProcessed += currStats.filesProcessed;
-            totalTxFailures += currStats.txFailures;
             totalFilesToProcess += currStats.totalFilesToProcess;
           }
 
@@ -756,7 +755,7 @@ public class ImageMaker {
                     "^" + snbRelation.tail.name + 
                     "_" + snbRelation.name + 
                     "_" + snbRelation.head.name + 
-                    "(_ridx)?"
+                    "(_ridx)?" +
                     "_[0-9]+_[0-9]+\\.csv");
               }
             });
@@ -768,7 +767,7 @@ public class ImageMaker {
                     "^" + snbRelation.tail.name + 
                     "_" + snbRelation.name + 
                     "_" + snbRelation.head.name + 
-                    "_ridx"
+                    "_ridx" +
                     "_[0-9]+_[0-9]+\\.csv")));
             System.out.println(String.format("Found file for %s edges (%s)",
                 edgeStr, f.getName()));
