@@ -477,9 +477,10 @@ public class ImageMaker {
               stats.bytesReadFromDisk += line.length();
             }
 
-
-            graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
-                neighborEntity.label, neighborIds, propMaps);
+            if (curBaseVertexId != null) {
+              graph.loadEdges(curBaseVertexId, snbRelation.name, edgeDir, 
+                  neighborEntity.label, neighborIds, propMaps);
+            }
           }
         } catch (IOException ex) {
           throw new RuntimeException(ex);
