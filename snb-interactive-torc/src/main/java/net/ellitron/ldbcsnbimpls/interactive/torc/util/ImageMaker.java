@@ -444,34 +444,38 @@ public class ImageMaker {
               UInt128 neighborId = 
                 new UInt128(neighborEntity.idSpace, Long.decode(fieldValues[1]));
 
-              Map<String, List<String>> propMap = new HashMap<>();
-              for (int j = 0; j < fieldValues.length; j++) {
-                try {
-                  List<String> propValues = new ArrayList<>(8);
-                  if (fieldNames[j].equals("creationDate") || 
-                      fieldNames[j].equals("joinDate")) {
-                    propValues.add(String.valueOf(
-                        creationDateDateFormat.parse(fieldValues[j]).getTime()));
-                  } else {
-                    propValues.add(fieldValues[j]);
-                  }
-
-                  if (propMap.containsKey(fieldNames[j])) {
-                    propMap.get(fieldNames[j]).addAll(propValues);
-                  } else {
-                    propMap.put(fieldNames[j], propValues);
-                  }
-                } catch (Exception ex) {
-                  throw new RuntimeException(String.format("Encountered "
-                      + "error processing field %s with value %s of line %d "
-                      + "in the line buffer. Line: \"%s\"", fieldNames[j],
-                      fieldValues[j], localLinesProcessed + 1, line), ex);
-                }
-              }
-
               neighborIds.add(neighborId);
-              propMaps.add(propMap);
+              
+              // Parse properties only if these edges have properties.
+              if (fieldValues.length > 2) {
+                Map<String, List<String>> propMap = new HashMap<>();
+                for (int j = 2; j < fieldValues.length; j++) {
+                  try {
+                    List<String> propValues = new ArrayList<>(8);
+                    if (fieldNames[j].equals("creationDate") || 
+                        fieldNames[j].equals("joinDate")) {
+                      propValues.add(String.valueOf(
+                          creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                    } else {
+                      propValues.add(fieldValues[j]);
+                    }
 
+                    if (propMap.containsKey(fieldNames[j])) {
+                      propMap.get(fieldNames[j]).addAll(propValues);
+                    } else {
+                      propMap.put(fieldNames[j], propValues);
+                    }
+                  } catch (Exception ex) {
+                    throw new RuntimeException(String.format("Encountered "
+                        + "error processing field %s with value %s of line %d "
+                        + "in the line buffer. Line: \"%s\"", fieldNames[j],
+                        fieldValues[j], localLinesProcessed + 1, line), ex);
+                  }
+                }
+
+                propMaps.add(propMap);
+              }
+                
               localLinesProcessed++;
               stats.linesProcessed++;
               stats.bytesReadFromDisk += line.length();
