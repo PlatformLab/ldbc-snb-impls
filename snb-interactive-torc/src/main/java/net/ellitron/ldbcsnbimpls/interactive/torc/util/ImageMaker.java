@@ -368,8 +368,8 @@ public class ImageMaker {
                       fieldNames[j].equals("joinDate")) {
                     propValues.add(String.valueOf(
                         creationDateDateFormat.parse(fieldValues[j]).getTime()));
-                  } else if (fieldNames[j].equals("emails") || 
-                      fieldNames[j].equals("speaks")) {
+                  } else if (fieldNames[j].equals("email") || 
+                      fieldNames[j].equals("language")) {
                     String[] elements = fieldValues[j].split(";");
                     for (String elem : elements) {
                       if (elem.length() != 0) {
