@@ -42,12 +42,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -787,6 +791,63 @@ public class ImageMaker {
 
       System.out.println(String.format("Found %d total edge files",
           totalEdgeFiles));
+    }
+
+    /*
+     * Generate the Incident Edge Label List and Neighbor Lists from the
+     * information in SnbRelation. 
+     */
+    // Map from Vertex type to list of incident edge labels for this type of
+    // vertex.
+    Map<SnbEntity, Set<String>> edgeLabelList = new HashMap<>();
+
+    // Map from Vertex type to all of the neighbor label lists for that vertex
+    // by edge label and direction.
+    Map<SnbEntity, Map<Entry<String, TorcEdgeDirection>, Set<String>>> 
+      neighborLabelList = new HashMap<>();
+    
+    for (SnbRelation relation : SnbRelation.values()) {
+      // Add edge label to tail's incident edge list
+      if (!edgeLabelList.containsKey(relation.tail)) {
+        edgeLabelList.put(relation.tail, new HashSet<>());
+      }
+      edgeLabelList.get(relation.tail).add(relation.name);
+
+      // Add edge label to head's incident edge list
+      if (!edgeLabelList.containsKey(relation.head)) {
+        edgeLabelList.put(relation.head, new HashSet<>());
+      }
+      edgeLabelList.get(relation.head).add(relation.name);
+
+      // Add head's vertex label to tail's neighbor list for this edge and dir
+      if (!neighborLabelList.containsKey(relation.tail)) {
+        neighborLabelList.put(relation.tail, new HashMap<>());
+      }
+
+      SimpleEntry eLabelAndDirOUT = 
+        new SimpleEntry<>(relation.name, TorcEdgeDirection.DIRECTED_OUT);
+      if (!neighborLabelList.get(relation.tail).containsKey(eLabelAndDirOUT)) {
+        neighborLabelList.get(relation.tail).put(eLabelAndDirOUT, 
+            new HashSet<>());
+      }
+
+      neighborLabelList.get(relation.tail).get(eLabelAndDirOUT)
+        .add(relation.head.name); 
+      
+      // Add tail's vertex label to head's neighbor list for this edge and dir
+      if (!neighborLabelList.containsKey(relation.head)) {
+        neighborLabelList.put(relation.head, new HashMap<>());
+      }
+
+      SimpleEntry eLabelAndDirIN = 
+        new SimpleEntry<>(relation.name, TorcEdgeDirection.DIRECTED_IN);
+      if (!neighborLabelList.get(relation.head).containsKey(eLabelAndDirIN)) {
+        neighborLabelList.get(relation.head).put(eLabelAndDirIN, 
+            new HashSet<>());
+      }
+
+      neighborLabelList.get(relation.head).get(eLabelAndDirIN)
+        .add(relation.tail.name); 
     }
 
     /*
