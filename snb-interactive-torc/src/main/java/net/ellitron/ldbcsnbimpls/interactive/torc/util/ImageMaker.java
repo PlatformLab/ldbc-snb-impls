@@ -849,9 +849,9 @@ public class ImageMaker {
       }
 
       if (!neighborLabelListMaps.get(relation.tail).get(eLabelAndDirOUT)
-        .contains(relation.head.name)) {
+        .contains(TorcEntity.valueOf(relation.head).label)) {
         neighborLabelListMaps.get(relation.tail).get(eLabelAndDirOUT)
-                .add(relation.head.name);
+                .add(TorcEntity.valueOf(relation.head).label);
       }
       
       // Add tail's vertex label to head's neighbor list for this edge and dir
@@ -867,9 +867,9 @@ public class ImageMaker {
       }
 
       if (!neighborLabelListMaps.get(relation.head).get(eLabelAndDirIN)
-        .contains(relation.tail.name)) {
+        .contains(TorcEntity.valueOf(relation.tail).label)) {
         neighborLabelListMaps.get(relation.head).get(eLabelAndDirIN)
-                .add(relation.tail.name);
+                .add(TorcEntity.valueOf(relation.tail).label);
       }
     }
 
