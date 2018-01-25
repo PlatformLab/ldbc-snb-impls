@@ -42,12 +42,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.function.Consumer;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -251,6 +255,10 @@ public class ImageMaker {
     private final int totalThreads;
     private final int threadIdx;
     private final ThreadStats stats;
+    private final Map<SnbEntity, List<String>> edgeLabelLists;
+    private final Map<SnbEntity, 
+        Map<Entry<String, TorcEdgeDirection>, List<String>>> 
+          neighborLabelListMaps;
 
     /*
      * Used for parsing dates in the original dataset files output by the data
@@ -278,12 +286,17 @@ public class ImageMaker {
      * info.
      */
     public LoaderThread(TorcGraph graph, List<LoadUnit> loadList, 
-        int totalThreads, int threadIdx, ThreadStats stats) {
+        int totalThreads, int threadIdx, ThreadStats stats, 
+        Map<SnbEntity, List<String>> edgeLabelLists,
+        Map<SnbEntity, Map<Entry<String, TorcEdgeDirection>, List<String>>> 
+            neighborLabelListMaps) {
       this.graph = graph;
       this.loadList = loadList;
       this.totalThreads = totalThreads;
       this.threadIdx = threadIdx;
       this.stats = stats;
+      this.edgeLabelLists = edgeLabelLists;
+      this.neighborLabelListMaps = neighborLabelListMaps;
 
       this.birthdayDateFormat =
           new SimpleDateFormat("yyyy-MM-dd");
@@ -393,7 +406,9 @@ public class ImageMaker {
                 }
               }
 
-              graph.loadVertex(vertexId, vertexLabel, propMap);
+              graph.loadVertex(vertexId, vertexLabel, propMap, 
+                  edgeLabelLists.get(snbEntity),
+                  neighborLabelListMaps.get(snbEntity));
 
               localLinesProcessed++;
               stats.linesProcessed++;
@@ -790,6 +805,75 @@ public class ImageMaker {
     }
 
     /*
+     * Generate the Incident Edge Label List and Neighbor Lists from the
+     * information in SnbRelation. 
+     */
+    // Map from Vertex type to list of incident edge labels for this type of
+    // vertex.
+    Map<SnbEntity, List<String>> edgeLabelLists = new HashMap<>();
+
+    // Map from Vertex type to all of the neighbor label lists for that vertex
+    // by edge label and direction.
+    Map<SnbEntity, Map<Entry<String, TorcEdgeDirection>, List<String>>> 
+      neighborLabelListMaps = new HashMap<>();
+    
+    for (SnbRelation relation : SnbRelation.values()) {
+      // Add edge label to tail's incident edge list
+      if (!edgeLabelLists.containsKey(relation.tail)) {
+        edgeLabelLists.put(relation.tail, new ArrayList<>());
+      }
+
+      if (!edgeLabelLists.get(relation.tail).contains(relation.name)) {
+        edgeLabelLists.get(relation.tail).add(relation.name);
+      }
+
+      // Add edge label to head's incident edge list
+      if (!edgeLabelLists.containsKey(relation.head)) {
+        edgeLabelLists.put(relation.head, new ArrayList<>());
+      }
+
+      if (!edgeLabelLists.get(relation.head).contains(relation.name)) {
+        edgeLabelLists.get(relation.head).add(relation.name);
+      }
+
+      // Add head's vertex label to tail's neighbor list for this edge and dir
+      if (!neighborLabelListMaps.containsKey(relation.tail)) {
+        neighborLabelListMaps.put(relation.tail, new HashMap<>());
+      }
+
+      SimpleEntry eLabelAndDirOUT = 
+        new SimpleEntry<>(relation.name, TorcEdgeDirection.DIRECTED_OUT);
+      if (!neighborLabelListMaps.get(relation.tail).containsKey(eLabelAndDirOUT)) {
+        neighborLabelListMaps.get(relation.tail).put(eLabelAndDirOUT, 
+            new ArrayList<>());
+      }
+
+      if (!neighborLabelListMaps.get(relation.tail).get(eLabelAndDirOUT)
+        .contains(TorcEntity.valueOf(relation.head).label)) {
+        neighborLabelListMaps.get(relation.tail).get(eLabelAndDirOUT)
+                .add(TorcEntity.valueOf(relation.head).label);
+      }
+      
+      // Add tail's vertex label to head's neighbor list for this edge and dir
+      if (!neighborLabelListMaps.containsKey(relation.head)) {
+        neighborLabelListMaps.put(relation.head, new HashMap<>());
+      }
+
+      SimpleEntry eLabelAndDirIN = 
+        new SimpleEntry<>(relation.name, TorcEdgeDirection.DIRECTED_IN);
+      if (!neighborLabelListMaps.get(relation.head).containsKey(eLabelAndDirIN)) {
+        neighborLabelListMaps.get(relation.head).put(eLabelAndDirIN, 
+            new ArrayList<>());
+      }
+
+      if (!neighborLabelListMaps.get(relation.head).get(eLabelAndDirIN)
+        .contains(TorcEntity.valueOf(relation.tail).label)) {
+        neighborLabelListMaps.get(relation.head).get(eLabelAndDirIN)
+                .add(TorcEntity.valueOf(relation.tail).label);
+      }
+    }
+
+    /*
      * Start the threads.
      */
     List<Thread> threads = new ArrayList<>();
@@ -809,7 +893,8 @@ public class ImageMaker {
       TorcGraph graph = TorcGraph.open(torcConfig);
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
-          numLoaders * numThreads, loaderIdx * numThreads + i, stats)));
+          numLoaders * numThreads, loaderIdx * numThreads + i, stats,
+          edgeLabelLists, neighborLabelListMaps)));
 
       threads.get(i).start();
 

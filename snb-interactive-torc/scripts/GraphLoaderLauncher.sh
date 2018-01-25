@@ -17,9 +17,9 @@ coordLoc=$2
 graphName=$3
 
 # Edit these parameters as necessary
-masters=40
-numLoaders=25
-numThreads=4
+masters=3
+numLoaders=3
+numThreads=1
 txSize=8
 #txRetries=10
 #txBackoff=1000
@@ -57,28 +57,26 @@ do
 done
 
 # Setup the panes for loading but stop before executing GraphLoader.
-#for mode in nodes edges props
-for mode in nodes
+for mode in nodes edges props
+#for mode in edges
 do
-  rm -rf ./pids
   echo -n "Executing $mode phase... "
   for (( i=0; i<$numLoaders; i++ ))
   do
     tmux send-keys -t GraphLoader.$i "echo \"Loading $mode\"" C-m
     tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]}" C-m
-    tmux send-keys -t GraphLoader.$i "cd $rootDir; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\" -Dexec.args=\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\"; exit" C-m
-#    tmux send-keys -t GraphLoader.$i "echo \$! >> ./pids" C-m
+    tmux send-keys -t GraphLoader.$i "cd $rootDir; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\" -Dexec.args=\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\"; touch scripts/$i; exit" C-m
   done
 
-#  for pid in $(cat pids)
-#  do
-#    while [ -e /proc/$pid ]
-#    do
-#      sleep 1
-#    done
-#  done
-#
-#  echo "Done!"
-done
+  for (( i=0; i<$numLoaders; i++ ))
+  do
+    while [ ! -e $i ]
+    do
+      sleep 1
+    done
 
-rm -rf ./pids
+    rm $i
+  done
+
+  echo "Done!"
+done
