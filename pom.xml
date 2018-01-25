@@ -15,6 +15,7 @@
     <module>snb-interactive-core</module>
     <module>snb-interactive-tools</module>
     <module>snb-interactive-neo4j</module>
+    <module>snb-interactive-nop</module>
     <module>snb-interactive-titan</module>
     <module>snb-interactive-torc</module>
   </modules>
