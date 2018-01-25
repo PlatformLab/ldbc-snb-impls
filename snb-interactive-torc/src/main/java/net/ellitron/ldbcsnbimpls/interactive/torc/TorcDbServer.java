@@ -16,6 +16,10 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
+import org.docopt.Docopt;
+
+import java.util.Map;
+
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
  * against TorcDB on behalf of remote clients. 
@@ -30,7 +34,7 @@ public class TorcDbServer {
       + "clients.\n"
       + "\n"
       + "Usage:\n"
-      + "  TorcDbServer [options] COORDLOC GRAPHNAME 
+      + "  TorcDbServer [options] COORDLOC GRAPHNAME\n"
       + "  TorcDbServer (-h | --help)\n"
       + "  TorcDbServer --version\n"
       + "\n"
@@ -48,7 +52,7 @@ public class TorcDbServer {
  
   private final String coordinatorLocator;
   private final String graphName;
-  private final int numThreads
+  private final int numThreads;
 
   public TorcDbServer(String coordinatorLocator,
                       String graphName,
