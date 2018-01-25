@@ -74,6 +74,15 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * A NOP implementation of the LDBC SNB interactive workload[1], where all
  * operations simply return immediately without doing any work. This is used for
@@ -471,8 +480,7 @@ public class NopDb extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery13Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      resultReporter.report(0, null, operation);
     }
   }
 
