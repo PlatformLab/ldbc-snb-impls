@@ -76,17 +76,17 @@ public class TorcDbServer {
 
         System.out.println("Listening on: " + server.toString());
 
-        Socket client = server.accept();
+        while (true) {
+          Socket client = server.accept();
 
-        System.out.println("Client connected: " + client.toString());
+          System.out.println("Client connected: " + client.toString());
 
-        Thread clientThread = new Thread(new ClientThread(client));
+          Thread clientThread = new Thread(new ClientThread(client));
 
-        clientThread.start();
+          clientThread.start();
+        }
 
-        clientThread.join();
-        
-        server.close();
+//        server.close();
       } catch (Exception e) {
 
       }
@@ -108,10 +108,13 @@ public class TorcDbServer {
 
     public void run() {
       try {
+        ObjectInputStream in = new ObjectInputStream(client.getInputStream());
+        ObjectOutputStream out = 
+            new ObjectOutputStream(client.getOutputStream());
+
         System.out.println("Client waiting for input");
 
         while (true) {
-          ObjectInputStream in = new ObjectInputStream(client.getInputStream());
           String objectReceived = (String) in.readObject();
 
           System.out.println("Received: " + objectReceived);
