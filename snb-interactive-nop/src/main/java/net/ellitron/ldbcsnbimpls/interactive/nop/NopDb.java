@@ -480,7 +480,7 @@ public class NopDb extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      resultReporter.report(1, new LdbcQuery13Result(0), operation);
     }
   }
 
