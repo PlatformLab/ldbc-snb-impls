@@ -18,7 +18,13 @@ package net.ellitron.ldbcsnbimpls.interactive.torc;
 
 import org.docopt.Docopt;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
@@ -43,30 +49,97 @@ public class TorcDbServer {
       + "  GRAPHNAME  Name of TorcDB graph to execute queries against.\n"
       + "\n"
       + "Options:\n"
-      + "  --numThreads=<n>  The number of worker threads for executing\n"
-      + "                    query requests. [default: 1].\n"
+      + "  --port=<n>        Port on which to listen for new connections.\n"
+      + "                    [default: 5577].\n"
       + "  --verbose         Print verbose output to stdout.\n"
       + "  -h --help         Show this screen.\n"
       + "  --version         Show version.\n"
       + "\n";
- 
-  private final String coordinatorLocator;
-  private final String graphName;
-  private final int numThreads;
 
-  public TorcDbServer(String coordinatorLocator,
-                      String graphName,
-                      int numThreads) {
-    this.coordinatorLocator = coordinatorLocator;
-    this.graphName = graphName;
-    this.numThreads = numThreads;
+  /**
+   * Thread that listens for connections and spins off new threads to serve
+   * client connections.
+   */
+  private static class ListenerThread implements Runnable {
+
+    // Port on which we listen for incoming connections.
+    private final int port;
+
+    public ListenerThread(int port) {
+      this.port = port;
+    }
+
+    @Override
+    public void run() {
+      try {
+        ServerSocket server = new ServerSocket(port);
+
+        System.out.println("Listening on: " + server.toString());
+
+        Socket client = server.accept();
+
+        System.out.println("Client connected: " + client.toString());
+
+        Thread clientThread = new Thread(new ClientThread(client));
+
+        clientThread.start();
+
+        clientThread.join();
+        
+        server.close();
+      } catch (Exception e) {
+
+      }
+    }
   }
 
-  public static void main(String[] args) {
+  /**
+   * Thread that receives requests from clients, executes them, and returns a
+   * response. Handles requests for the lifetime of the connection to the
+   * client.
+   */
+  private static class ClientThread implements Runnable {
+
+    private final Socket client;
+
+    public ClientThread(Socket client) {
+      this.client = client;
+    }
+
+    public void run() {
+      try {
+        System.out.println("Client waiting for input");
+
+        while (true) {
+          ObjectInputStream in = new ObjectInputStream(client.getInputStream());
+          String objectReceived = (String) in.readObject();
+
+          System.out.println("Received: " + objectReceived);
+        }
+      } catch (Exception e) {
+
+      }
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("TorcDbServer 1.0").parse(args);
 
-    System.out.println(opts);
-  }
+    final String coordinatorLocator = (String) opts.get("COORDLOC");
+    final String graphName = (String) opts.get("GRAPHNAME");
+    final int port = Integer.decode((String) opts.get("--port"));
 
+    final Set clientConnections = new HashSet<>();
+
+    System.out.println(String.format("TorcDbServer: {coordinatorLocator: %s, "
+        + "graphName: %s, port: %d}",
+        coordinatorLocator,
+        graphName,
+        port));
+
+    Thread listener = new Thread(new ListenerThread(port));
+    listener.start();
+    listener.join();
+  }
 }
