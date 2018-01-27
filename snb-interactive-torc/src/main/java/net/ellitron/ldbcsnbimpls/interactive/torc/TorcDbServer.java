@@ -16,6 +16,66 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbClient.*;
+
+import com.ldbc.driver.control.LoggingService;
+import com.ldbc.driver.Db;
+import com.ldbc.driver.DbConnectionState;
+import com.ldbc.driver.DbException;
+import com.ldbc.driver.OperationHandler;
+import com.ldbc.driver.ResultReporter;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPostsResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriendsResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContent;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContentResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreator;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreatorResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForumResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageReplies;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageRepliesResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate2AddPostLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate3AddCommentLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate4AddForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate5AddForumMembership;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
+
 import org.docopt.Docopt;
 
 import java.io.ObjectInputStream;
@@ -115,9 +175,55 @@ public class TorcDbServer {
         System.out.println("Client waiting for input");
 
         while (true) {
-          String objectReceived = (String) in.readObject();
+          Object query = in.readObject();
 
-          System.out.println("Received: " + objectReceived);
+          System.out.println("Received: " + query.toString());
+
+          if (query instanceof LdbcQuery1Serializable) {
+            LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery2Serializable) {
+            LdbcQuery2 op = ((LdbcQuery2Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery3Serializable) {
+            LdbcQuery3 op = ((LdbcQuery3Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery4Serializable) {
+            LdbcQuery4 op = ((LdbcQuery4Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery5Serializable) {
+            LdbcQuery5 op = ((LdbcQuery5Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery6Serializable) {
+            LdbcQuery6 op = ((LdbcQuery6Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery7Serializable) {
+            LdbcQuery7 op = ((LdbcQuery7Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery8Serializable) {
+            LdbcQuery8 op = ((LdbcQuery8Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery9Serializable) {
+            LdbcQuery9 op = ((LdbcQuery9Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery10Serializable) {
+            LdbcQuery10 op = ((LdbcQuery10Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery11Serializable) {
+            LdbcQuery11 op = ((LdbcQuery11Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery12Serializable) {
+            LdbcQuery12 op = ((LdbcQuery12Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery13Serializable) {
+            LdbcQuery13 op = ((LdbcQuery13Serializable) query).getQuery();
+
+          } else if (query instanceof LdbcQuery14Serializable) {
+            LdbcQuery14 op = ((LdbcQuery14Serializable) query).getQuery();
+
+          } else {
+            throw new RuntimeException("Unrecognized query type.");
+          }
         }
       } catch (Exception e) {
 
