@@ -17,6 +17,8 @@
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbClient.*;
+import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueryResultsSerializable.*;
+import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueriesSerializable.*;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -24,6 +26,7 @@ import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
 import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
+import com.ldbc.driver.runtime.ConcurrentErrorReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
@@ -78,13 +81,9 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
 import org.docopt.Docopt;
 
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
@@ -125,8 +124,19 @@ public class TorcDbServer {
     // Port on which we listen for incoming connections.
     private final int port;
 
-    public ListenerThread(int port) {
+    // Passed off to each client thread for executing queries.
+    private final ConcurrentErrorReporter concurrentErrorReporter;
+    private final TorcDbConnectionState connectionState;
+
+    public ListenerThread(int port, String coordinatorLocator, 
+        String graphName) {
       this.port = port;
+      this.concurrentErrorReporter = new ConcurrentErrorReporter();
+
+      Map<String, String> props = new HashMap<>();
+      props.put("coordinatorLocator", coordinatorLocator);
+      props.put("graphName", graphName);
+      this.connectionState = new TorcDbConnectionState(props);
     }
 
     @Override
@@ -141,7 +151,8 @@ public class TorcDbServer {
 
           System.out.println("Client connected: " + client.toString());
 
-          Thread clientThread = new Thread(new ClientThread(client));
+          Thread clientThread = new Thread(new ClientThread(client, 
+                concurrentErrorReporter, connectionState));
 
           clientThread.start();
         }
@@ -161,9 +172,18 @@ public class TorcDbServer {
   private static class ClientThread implements Runnable {
 
     private final Socket client;
+    private final ConcurrentErrorReporter concurrentErrorReporter;
+    private final ResultReporter resultReporter;
+    private final TorcDbConnectionState connectionState;
 
-    public ClientThread(Socket client) {
+    public ClientThread(Socket client, 
+        ConcurrentErrorReporter concurrentErrorReporter, 
+        TorcDbConnectionState connectionState) {
       this.client = client;
+      this.concurrentErrorReporter = concurrentErrorReporter;
+      this.resultReporter = 
+          new ResultReporter.SimpleResultReporter(concurrentErrorReporter);
+      this.connectionState = connectionState;
     }
 
     public void run() {
@@ -177,11 +197,35 @@ public class TorcDbServer {
         while (true) {
           Object query = in.readObject();
 
-          System.out.println("Received: " + query.toString());
-
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
 
+            System.out.println("Received: " + op.toString());
+
+//            LdbcQuery1Handler.executeOperation(op, connectionState, 
+//                resultReporter);
+//            List<LdbcQuery1Result> result = 
+//                (List<LdbcQuery1Result>) resultReporter.result();
+
+            List<LdbcQuery1ResultSerializable> result = new ArrayList<>();
+
+            result.add(new LdbcQuery1ResultSerializable(
+                0l,
+                "Fredrickson",
+                2,
+                0l,
+                0l,
+                "male",
+                "Firefox",
+                "0.0.0.0",
+                new ArrayList<String>(),
+                new ArrayList<String>(),
+                "Fooville",
+                new ArrayList<List<Object>>(),
+                new ArrayList<List<Object>>()));
+
+            out.writeObject(result);
+            out.flush();
           } else if (query instanceof LdbcQuery2Serializable) {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).getQuery();
 
@@ -247,7 +291,8 @@ public class TorcDbServer {
         graphName,
         port));
 
-    Thread listener = new Thread(new ListenerThread(port));
+    Thread listener = new Thread(new ListenerThread(port, coordinatorLocator, 
+          graphName));
     listener.start();
     listener.join();
   }
