@@ -16,6 +16,7 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
+import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.*;
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbClient.*;
 import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueryResultsSerializable.*;
 import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueriesSerializable.*;
@@ -192,37 +193,21 @@ public class TorcDbServer {
         ObjectOutputStream out = 
             new ObjectOutputStream(client.getOutputStream());
 
-        System.out.println("Client waiting for input");
-
         while (true) {
           Object query = in.readObject();
 
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
 
-            System.out.println("Received: " + op.toString());
+            TorcDb.LdbcQuery1Handler.executeOperation(op, connectionState, 
+                resultReporter);
+            List<LdbcQuery1Result> result = 
+                (List<LdbcQuery1Result>) resultReporter.result();
 
-//            LdbcQuery1Handler.executeOperation(op, connectionState, 
-//                resultReporter);
-//            List<LdbcQuery1Result> result = 
-//                (List<LdbcQuery1Result>) resultReporter.result();
-
-            List<LdbcQuery1ResultSerializable> result = new ArrayList<>();
-
-            result.add(new LdbcQuery1ResultSerializable(
-                0l,
-                "Fredrickson",
-                2,
-                0l,
-                0l,
-                "male",
-                "Firefox",
-                "0.0.0.0",
-                new ArrayList<String>(),
-                new ArrayList<String>(),
-                "Fooville",
-                new ArrayList<List<Object>>(),
-                new ArrayList<List<Object>>()));
+            List<LdbcQuery1ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery1ResultSerializable(v));
+            });
 
             out.writeObject(result);
             out.flush();
