@@ -201,8 +201,6 @@ public class TorcDbServer {
         while (true) {
           Object query = in.readObject();
 
-          System.out.println("Received query request: " + query.toString());
-
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
 
@@ -216,10 +214,7 @@ public class TorcDbServer {
               resp.add(new LdbcQuery1ResultSerializable(v));
             });
 
-
-            System.out.println("Sending result response: " + resp.toString());
-
-            out.writeObject(result);
+            out.writeObject(resp);
             out.flush();
           } else if (query instanceof LdbcQuery2Serializable) {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).getQuery();
