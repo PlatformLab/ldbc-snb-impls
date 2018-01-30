@@ -445,6 +445,19 @@ public class TorcDbServer {
     Map<Class<? extends Operation>, OperationHandler> queryHandlerMap = 
         new HashMap<>();
     queryHandlerMap.put(LdbcQuery1.class, new TorcDb.LdbcQuery1Handler());
+    queryHandlerMap.put(LdbcQuery2.class, new TorcDb.LdbcQuery2Handler());
+    queryHandlerMap.put(LdbcQuery3.class, new TorcDb.LdbcQuery3Handler());
+    queryHandlerMap.put(LdbcQuery4.class, new TorcDb.LdbcQuery4Handler());
+    queryHandlerMap.put(LdbcQuery5.class, new TorcDb.LdbcQuery5Handler());
+    queryHandlerMap.put(LdbcQuery6.class, new TorcDb.LdbcQuery6Handler());
+    queryHandlerMap.put(LdbcQuery7.class, new TorcDb.LdbcQuery7Handler());
+    queryHandlerMap.put(LdbcQuery8.class, new TorcDb.LdbcQuery8Handler());
+    queryHandlerMap.put(LdbcQuery9.class, new TorcDb.LdbcQuery9Handler());
+    queryHandlerMap.put(LdbcQuery10.class, new TorcDb.LdbcQuery10Handler());
+    queryHandlerMap.put(LdbcQuery11.class, new TorcDb.LdbcQuery11Handler());
+    queryHandlerMap.put(LdbcQuery12.class, new TorcDb.LdbcQuery12Handler());
+    queryHandlerMap.put(LdbcQuery13.class, new TorcDb.LdbcQuery13Handler());
+    queryHandlerMap.put(LdbcQuery14.class, new TorcDb.LdbcQuery14Handler());
 
     // Presumably for reporting LDBC driver errors.
     ConcurrentErrorReporter concurrentErrorReporter = 

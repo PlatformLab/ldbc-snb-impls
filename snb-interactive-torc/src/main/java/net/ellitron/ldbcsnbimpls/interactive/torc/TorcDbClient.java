@@ -25,6 +25,7 @@ import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
 import com.ldbc.driver.OperationHandler;
+import com.ldbc.driver.Operation;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
 import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
@@ -163,6 +164,283 @@ public class TorcDbClient extends Db {
     return connectionState;
   }
 
+  public static void executeQuery(Operation operation, 
+      TorcDbClientConnectionState connState, ResultReporter resultReporter) 
+      throws DbException {
+    try {
+      List<ObjectOutputStream> oStreams = connState.getObjectOutputStreams();
+      List<ObjectInputStream> iStreams = connState.getObjectInputStreams();
+
+      // Pick server uniformly at random.
+      int n = (int) (Math.random() * oStreams.size());
+      ObjectOutputStream out = oStreams.get(n);
+      ObjectInputStream in = iStreams.get(n);
+
+      System.out.println(String.format("Sending query %s to server %d.",
+          operation.toString(), n));
+
+      // Package operation into serializable form and send to server.
+      if (operation instanceof LdbcQuery1) {
+        out.writeObject(new LdbcQuery1Serializable((LdbcQuery1) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery1ResultSerializable> resp = 
+          (List<LdbcQuery1ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery1Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery2) {
+        out.writeObject(new LdbcQuery2Serializable((LdbcQuery2) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery2ResultSerializable> resp = 
+          (List<LdbcQuery2ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery2Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery3) {
+        out.writeObject(new LdbcQuery3Serializable((LdbcQuery3) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery3ResultSerializable> resp = 
+          (List<LdbcQuery3ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery3Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery4) {
+        out.writeObject(new LdbcQuery4Serializable((LdbcQuery4) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery4ResultSerializable> resp = 
+          (List<LdbcQuery4ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery4Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery5) {
+        out.writeObject(new LdbcQuery5Serializable((LdbcQuery5) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery5ResultSerializable> resp = 
+          (List<LdbcQuery5ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery5Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery6) {
+        out.writeObject(new LdbcQuery6Serializable((LdbcQuery6) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery6ResultSerializable> resp = 
+          (List<LdbcQuery6ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery6Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery7) {
+        out.writeObject(new LdbcQuery7Serializable((LdbcQuery7) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery7ResultSerializable> resp = 
+          (List<LdbcQuery7ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery7Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery8) {
+        out.writeObject(new LdbcQuery8Serializable((LdbcQuery8) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery8ResultSerializable> resp = 
+          (List<LdbcQuery8ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery8Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery9) {
+        out.writeObject(new LdbcQuery9Serializable((LdbcQuery9) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery9ResultSerializable> resp = 
+          (List<LdbcQuery9ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery9Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery10) {
+        out.writeObject(new LdbcQuery10Serializable((LdbcQuery10) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery10ResultSerializable> resp = 
+          (List<LdbcQuery10ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery10Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery11) {
+        out.writeObject(new LdbcQuery11Serializable((LdbcQuery11) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery11ResultSerializable> resp = 
+          (List<LdbcQuery11ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery11Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery12) {
+        out.writeObject(new LdbcQuery12Serializable((LdbcQuery12) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery12ResultSerializable> resp = 
+          (List<LdbcQuery12ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery12Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery13) {
+        out.writeObject(new LdbcQuery13Serializable((LdbcQuery13) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery13ResultSerializable> resp = 
+          (List<LdbcQuery13ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery13Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcQuery14) {
+        out.writeObject(new LdbcQuery14Serializable((LdbcQuery14) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcQuery14ResultSerializable> resp = 
+          (List<LdbcQuery14ResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcQuery14Result> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.getResult());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else {
+        throw new RuntimeException("Unrecognized query");
+      }
+
+    } catch (Exception e) {
+        throw new RuntimeException(e);
+    }
+  }
+
   /**
    * ------------------------------------------------------------------------
    * Complex Queries
@@ -187,42 +465,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery1 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      try {
-        TorcDbClientConnectionState connState = 
-            (TorcDbClientConnectionState) dbConnectionState;
-        List<ObjectOutputStream> oStreams = connState.getObjectOutputStreams();
-        List<ObjectInputStream> iStreams = connState.getObjectInputStreams();
-
-        // Pick server uniformly at random.
-        int n = (int) (Math.random() * oStreams.size());
-        ObjectOutputStream out = oStreams.get(n);
-        ObjectInputStream in = iStreams.get(n);
-
-        System.out.println(String.format("Sending query %s to server %d.",
-            operation.toString(), n));
-
-        // Send query to server.
-        LdbcQuery1Serializable query = new LdbcQuery1Serializable(operation);
-        out.writeObject(query);
-        out.flush();
-
-        // Receive the response.
-        List<LdbcQuery1ResultSerializable> resp = 
-          (List<LdbcQuery1ResultSerializable>) in.readObject();
-
-        // Convert the response to type expected by driver.  
-        List<LdbcQuery1Result> result = new ArrayList<>();
-        resp.forEach((v) -> {
-          result.add(v.getResult());
-        });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
-        resultReporter.report(result.size(), result, operation);
-      } catch (Exception e) {
-          throw new RuntimeException(e);
-      }
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -243,8 +488,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery2 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery2Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -268,8 +514,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery3 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery3Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -292,8 +539,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery4 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery4Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -316,8 +564,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery5 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery5Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -339,8 +588,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery6 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery6Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -365,8 +615,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery7 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery7Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -388,8 +639,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery8 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery8Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -411,8 +663,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery9 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery9Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -443,8 +696,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery10 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery10Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -466,8 +720,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery11 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery11Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -492,8 +747,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery12 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery12Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -513,7 +769,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(1, new LdbcQuery13Result(0), operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -539,8 +797,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcQuery14 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      List<LdbcQuery14Result> result = new ArrayList<>();
-      resultReporter.report(result.size(), result, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
