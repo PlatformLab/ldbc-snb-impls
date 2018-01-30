@@ -219,42 +219,196 @@ public class TorcDbServer {
           } else if (query instanceof LdbcQuery2Serializable) {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery2Result> result = 
+                (List<LdbcQuery2Result>) resultReporter.result();
+
+            List<LdbcQuery2ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery2ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery3Serializable) {
             LdbcQuery3 op = ((LdbcQuery3Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery3Result> result = 
+                (List<LdbcQuery3Result>) resultReporter.result();
+
+            List<LdbcQuery3ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery3ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery4Serializable) {
             LdbcQuery4 op = ((LdbcQuery4Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery4Result> result = 
+                (List<LdbcQuery4Result>) resultReporter.result();
+
+            List<LdbcQuery4ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery4ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery5Serializable) {
             LdbcQuery5 op = ((LdbcQuery5Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery5Result> result = 
+                (List<LdbcQuery5Result>) resultReporter.result();
+
+            List<LdbcQuery5ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery5ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery6Serializable) {
             LdbcQuery6 op = ((LdbcQuery6Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery6Result> result = 
+                (List<LdbcQuery6Result>) resultReporter.result();
+
+            List<LdbcQuery6ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery6ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery7Serializable) {
             LdbcQuery7 op = ((LdbcQuery7Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery7Result> result = 
+                (List<LdbcQuery7Result>) resultReporter.result();
+
+            List<LdbcQuery7ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery7ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery8Serializable) {
             LdbcQuery8 op = ((LdbcQuery8Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery8Result> result = 
+                (List<LdbcQuery8Result>) resultReporter.result();
+
+            List<LdbcQuery8ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery8ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery9Serializable) {
             LdbcQuery9 op = ((LdbcQuery9Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery9Result> result = 
+                (List<LdbcQuery9Result>) resultReporter.result();
+
+            List<LdbcQuery9ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery9ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery10Serializable) {
             LdbcQuery10 op = ((LdbcQuery10Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery10Result> result = 
+                (List<LdbcQuery10Result>) resultReporter.result();
+
+            List<LdbcQuery10ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery10ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery11Serializable) {
             LdbcQuery11 op = ((LdbcQuery11Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery11Result> result = 
+                (List<LdbcQuery11Result>) resultReporter.result();
+
+            List<LdbcQuery11ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery11ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery12Serializable) {
             LdbcQuery12 op = ((LdbcQuery12Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery12Result> result = 
+                (List<LdbcQuery12Result>) resultReporter.result();
+
+            List<LdbcQuery12ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery12ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery13Serializable) {
             LdbcQuery13 op = ((LdbcQuery13Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            LdbcQuery13Result result = 
+                (LdbcQuery13Result) resultReporter.result();
+
+            LdbcQuery13ResultSerializable resp = 
+                new LdbcQuery13ResultSerializable(result);
+
+            out.writeObject(resp);
+            out.flush(); 
           } else if (query instanceof LdbcQuery14Serializable) {
             LdbcQuery14 op = ((LdbcQuery14Serializable) query).getQuery();
 
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcQuery14Result> result = 
+                (List<LdbcQuery14Result>) resultReporter.result();
+
+            List<LdbcQuery14ResultSerializable> resp = new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcQuery14ResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
           } else {
             throw new RuntimeException("Unrecognized query type.");
           }
