@@ -96,6 +96,22 @@ public class LdbcQueryResultsSerializable {
         public final Iterable<List<Object>> friendUniversities;
         public final Iterable<List<Object>> friendCompanies;
 
+        public LdbcQuery1ResultSerializable(LdbcQuery1Result query) {
+            this.friendId = query.friendId();
+            this.friendLastName = query.friendLastName();
+            this.distanceFromPerson = query.distanceFromPerson();
+            this.friendBirthday = query.friendBirthday();
+            this.friendCreationDate = query.friendCreationDate();
+            this.friendGender = query.friendGender();
+            this.friendBrowserUsed = query.friendBrowserUsed();
+            this.friendLocationIp = query.friendLocationIp();
+            this.friendEmails = query.friendEmails();
+            this.friendLanguages = query.friendLanguages();
+            this.friendCityName = query.friendCityName();
+            this.friendUniversities = query.friendUniversities();
+            this.friendCompanies = query.friendCompanies();
+        }
+
         public LdbcQuery1ResultSerializable(
                 long friendId,
                 String friendLastName,
@@ -169,6 +185,15 @@ public class LdbcQueryResultsSerializable {
         public final String postOrCommentContent;
         public final long postOrCommentCreationDate;
 
+        public LdbcQuery2ResultSerializable(LdbcQuery2Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.postOrCommentId = query.postOrCommentId();
+            this.postOrCommentContent = query.postOrCommentContent();
+            this.postOrCommentCreationDate = query.postOrCommentCreationDate();
+        }
+
         public LdbcQuery2ResultSerializable(long personId, String personFirstName, String personLastName, long postOrCommentId, String postOrCommentContent, long postOrCommentCreationDate) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -208,6 +233,15 @@ public class LdbcQueryResultsSerializable {
         public final long yCount;
         public final long count;
 
+        public LdbcQuery3ResultSerializable(LdbcQuery3Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.xCount = query.xCount();
+            this.yCount = query.yCount();
+            this.count = query.count();
+        }
+
         public LdbcQuery3ResultSerializable(long personId, String personFirstName, String personLastName, long xCount, long yCount, long count) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -243,6 +277,11 @@ public class LdbcQueryResultsSerializable {
         public final String tagName;
         public final int postCount;
 
+        public LdbcQuery4ResultSerializable(LdbcQuery4Result query) {
+            this.tagName = query.tagName();
+            this.postCount = query.postCount();
+        }
+
         public LdbcQuery4ResultSerializable(String tagName, int postCount) {
             this.tagName = tagName;
             this.postCount = postCount;
@@ -266,6 +305,11 @@ public class LdbcQueryResultsSerializable {
         public final String forumTitle;
         public final int postCount;
 
+        public LdbcQuery5ResultSerializable(LdbcQuery5Result query) {
+            this.forumTitle = query.forumTitle();
+            this.postCount = query.postCount();
+        }
+
         public LdbcQuery5ResultSerializable(String forumTitle, int postCount) {
             this.forumTitle = forumTitle;
             this.postCount = postCount;
@@ -288,6 +332,11 @@ public class LdbcQueryResultsSerializable {
     public static class LdbcQuery6ResultSerializable implements Serializable {
         public final String tagName;
         public final int postCount;
+
+        public LdbcQuery6ResultSerializable(LdbcQuery6Result query) {
+            this.tagName = query.tagName();
+            this.postCount = query.postCount();
+        }
 
         public LdbcQuery6ResultSerializable(String tagName, int postCount) {
             this.tagName = tagName;
@@ -317,6 +366,17 @@ public class LdbcQueryResultsSerializable {
         public final String commentOrPostContent;
         public final int minutesLatency;
         public final boolean isNew;
+
+        public LdbcQuery7ResultSerializable(LdbcQuery7Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.likeCreationDate = query.likeCreationDate();
+            this.commentOrPostId = query.commentOrPostId();
+            this.commentOrPostContent = query.commentOrPostContent();
+            this.minutesLatency = query.minutesLatency();
+            this.isNew = query.isNew();
+        }
 
         public LdbcQuery7ResultSerializable(long personId, String personFirstName, String personLastName, long likeCreationDate, long commentOrPostId, String commentOrPostContent, int minutesLatency, boolean isNew) {
             this.personId = personId;
@@ -363,6 +423,15 @@ public class LdbcQueryResultsSerializable {
         public final long commentId;
         public final String commentContent;
 
+        public LdbcQuery8ResultSerializable(LdbcQuery8Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.commentCreationDate = query.commentCreationDate();
+            this.commentId = query.commentId();
+            this.commentContent = query.commentContent();
+        }
+
         public LdbcQuery8ResultSerializable(long personId, String personFirstName, String personLastName, long commentCreationDate, long commentId, String commentContent) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -401,6 +470,15 @@ public class LdbcQueryResultsSerializable {
         public final long commentOrPostId;
         public final String commentOrPostContent;
         public final long commentOrPostCreationDate;
+
+        public LdbcQuery9ResultSerializable(LdbcQuery9Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.commentOrPostId = query.commentOrPostId();
+            this.commentOrPostContent = query.commentOrPostContent();
+            this.commentOrPostCreationDate = query.commentOrPostCreationDate();
+        }
 
         public LdbcQuery9ResultSerializable(long personId, String personFirstName, String personLastName, long commentOrPostId, String commentOrPostContent, long commentOrPostCreationDate) {
             this.personId = personId;
@@ -441,6 +519,15 @@ public class LdbcQueryResultsSerializable {
         public final String personGender;
         public final String personCityName;
 
+        public LdbcQuery10ResultSerializable(LdbcQuery10Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.commonInterestScore = query.commonInterestScore();
+            this.personGender = query.personGender();
+            this.personCityName = query.personCityName();
+        }
+
         public LdbcQuery10ResultSerializable(long personId, String personFirstName, String personLastName, int commonInterestScore, String personGender, String personCityName) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -479,6 +566,14 @@ public class LdbcQueryResultsSerializable {
         public final String organizationName;
         public final int organizationWorkFromYear;
 
+        public LdbcQuery11ResultSerializable(LdbcQuery11Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.organizationName = query.organizationName();
+            this.organizationWorkFromYear = query.organizationWorkFromYear();
+        }
+
         public LdbcQuery11ResultSerializable(long personId, String personFirstName, String personLastName, String organizationName, int organizationWorkFromYear) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -514,6 +609,14 @@ public class LdbcQueryResultsSerializable {
         public final Iterable<String> tagNames;
         public final int replyCount;
 
+        public LdbcQuery12ResultSerializable(LdbcQuery12Result query) {
+            this.personId = query.personId();
+            this.personFirstName = query.personFirstName();
+            this.personLastName = query.personLastName();
+            this.tagNames = query.tagNames();
+            this.replyCount = query.replyCount();
+        }
+
         public LdbcQuery12ResultSerializable(long personId, String personFirstName, String personLastName, Iterable<String> tagNames, int replyCount) {
             this.personId = personId;
             this.personFirstName = personFirstName;
@@ -545,6 +648,10 @@ public class LdbcQueryResultsSerializable {
     public static class LdbcQuery13ResultSerializable implements Serializable {
         public final int shortestPathLength;
 
+        public LdbcQuery13ResultSerializable(LdbcQuery13Result query) {
+            this.shortestPathLength = query.shortestPathLength();
+        }
+
         public LdbcQuery13ResultSerializable(int shortestPathLength) {
             this.shortestPathLength = shortestPathLength;
         }
@@ -564,6 +671,11 @@ public class LdbcQueryResultsSerializable {
     public static class LdbcQuery14ResultSerializable implements Serializable {
         public final Iterable<? extends Number> personIdsInPath;
         public final double pathWeight;
+
+        public LdbcQuery14ResultSerializable(LdbcQuery14Result query) {
+            this.personIdsInPath = query.personsIdsInPath();
+            this.pathWeight = query.pathWeight();
+        }
 
         public LdbcQuery14ResultSerializable( Iterable<? extends Number> personIdsInPath, double pathWeight )
         {
