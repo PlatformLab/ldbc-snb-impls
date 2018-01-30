@@ -48,6 +48,13 @@ public class TorcDbClientConnectionState extends DbConnectionState {
   private final ConcurrentHashMap<Thread, List<Socket>> 
       threadLocalServerConnList = new ConcurrentHashMap<>();
 
+  // Along with each thread having its own socket, it also has its own input and
+  // output stream for objects.
+  private final ConcurrentHashMap<Thread, List<ObjectOutputStream>> 
+      threadLocalOutputStreamList = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Thread, List<ObjectInputStream>> 
+      threadLocalInputStreamList = new ConcurrentHashMap<>();
+
   public TorcDbClientConnectionState(Map<String, String> props) {
     if (props.containsKey("serverIPs")) {
       this.serverIPs = props.get("serverIPs").split(",");
@@ -89,5 +96,37 @@ public class TorcDbClientConnectionState extends DbConnectionState {
     } 
 
     return threadLocalServerConnList.get(us);
+  }
+
+  public List<ObjectOutputStream> getObjectOutputStreams() throws IOException {
+    Thread us = Thread.currentThread();
+    
+    if (threadLocalOutputStreamList.get(us) == null) {
+      List<Socket> servers = getConnections();
+      List<ObjectOutputStream> osList = 
+          new ArrayList<>(servers.size());
+      for (Socket s : servers) {
+        osList.add(new ObjectOutputStream(s.getOutputStream()));
+      }
+      threadLocalOutputStreamList.put(us, osList);
+    } 
+
+    return threadLocalOutputStreamList.get(us);
+  }
+
+  public List<ObjectInputStream> getObjectInputStreams() throws IOException {
+    Thread us = Thread.currentThread();
+    
+    if (threadLocalInputStreamList.get(us) == null) {
+      List<Socket> servers = getConnections();
+      List<ObjectInputStream> isList = 
+          new ArrayList<>(servers.size());
+      for (Socket s : servers) {
+        isList.add(new ObjectInputStream(s.getInputStream()));
+      }
+      threadLocalInputStreamList.put(us, isList);
+    } 
+
+    return threadLocalInputStreamList.get(us);
   }
 }

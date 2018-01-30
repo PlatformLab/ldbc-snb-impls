@@ -188,30 +188,36 @@ public class TorcDbClient extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       try {
-        List<Socket> servers = 
-            ((TorcDbClientConnectionState) dbConnectionState).getConnections();
+        TorcDbClientConnectionState connState = 
+            (TorcDbClientConnectionState) dbConnectionState;
+        List<ObjectOutputStream> oStreams = connState.getObjectOutputStreams();
+        List<ObjectInputStream> iStreams = connState.getObjectInputStreams();
 
-        // Pick server uniformly at random
-        Socket s = servers.get((int) (Math.random() * servers.size()));
+        // Pick server uniformly at random.
+        int n = (int) (Math.random() * oStreams.size());
+        ObjectOutputStream out = oStreams.get(n);
+        ObjectInputStream in = iStreams.get(n);
 
-        ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
-        ObjectInputStream in = new ObjectInputStream(s.getInputStream());
+        System.out.println(String.format("Sending query %s to server %d.",
+            operation.toString(), n));
 
-        LdbcQuery1Serializable lq1s = new LdbcQuery1Serializable(operation);
-        out.writeObject(lq1s);
+        // Send query to server.
+        LdbcQuery1Serializable query = new LdbcQuery1Serializable(operation);
+        out.writeObject(query);
         out.flush();
 
-        System.out.println("Sent: " + lq1s.toString());
-
+        // Receive the response.
         List<LdbcQuery1ResultSerializable> resp = 
           (List<LdbcQuery1ResultSerializable>) in.readObject();
-  
+
+        // Convert the response to type expected by driver.  
         List<LdbcQuery1Result> result = new ArrayList<>();
         resp.forEach((v) -> {
           result.add(v.getResult());
         });
 
-        System.out.println("Received: " + result.toString());
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } catch (Exception e) {
