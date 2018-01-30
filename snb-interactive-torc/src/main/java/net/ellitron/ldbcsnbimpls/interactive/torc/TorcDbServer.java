@@ -25,6 +25,7 @@ import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
 import com.ldbc.driver.DbException;
+import com.ldbc.driver.Operation;
 import com.ldbc.driver.OperationHandler;
 import com.ldbc.driver.ResultReporter;
 import com.ldbc.driver.runtime.ConcurrentErrorReporter;
@@ -126,18 +127,18 @@ public class TorcDbServer {
     private final int port;
 
     // Passed off to each client thread for executing queries.
-    private final ConcurrentErrorReporter concurrentErrorReporter;
     private final TorcDbConnectionState connectionState;
+    private final Map<Class<? extends Operation>, OperationHandler> 
+        queryHandlerMap;
+    private final ConcurrentErrorReporter concurrentErrorReporter;
 
-    public ListenerThread(int port, String coordinatorLocator, 
-        String graphName) {
+    public ListenerThread(int port, TorcDbConnectionState connectionState,
+        Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
+        ConcurrentErrorReporter concurrentErrorReporter) {
       this.port = port;
-      this.concurrentErrorReporter = new ConcurrentErrorReporter();
-
-      Map<String, String> props = new HashMap<>();
-      props.put("coordinatorLocator", coordinatorLocator);
-      props.put("graphName", graphName);
-      this.connectionState = new TorcDbConnectionState(props);
+      this.connectionState = connectionState;
+      this.queryHandlerMap = queryHandlerMap;
+      this.concurrentErrorReporter = concurrentErrorReporter;
     }
 
     @Override
@@ -153,7 +154,7 @@ public class TorcDbServer {
           System.out.println("Client connected: " + client.toString());
 
           Thread clientThread = new Thread(new ClientThread(client, 
-                concurrentErrorReporter, connectionState));
+               concurrentErrorReporter, connectionState, queryHandlerMap));
 
           clientThread.start();
         }
@@ -176,15 +177,19 @@ public class TorcDbServer {
     private final ConcurrentErrorReporter concurrentErrorReporter;
     private final ResultReporter resultReporter;
     private final TorcDbConnectionState connectionState;
+    private final Map<Class<? extends Operation>, OperationHandler> 
+        queryHandlerMap;
 
     public ClientThread(Socket client, 
         ConcurrentErrorReporter concurrentErrorReporter, 
-        TorcDbConnectionState connectionState) {
+        TorcDbConnectionState connectionState,
+        Map<Class<? extends Operation>, OperationHandler> queryHandlerMap) {
       this.client = client;
       this.concurrentErrorReporter = concurrentErrorReporter;
       this.resultReporter = 
           new ResultReporter.SimpleResultReporter(concurrentErrorReporter);
       this.connectionState = connectionState;
+      this.queryHandlerMap = queryHandlerMap;
     }
 
     public void run() {
@@ -196,11 +201,13 @@ public class TorcDbServer {
         while (true) {
           Object query = in.readObject();
 
+          System.out.println("Received query request: " + query.toString());
+
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
 
-            TorcDb.LdbcQuery1Handler.executeOperation(op, connectionState, 
-                resultReporter);
+            queryHandlerMap.get(op.getClass()).executeOperation(op, 
+                connectionState, resultReporter);
             List<LdbcQuery1Result> result = 
                 (List<LdbcQuery1Result>) resultReporter.result();
 
@@ -208,6 +215,9 @@ public class TorcDbServer {
             result.forEach((v) -> {
               resp.add(new LdbcQuery1ResultSerializable(v));
             });
+
+
+            System.out.println("Sending result response: " + resp.toString());
 
             out.writeObject(result);
             out.flush();
@@ -264,20 +274,36 @@ public class TorcDbServer {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("TorcDbServer 1.0").parse(args);
 
+    // Arguments.
     final String coordinatorLocator = (String) opts.get("COORDLOC");
     final String graphName = (String) opts.get("GRAPHNAME");
     final int port = Integer.decode((String) opts.get("--port"));
-
-    final Set clientConnections = new HashSet<>();
 
     System.out.println(String.format("TorcDbServer: {coordinatorLocator: %s, "
         + "graphName: %s, port: %d}",
         coordinatorLocator,
         graphName,
         port));
+   
+    // Connect to database. 
+    Map<String, String> props = new HashMap<>();
+    props.put("coordinatorLocator", coordinatorLocator);
+    props.put("graphName", graphName);
+    System.out.println("Connecting to TorcDB...");
+    TorcDbConnectionState connectionState = new TorcDbConnectionState(props);
 
-    Thread listener = new Thread(new ListenerThread(port, coordinatorLocator, 
-          graphName));
+    // Create mapping from op type to op handler for processing requests.
+    Map<Class<? extends Operation>, OperationHandler> queryHandlerMap = 
+        new HashMap<>();
+    queryHandlerMap.put(LdbcQuery1.class, new TorcDb.LdbcQuery1Handler());
+
+    // Presumably for reporting LDBC driver errors.
+    ConcurrentErrorReporter concurrentErrorReporter = 
+        new ConcurrentErrorReporter();
+
+    // Listener thread accepts connections and spawns client threads.
+    Thread listener = new Thread(new ListenerThread(port, connectionState,
+          queryHandlerMap, concurrentErrorReporter));
     listener.start();
     listener.join();
   }
