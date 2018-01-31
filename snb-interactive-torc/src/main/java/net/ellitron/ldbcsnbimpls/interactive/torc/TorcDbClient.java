@@ -431,6 +431,128 @@ public class TorcDbClient extends Db {
             result.toString()));
 
         resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcShortQuery1PersonProfile) {
+        out.writeObject(new LdbcShortQuery1PersonProfileSerializable((LdbcShortQuery1PersonProfile) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcShortQuery1PersonProfileResultSerializable resp = 
+          (LdbcShortQuery1PersonProfileResultSerializable) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        LdbcShortQuery1PersonProfileResult result = resp.unpack();
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(1, result, operation);
+      } else if (operation instanceof LdbcShortQuery2PersonPosts) {
+        out.writeObject(new LdbcShortQuery2PersonPostsSerializable((LdbcShortQuery2PersonPosts) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcShortQuery2PersonPostsResultSerializable> resp = 
+          (List<LdbcShortQuery2PersonPostsResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.unpack());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcShortQuery3PersonFriends) {
+        out.writeObject(new LdbcShortQuery3PersonFriendsSerializable((LdbcShortQuery3PersonFriends) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcShortQuery3PersonFriendsResultSerializable> resp = 
+          (List<LdbcShortQuery3PersonFriendsResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.unpack());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcShortQuery4MessageContent) {
+        out.writeObject(new LdbcShortQuery4MessageContentSerializable((LdbcShortQuery4MessageContent) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcShortQuery4MessageContentResultSerializable resp = 
+          (LdbcShortQuery4MessageContentResultSerializable) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        LdbcShortQuery4MessageContentResult result = resp.unpack();
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(1, result, operation);
+      } else if (operation instanceof LdbcShortQuery5MessageCreator) {
+        out.writeObject(new LdbcShortQuery5MessageCreatorSerializable((LdbcShortQuery5MessageCreator) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcShortQuery5MessageCreatorResultSerializable resp = 
+          (LdbcShortQuery5MessageCreatorResultSerializable) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        LdbcShortQuery5MessageCreatorResult result = resp.unpack();
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(1, result, operation);
+      } else if (operation instanceof LdbcShortQuery6MessageForum) {
+        out.writeObject(new LdbcShortQuery6MessageForumSerializable((LdbcShortQuery6MessageForum) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcShortQuery6MessageForumResultSerializable resp = 
+          (LdbcShortQuery6MessageForumResultSerializable) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        LdbcShortQuery6MessageForumResult result = resp.unpack();
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(1, result, operation);
+      } else if (operation instanceof LdbcShortQuery7MessageReplies) {
+        out.writeObject(new LdbcShortQuery7MessageRepliesSerializable((LdbcShortQuery7MessageReplies) operation));
+        out.flush();
+
+        // Receive the response.
+        List<LdbcShortQuery7MessageRepliesResultSerializable> resp = 
+          (List<LdbcShortQuery7MessageRepliesResultSerializable>) in.readObject();
+
+        // Convert the response to type expected by driver.  
+        List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
+        resp.forEach((v) -> {
+          result.add(v.unpack());
+        });
+
+        System.out.println(String.format("Received result %s.", 
+            result.toString()));
+
+        resultReporter.report(result.size(), result, operation);
+      } else if (operation instanceof LdbcUpdate1AddPerson) {
+      } else if (operation instanceof LdbcUpdate2AddPostLike) {
+      } else if (operation instanceof LdbcUpdate3AddCommentLike) {
+      } else if (operation instanceof LdbcUpdate4AddForum) {
+      } else if (operation instanceof LdbcUpdate5AddForumMembership) {
+      } else if (operation instanceof LdbcUpdate6AddPost) {
+      } else if (operation instanceof LdbcUpdate7AddComment) {
+      } else if (operation instanceof LdbcUpdate8AddFriendship) {
       } else {
         throw new RuntimeException("Unrecognized query");
       }
@@ -821,7 +943,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery1PersonProfile operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -843,7 +967,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery2PersonPosts operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -862,7 +988,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery3PersonFriends operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -880,7 +1008,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery4MessageContent operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -897,7 +1027,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery5MessageCreator operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -917,7 +1049,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery6MessageForum operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -938,7 +1072,9 @@ public class TorcDbClient extends Db {
     public void executeOperation(final LdbcShortQuery7MessageReplies operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
-      resultReporter.report(0, null, operation);
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -959,8 +1095,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate1AddPerson operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -976,8 +1114,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate2AddPostLike operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -993,8 +1133,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate3AddCommentLike operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -1010,8 +1152,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate4AddForum operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -1027,8 +1171,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -1044,8 +1190,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate6AddPost operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -1061,8 +1209,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate7AddComment operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 
@@ -1078,8 +1228,10 @@ public class TorcDbClient extends Db {
     @Override
     public void executeOperation(LdbcUpdate8AddFriendship operation,
         DbConnectionState dbConnectionState,
-        ResultReporter reporter) throws DbException {
-      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        ResultReporter resultReporter) throws DbException {
+      TorcDbClient.executeQuery(operation, 
+          (TorcDbClientConnectionState) dbConnectionState, 
+          resultReporter);
     }
   }
 }

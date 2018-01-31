@@ -408,6 +408,121 @@ public class TorcDbServer {
 
             out.writeObject(resp);
             out.flush(); 
+          } else if (query instanceof LdbcShortQuery1PersonProfileSerializable) {
+            LdbcShortQuery1PersonProfile op = 
+                ((LdbcShortQuery1PersonProfileSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            LdbcShortQuery1PersonProfileResult result = 
+                (LdbcShortQuery1PersonProfileResult) resultReporter.result();
+
+            LdbcShortQuery1PersonProfileResultSerializable resp = 
+                new LdbcShortQuery1PersonProfileResultSerializable(result);
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery2PersonPostsSerializable) {
+            LdbcShortQuery2PersonPosts op = 
+                ((LdbcShortQuery2PersonPostsSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcShortQuery2PersonPostsResult> result = 
+                (List<LdbcShortQuery2PersonPostsResult>) resultReporter.result();
+
+            List<LdbcShortQuery2PersonPostsResultSerializable> resp = 
+                new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcShortQuery2PersonPostsResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery3PersonFriendsSerializable) {
+            LdbcShortQuery3PersonFriends op = 
+                ((LdbcShortQuery3PersonFriendsSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcShortQuery3PersonFriendsResult> result = 
+                (List<LdbcShortQuery3PersonFriendsResult>) resultReporter.result();
+
+            List<LdbcShortQuery3PersonFriendsResultSerializable> resp = 
+                new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcShortQuery3PersonFriendsResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery4MessageContentSerializable) {
+            LdbcShortQuery4MessageContent op = 
+                ((LdbcShortQuery4MessageContentSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            LdbcShortQuery4MessageContentResult result = 
+                (LdbcShortQuery4MessageContentResult) resultReporter.result();
+
+            LdbcShortQuery4MessageContentResultSerializable resp = 
+                new LdbcShortQuery4MessageContentResultSerializable(result);
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery5MessageCreatorSerializable) {
+            LdbcShortQuery5MessageCreator op = 
+                ((LdbcShortQuery5MessageCreatorSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            LdbcShortQuery5MessageCreatorResult result = 
+                (LdbcShortQuery5MessageCreatorResult) resultReporter.result();
+
+            LdbcShortQuery5MessageCreatorResultSerializable resp = 
+                new LdbcShortQuery5MessageCreatorResultSerializable(result);
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery6MessageForumSerializable) {
+            LdbcShortQuery6MessageForum op = 
+                ((LdbcShortQuery6MessageForumSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            LdbcShortQuery6MessageForumResult result = 
+                (LdbcShortQuery6MessageForumResult) resultReporter.result();
+
+            LdbcShortQuery6MessageForumResultSerializable resp = 
+                new LdbcShortQuery6MessageForumResultSerializable(result);
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcShortQuery7MessageRepliesSerializable) {
+            LdbcShortQuery7MessageReplies op = 
+                ((LdbcShortQuery7MessageRepliesSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+            List<LdbcShortQuery7MessageRepliesResult> result = 
+                (List<LdbcShortQuery7MessageRepliesResult>) resultReporter.result();
+
+            List<LdbcShortQuery7MessageRepliesResultSerializable> resp = 
+                new ArrayList<>();
+            result.forEach((v) -> {
+              resp.add(new LdbcShortQuery7MessageRepliesResultSerializable(v));
+            });
+
+            out.writeObject(resp);
+            out.flush(); 
+          } else if (query instanceof LdbcUpdate1AddPersonSerializable) {
+          } else if (query instanceof LdbcUpdate2AddPostLikeSerializable) {
+          } else if (query instanceof LdbcUpdate3AddCommentLikeSerializable) {
+          } else if (query instanceof LdbcUpdate4AddForumSerializable) {
+          } else if (query instanceof LdbcUpdate5AddForumMembershipSerializable) {
+          } else if (query instanceof LdbcUpdate6AddPostSerializable) {
+          } else if (query instanceof LdbcUpdate7AddCommentSerializable) {
+          } else if (query instanceof LdbcUpdate8AddFriendshipSerializable) {
           } else {
             throw new RuntimeException("Unrecognized query type.");
           }
@@ -457,7 +572,37 @@ public class TorcDbServer {
     queryHandlerMap.put(LdbcQuery12.class, new TorcDb.LdbcQuery12Handler());
     queryHandlerMap.put(LdbcQuery13.class, new TorcDb.LdbcQuery13Handler());
     queryHandlerMap.put(LdbcQuery14.class, new TorcDb.LdbcQuery14Handler());
-
+    queryHandlerMap.put(LdbcShortQuery1PersonProfile.class, 
+        new TorcDb.LdbcShortQuery1PersonProfileHandler());
+    queryHandlerMap.put(LdbcShortQuery2PersonPosts.class, 
+        new TorcDb.LdbcShortQuery2PersonPostsHandler());
+    queryHandlerMap.put(LdbcShortQuery3PersonFriends.class, 
+        new TorcDb.LdbcShortQuery3PersonFriendsHandler());
+    queryHandlerMap.put(LdbcShortQuery4MessageContent.class, 
+        new TorcDb.LdbcShortQuery4MessageContentHandler());
+    queryHandlerMap.put(LdbcShortQuery5MessageCreator.class, 
+        new TorcDb.LdbcShortQuery5MessageCreatorHandler());
+    queryHandlerMap.put(LdbcShortQuery6MessageForum.class, 
+        new TorcDb.LdbcShortQuery6MessageForumHandler());
+    queryHandlerMap.put(LdbcShortQuery7MessageReplies.class, 
+        new TorcDb.LdbcShortQuery7MessageRepliesHandler());
+    queryHandlerMap.put(LdbcUpdate1AddPerson.class, 
+        new TorcDb.LdbcUpdate1AddPersonHandler());
+    queryHandlerMap.put(LdbcUpdate2AddPostLike.class, 
+        new TorcDb.LdbcUpdate2AddPostLikeHandler());
+    queryHandlerMap.put(LdbcUpdate3AddCommentLike.class, 
+        new TorcDb.LdbcUpdate3AddCommentLikeHandler());
+    queryHandlerMap.put(LdbcUpdate4AddForum.class, 
+        new TorcDb.LdbcUpdate4AddForumHandler());
+    queryHandlerMap.put(LdbcUpdate5AddForumMembership.class, 
+        new TorcDb.LdbcUpdate5AddForumMembershipHandler());
+    queryHandlerMap.put(LdbcUpdate6AddPost.class, 
+        new TorcDb.LdbcUpdate6AddPostHandler());
+    queryHandlerMap.put(LdbcUpdate7AddComment.class, 
+        new TorcDb.LdbcUpdate7AddCommentHandler());
+    queryHandlerMap.put(LdbcUpdate8AddFriendship.class, 
+        new TorcDb.LdbcUpdate8AddFriendshipHandler());
+    
     // Presumably for reporting LDBC driver errors.
     ConcurrentErrorReporter concurrentErrorReporter = 
         new ConcurrentErrorReporter();
