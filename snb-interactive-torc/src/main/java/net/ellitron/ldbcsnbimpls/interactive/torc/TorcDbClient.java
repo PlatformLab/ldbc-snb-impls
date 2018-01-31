@@ -17,8 +17,7 @@
 package net.ellitron.ldbcsnbimpls.interactive.torc;
 
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbServer.*;
-import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueryResultsSerializable.*;
-import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueriesSerializable.*;
+import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcSerializableQueriesAndResults.*;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -191,7 +190,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery1Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -209,7 +208,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery2Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -227,7 +226,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery3Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -245,7 +244,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery4Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -263,7 +262,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery5Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -281,7 +280,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery6Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -299,7 +298,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery7Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -317,7 +316,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery8Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -335,7 +334,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery9Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -353,7 +352,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery10Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -371,7 +370,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery11Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -389,7 +388,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery12Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -407,7 +406,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery13Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 
@@ -425,7 +424,7 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         List<LdbcQuery14Result> result = new ArrayList<>();
         resp.forEach((v) -> {
-          result.add(v.getResult());
+          result.add(v.unpack());
         });
 
         System.out.println(String.format("Received result %s.", 

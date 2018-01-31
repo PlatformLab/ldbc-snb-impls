@@ -18,8 +18,7 @@ package net.ellitron.ldbcsnbimpls.interactive.torc;
 
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDb.*;
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcDbClient.*;
-import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueryResultsSerializable.*;
-import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcQueriesSerializable.*;
+import net.ellitron.ldbcsnbimpls.interactive.torc.LdbcSerializableQueriesAndResults.*;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -202,7 +201,7 @@ public class TorcDbServer {
           Object query = in.readObject();
 
           if (query instanceof LdbcQuery1Serializable) {
-            LdbcQuery1 op = ((LdbcQuery1Serializable) query).getQuery();
+            LdbcQuery1 op = ((LdbcQuery1Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op, 
                 connectionState, resultReporter);
@@ -217,7 +216,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush();
           } else if (query instanceof LdbcQuery2Serializable) {
-            LdbcQuery2 op = ((LdbcQuery2Serializable) query).getQuery();
+            LdbcQuery2 op = ((LdbcQuery2Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -232,7 +231,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery3Serializable) {
-            LdbcQuery3 op = ((LdbcQuery3Serializable) query).getQuery();
+            LdbcQuery3 op = ((LdbcQuery3Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -247,7 +246,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery4Serializable) {
-            LdbcQuery4 op = ((LdbcQuery4Serializable) query).getQuery();
+            LdbcQuery4 op = ((LdbcQuery4Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -262,7 +261,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery5Serializable) {
-            LdbcQuery5 op = ((LdbcQuery5Serializable) query).getQuery();
+            LdbcQuery5 op = ((LdbcQuery5Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -277,7 +276,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery6Serializable) {
-            LdbcQuery6 op = ((LdbcQuery6Serializable) query).getQuery();
+            LdbcQuery6 op = ((LdbcQuery6Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -292,7 +291,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery7Serializable) {
-            LdbcQuery7 op = ((LdbcQuery7Serializable) query).getQuery();
+            LdbcQuery7 op = ((LdbcQuery7Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -307,7 +306,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery8Serializable) {
-            LdbcQuery8 op = ((LdbcQuery8Serializable) query).getQuery();
+            LdbcQuery8 op = ((LdbcQuery8Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -322,7 +321,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery9Serializable) {
-            LdbcQuery9 op = ((LdbcQuery9Serializable) query).getQuery();
+            LdbcQuery9 op = ((LdbcQuery9Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -337,7 +336,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery10Serializable) {
-            LdbcQuery10 op = ((LdbcQuery10Serializable) query).getQuery();
+            LdbcQuery10 op = ((LdbcQuery10Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -352,7 +351,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery11Serializable) {
-            LdbcQuery11 op = ((LdbcQuery11Serializable) query).getQuery();
+            LdbcQuery11 op = ((LdbcQuery11Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -367,7 +366,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery12Serializable) {
-            LdbcQuery12 op = ((LdbcQuery12Serializable) query).getQuery();
+            LdbcQuery12 op = ((LdbcQuery12Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -382,7 +381,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery13Serializable) {
-            LdbcQuery13 op = ((LdbcQuery13Serializable) query).getQuery();
+            LdbcQuery13 op = ((LdbcQuery13Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -395,7 +394,7 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery14Serializable) {
-            LdbcQuery14 op = ((LdbcQuery14Serializable) query).getQuery();
+            LdbcQuery14 op = ((LdbcQuery14Serializable) query).unpack();
 
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
