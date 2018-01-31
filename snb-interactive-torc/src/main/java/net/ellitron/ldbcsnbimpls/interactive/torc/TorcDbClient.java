@@ -175,9 +175,6 @@ public class TorcDbClient extends Db {
       ObjectOutputStream out = oStreams.get(n);
       ObjectInputStream in = iStreams.get(n);
 
-      System.out.println(String.format("Sending query %s to server %d.",
-          operation.toString(), n));
-
       // Package operation into serializable form and send to server.
       if (operation instanceof LdbcQuery1) {
         out.writeObject(new LdbcQuery1Serializable((LdbcQuery1) operation));
@@ -192,9 +189,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery2) {
@@ -211,9 +205,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery3) {
         out.writeObject(new LdbcQuery3Serializable((LdbcQuery3) operation));
@@ -228,9 +219,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery4) {
@@ -247,9 +235,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery5) {
         out.writeObject(new LdbcQuery5Serializable((LdbcQuery5) operation));
@@ -264,9 +249,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery6) {
@@ -283,9 +265,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery7) {
         out.writeObject(new LdbcQuery7Serializable((LdbcQuery7) operation));
@@ -300,9 +279,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery8) {
@@ -319,9 +295,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery9) {
         out.writeObject(new LdbcQuery9Serializable((LdbcQuery9) operation));
@@ -336,9 +309,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery10) {
@@ -355,9 +325,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery11) {
         out.writeObject(new LdbcQuery11Serializable((LdbcQuery11) operation));
@@ -372,9 +339,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery12) {
@@ -391,9 +355,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery13) {
         out.writeObject(new LdbcQuery13Serializable((LdbcQuery13) operation));
@@ -408,9 +369,6 @@ public class TorcDbClient extends Db {
         resp.forEach((v) -> {
           result.add(v.unpack());
         });
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcQuery14) {
@@ -427,9 +385,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcShortQuery1PersonProfile) {
         out.writeObject(new LdbcShortQuery1PersonProfileSerializable((LdbcShortQuery1PersonProfile) operation));
@@ -441,9 +396,6 @@ public class TorcDbClient extends Db {
 
         // Convert the response to type expected by driver.  
         LdbcShortQuery1PersonProfileResult result = resp.unpack();
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(1, result, operation);
       } else if (operation instanceof LdbcShortQuery2PersonPosts) {
@@ -460,9 +412,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcShortQuery3PersonFriends) {
         out.writeObject(new LdbcShortQuery3PersonFriendsSerializable((LdbcShortQuery3PersonFriends) operation));
@@ -478,9 +427,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcShortQuery4MessageContent) {
         out.writeObject(new LdbcShortQuery4MessageContentSerializable((LdbcShortQuery4MessageContent) operation));
@@ -492,9 +438,6 @@ public class TorcDbClient extends Db {
 
         // Convert the response to type expected by driver.  
         LdbcShortQuery4MessageContentResult result = resp.unpack();
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(1, result, operation);
       } else if (operation instanceof LdbcShortQuery5MessageCreator) {
@@ -508,9 +451,6 @@ public class TorcDbClient extends Db {
         // Convert the response to type expected by driver.  
         LdbcShortQuery5MessageCreatorResult result = resp.unpack();
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(1, result, operation);
       } else if (operation instanceof LdbcShortQuery6MessageForum) {
         out.writeObject(new LdbcShortQuery6MessageForumSerializable((LdbcShortQuery6MessageForum) operation));
@@ -522,9 +462,6 @@ public class TorcDbClient extends Db {
 
         // Convert the response to type expected by driver.  
         LdbcShortQuery6MessageForumResult result = resp.unpack();
-
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
 
         resultReporter.report(1, result, operation);
       } else if (operation instanceof LdbcShortQuery7MessageReplies) {
@@ -541,9 +478,6 @@ public class TorcDbClient extends Db {
           result.add(v.unpack());
         });
 
-        System.out.println(String.format("Received result %s.", 
-            result.toString()));
-
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcUpdate1AddPerson) {
         out.writeObject(new LdbcUpdate1AddPersonSerializable((LdbcUpdate1AddPerson) operation));
@@ -551,8 +485,6 @@ public class TorcDbClient extends Db {
 
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
-
-        System.out.println(String.format("Done.")); 
 
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate2AddPostLike) {
@@ -562,8 +494,6 @@ public class TorcDbClient extends Db {
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
-        System.out.println(String.format("Done.")); 
-
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate3AddCommentLike) {
         out.writeObject(new LdbcUpdate3AddCommentLikeSerializable((LdbcUpdate3AddCommentLike) operation));
@@ -571,8 +501,6 @@ public class TorcDbClient extends Db {
 
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
-
-        System.out.println(String.format("Done.")); 
 
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate4AddForum) {
@@ -582,8 +510,6 @@ public class TorcDbClient extends Db {
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
-        System.out.println(String.format("Done.")); 
-
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate5AddForumMembership) {
         out.writeObject(new LdbcUpdate5AddForumMembershipSerializable((LdbcUpdate5AddForumMembership) operation));
@@ -591,8 +517,6 @@ public class TorcDbClient extends Db {
 
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
-
-        System.out.println(String.format("Done.")); 
 
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate6AddPost) {
@@ -602,8 +526,6 @@ public class TorcDbClient extends Db {
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
-        System.out.println(String.format("Done.")); 
-
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate7AddComment) {
         out.writeObject(new LdbcUpdate7AddCommentSerializable((LdbcUpdate7AddComment) operation));
@@ -612,8 +534,6 @@ public class TorcDbClient extends Db {
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
-        System.out.println(String.format("Done.")); 
-
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate8AddFriendship) {
         out.writeObject(new LdbcUpdate8AddFriendshipSerializable((LdbcUpdate8AddFriendship) operation));
@@ -621,8 +541,6 @@ public class TorcDbClient extends Db {
 
         // Receive the response.
         LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
-
-        System.out.println(String.format("Done.")); 
 
         resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else {
