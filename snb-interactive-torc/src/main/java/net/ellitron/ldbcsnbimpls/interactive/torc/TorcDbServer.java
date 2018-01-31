@@ -516,13 +516,77 @@ public class TorcDbServer {
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcUpdate1AddPersonSerializable) {
+            LdbcUpdate1AddPerson op = 
+                ((LdbcUpdate1AddPersonSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate2AddPostLikeSerializable) {
+            LdbcUpdate2AddPostLike op = 
+                ((LdbcUpdate2AddPostLikeSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate3AddCommentLikeSerializable) {
+            LdbcUpdate3AddCommentLike op = 
+                ((LdbcUpdate3AddCommentLikeSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate4AddForumSerializable) {
+            LdbcUpdate4AddForum op = 
+                ((LdbcUpdate4AddForumSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate5AddForumMembershipSerializable) {
+            LdbcUpdate5AddForumMembership op = 
+                ((LdbcUpdate5AddForumMembershipSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate6AddPostSerializable) {
+            LdbcUpdate6AddPost op = 
+                ((LdbcUpdate6AddPostSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate7AddCommentSerializable) {
+            LdbcUpdate7AddComment op = 
+                ((LdbcUpdate7AddCommentSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else if (query instanceof LdbcUpdate8AddFriendshipSerializable) {
+            LdbcUpdate8AddFriendship op = 
+                ((LdbcUpdate8AddFriendshipSerializable) query).unpack();
+
+            queryHandlerMap.get(op.getClass()).executeOperation(op,
+                connectionState, resultReporter);
+
+            out.writeObject(LdbcNoResult.INSTANCE);
+            out.flush(); 
           } else {
             throw new RuntimeException("Unrecognized query type.");
           }

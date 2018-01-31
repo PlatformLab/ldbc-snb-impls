@@ -546,13 +546,85 @@ public class TorcDbClient extends Db {
 
         resultReporter.report(result.size(), result, operation);
       } else if (operation instanceof LdbcUpdate1AddPerson) {
+        out.writeObject(new LdbcUpdate1AddPersonSerializable((LdbcUpdate1AddPerson) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate2AddPostLike) {
+        out.writeObject(new LdbcUpdate2AddPostLikeSerializable((LdbcUpdate2AddPostLike) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate3AddCommentLike) {
+        out.writeObject(new LdbcUpdate3AddCommentLikeSerializable((LdbcUpdate3AddCommentLike) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate4AddForum) {
+        out.writeObject(new LdbcUpdate4AddForumSerializable((LdbcUpdate4AddForum) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate5AddForumMembership) {
+        out.writeObject(new LdbcUpdate5AddForumMembershipSerializable((LdbcUpdate5AddForumMembership) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate6AddPost) {
+        out.writeObject(new LdbcUpdate6AddPostSerializable((LdbcUpdate6AddPost) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate7AddComment) {
+        out.writeObject(new LdbcUpdate7AddCommentSerializable((LdbcUpdate7AddComment) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else if (operation instanceof LdbcUpdate8AddFriendship) {
+        out.writeObject(new LdbcUpdate8AddFriendshipSerializable((LdbcUpdate8AddFriendship) operation));
+        out.flush();
+
+        // Receive the response.
+        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+
+        System.out.println(String.format("Done.")); 
+
+        resultReporter.report(0, LdbcNoResult.INSTANCE, operation);
       } else {
         throw new RuntimeException("Unrecognized query");
       }
