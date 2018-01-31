@@ -522,7 +522,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate2AddPostLikeSerializable) {
             LdbcUpdate2AddPostLike op = 
@@ -531,7 +531,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate3AddCommentLikeSerializable) {
             LdbcUpdate3AddCommentLike op = 
@@ -540,7 +540,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate4AddForumSerializable) {
             LdbcUpdate4AddForum op = 
@@ -549,7 +549,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate5AddForumMembershipSerializable) {
             LdbcUpdate5AddForumMembership op = 
@@ -558,7 +558,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate6AddPostSerializable) {
             LdbcUpdate6AddPost op = 
@@ -567,7 +567,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate7AddCommentSerializable) {
             LdbcUpdate7AddComment op = 
@@ -576,7 +576,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else if (query instanceof LdbcUpdate8AddFriendshipSerializable) {
             LdbcUpdate8AddFriendship op = 
@@ -585,7 +585,7 @@ public class TorcDbServer {
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
-            out.writeObject(LdbcNoResult.INSTANCE);
+            out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
           } else {
             throw new RuntimeException("Unrecognized query type.");

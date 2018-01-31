@@ -1597,6 +1597,14 @@ public class LdbcSerializableQueriesAndResults {
       }
   }
 
+  public static class LdbcNoResultSerializable implements Serializable {
+      public static final LdbcNoResultSerializable INSTANCE = 
+        new LdbcNoResultSerializable();
+
+      public LdbcNoResultSerializable() {
+      }
+  }
+
   public static class LdbcUpdate1AddPersonSerializable implements Serializable
   {
       public final long personId;
@@ -1611,8 +1619,8 @@ public class LdbcSerializableQueriesAndResults {
       public final List<String> languages;
       public final List<String> emails;
       public final List<Long> tagIds;
-      public final List<Organization> studyAt;
-      public final List<Organization> workAt;
+      public final List<OrganizationSerializable> studyAt = new ArrayList<>();
+      public final List<OrganizationSerializable> workAt = new ArrayList<>();
 
       public LdbcUpdate1AddPersonSerializable(LdbcUpdate1AddPerson query) {
           this.personId = query.personId();
@@ -1627,8 +1635,12 @@ public class LdbcSerializableQueriesAndResults {
           this.languages = query.languages();
           this.emails = query.emails();
           this.tagIds = query.tagIds();
-          this.studyAt = query.studyAt();
-          this.workAt = query.workAt();
+          query.studyAt().forEach((v) -> {
+              this.studyAt.add(new OrganizationSerializable(v));
+            });
+          query.workAt().forEach((v) -> {
+              this.workAt.add(new OrganizationSerializable(v));
+            });
       }
 
       public LdbcUpdate1AddPersonSerializable( long personId,
@@ -1658,11 +1670,23 @@ public class LdbcSerializableQueriesAndResults {
           this.languages = languages;
           this.emails = emails;
           this.tagIds = tagIds;
-          this.studyAt = studyAt;
-          this.workAt = workAt;
+          studyAt.forEach((v) -> {
+              this.studyAt.add(new OrganizationSerializable(v));
+            });
+          workAt.forEach((v) -> {
+              this.workAt.add(new OrganizationSerializable(v));
+            });
       }
 
       public LdbcUpdate1AddPerson unpack() {
+          List<Organization> studyAtUnpacked = new ArrayList<>();
+          studyAt.forEach((v) -> {
+              studyAtUnpacked.add(v.unpack());
+            });
+          List<Organization> workAtUnpacked = new ArrayList<>();
+          workAt.forEach((v) -> {
+              workAtUnpacked.add(v.unpack());
+            });
           return new LdbcUpdate1AddPerson( personId,
                                                   personFirstName,
                                                   personLastName,
@@ -1675,8 +1699,38 @@ public class LdbcSerializableQueriesAndResults {
                                                   languages,
                                                   emails,
                                                   tagIds,
-                                                  studyAt,
-                                                  workAt);
+                                                  studyAtUnpacked,
+                                                  workAtUnpacked);
+      }
+
+      public static class OrganizationSerializable implements Serializable
+      {
+          public final long organizationId;
+          public final int year;
+
+          public OrganizationSerializable(Organization org) {
+              this.organizationId = org.organizationId();
+              this.year = org.year();
+          }
+
+          public OrganizationSerializable( long organizationId, int year )
+          {
+              this.organizationId = organizationId;
+              this.year = year;
+          }
+
+          public Organization unpack() {
+              return new Organization(organizationId, year);
+          }
+
+          @Override
+          public String toString()
+          {
+              return "Organization{" +
+                    "organizationId=" + organizationId +
+                    ", year=" + year +
+                    '}';
+          }
       }
 
       @Override

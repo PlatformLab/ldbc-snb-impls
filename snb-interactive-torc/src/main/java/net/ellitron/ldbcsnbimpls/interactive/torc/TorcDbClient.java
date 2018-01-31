@@ -550,7 +550,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -560,7 +560,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -570,7 +570,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -580,7 +580,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -590,7 +590,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -600,7 +600,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -610,7 +610,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
@@ -620,7 +620,7 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        LdbcNoResult resp = (LdbcNoResult) in.readObject();
+        LdbcNoResultSerializable resp = (LdbcNoResultSerializable) in.readObject();
 
         System.out.println(String.format("Done.")); 
 
