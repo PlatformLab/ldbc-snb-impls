@@ -361,16 +361,13 @@ public class TorcDbClient extends Db {
         out.flush();
 
         // Receive the response.
-        List<LdbcQuery13ResultSerializable> resp = 
-          (List<LdbcQuery13ResultSerializable>) in.readObject();
+        LdbcQuery13ResultSerializable resp = 
+          (LdbcQuery13ResultSerializable) in.readObject();
 
         // Convert the response to type expected by driver.  
-        List<LdbcQuery13Result> result = new ArrayList<>();
-        resp.forEach((v) -> {
-          result.add(v.unpack());
-        });
+        LdbcQuery13Result result = resp.unpack();
 
-        resultReporter.report(result.size(), result, operation);
+        resultReporter.report(1, result, operation);
       } else if (operation instanceof LdbcQuery14) {
         out.writeObject(new LdbcQuery14Serializable((LdbcQuery14) operation));
         out.flush();
