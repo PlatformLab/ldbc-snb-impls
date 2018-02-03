@@ -130,6 +130,7 @@ public class TorcDbServer {
     private final Map<Class<? extends Operation>, OperationHandler> 
         queryHandlerMap;
     private final ConcurrentErrorReporter concurrentErrorReporter;
+    private int clientID = 1;
 
     public ListenerThread(int port, TorcDbConnectionState connectionState,
         Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
@@ -153,9 +154,12 @@ public class TorcDbServer {
           System.out.println("Client connected: " + client.toString());
 
           Thread clientThread = new Thread(new ClientThread(client, 
-               concurrentErrorReporter, connectionState, queryHandlerMap));
+               concurrentErrorReporter, connectionState, queryHandlerMap,
+               clientID));
 
           clientThread.start();
+
+          clientID++;
         }
 
 //        server.close();
@@ -178,17 +182,20 @@ public class TorcDbServer {
     private final TorcDbConnectionState connectionState;
     private final Map<Class<? extends Operation>, OperationHandler> 
         queryHandlerMap;
+    private final int clientID;
 
     public ClientThread(Socket client, 
         ConcurrentErrorReporter concurrentErrorReporter, 
         TorcDbConnectionState connectionState,
-        Map<Class<? extends Operation>, OperationHandler> queryHandlerMap) {
+        Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
+        int clientID) {
       this.client = client;
       this.concurrentErrorReporter = concurrentErrorReporter;
       this.resultReporter = 
           new ResultReporter.SimpleResultReporter(concurrentErrorReporter);
       this.connectionState = connectionState;
       this.queryHandlerMap = queryHandlerMap;
+      this.clientID = clientID;
     }
 
     public void run() {
@@ -199,6 +206,8 @@ public class TorcDbServer {
 
         while (true) {
           Object query = in.readObject();
+
+          System.out.println("Client " + clientID + " Received Query: " + query.toString());
 
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).unpack();
