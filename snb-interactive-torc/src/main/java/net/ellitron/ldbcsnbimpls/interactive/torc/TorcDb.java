@@ -2653,7 +2653,7 @@ public class TorcDb extends Db {
           } else {
             throw new RuntimeException(String.format(
                 "ERROR: LdbcUpdate7AddCommentHandler query read a vertex with "
-                + "an unexpected label: %s", v.label()));
+                + "an unexpected label: %s, id: %s", v.label(), v.id()));
           }
         });
 
