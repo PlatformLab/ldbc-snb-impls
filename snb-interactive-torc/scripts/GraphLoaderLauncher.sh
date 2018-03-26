@@ -39,21 +39,21 @@ popd > /dev/null
 # Create an array of the client hostnames available for launching GraphLoader
 # instances.
 i=0
-for j in {01..43}
+for j in {01..100}
 do
-  if [[ $j != "16" && $j != "29" && $j != "34" ]]
-  then
+#  if [[ $j != "16" && $j != "29" && $j != "34" ]]
+#  then
     hosts[i]=rc$j
     (( i++ ))
-  fi
+#  fi
 done
 
 # Create a new window with the appropriate number of panes.
 tmux new-window -n GraphLoader
 for (( i=0; i<$numLoaders-1; i++ ))
 do
-  tmux split-window -h
-  tmux select-layout tiled > /dev/null
+  tmux split-window -t GraphLoader -h
+  tmux select-layout -t GraphLoader tiled > /dev/null
 done
 
 # Setup the panes for loading but stop before executing GraphLoader.
@@ -65,7 +65,7 @@ do
   do
     tmux send-keys -t GraphLoader.$i "echo \"Loading $mode\"" C-m
     tmux send-keys -t GraphLoader.$i "ssh ${hosts[i]}" C-m
-    tmux send-keys -t GraphLoader.$i "cd $rootDir; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\" -Dexec.args=\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\"; touch scripts/$i; exit" C-m
+    tmux send-keys -t GraphLoader.$i "cd $rootDir; mvn exec:java -Dexec.mainClass=\"net.ellitron.ldbcsnbimpls.interactive.torc.util.GraphLoader\" -Dexec.args=\"--coordLoc $coordLoc --masters $masters --graphName $graphName --numLoaders $numLoaders --loaderIdx $i --numThreads $numThreads --txSize $txSize --reportInt $reportInt --reportFmt $reportFmt $mode $dataDir\"; touch scripts/$i" C-m
   done
 
   for (( i=0; i<$numLoaders; i++ ))
