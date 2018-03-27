@@ -16,7 +16,7 @@ outputDir=$3
 mode=${4:-"all"}
 
 # Edit these parameters as necessary
-numLoaders=16
+numLoaders=1
 numThreads=1
 reportInt=2
 reportFmt="LFDT"
@@ -37,8 +37,8 @@ done
 tmux new-window -n ImageMaker
 for (( i=0; i<$numLoaders-1; i++ ))
 do
-  tmux split-window -h
-  tmux select-layout tiled > /dev/null
+  tmux split-window -t ImageMaker -h
+  tmux select-layout -t ImageMaker tiled > /dev/null
 done
 
 # Setup the panes for loading but stop before executing ImageMaker.
