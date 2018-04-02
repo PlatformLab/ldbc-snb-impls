@@ -75,12 +75,13 @@ public class ImageMaker {
       + "be loaded separately using the \"nodes\" or \"edges\" mode option.\n"
       + "\n"
       + "Usage:\n"
-      + "  ImageMaker [options] SOURCE\n"
+      + "  ImageMaker [options] SOURCE1 SOURCE2\n"
       + "  ImageMaker (-h | --help)\n"
       + "  ImageMaker --version\n"
       + "\n"
       + "Arguments:\n"
-      + "  SOURCE  Directory containing SNB dataset files.\n"
+      + "  SOURCE1  Directory containing original SNB dataset files.\n"
+      + "  SOURCE2  Directory containing supplementary SNB dataset files.\n"
       + "\n"
       + "Options:\n"
       + "  --mode=<mode>     Can be either \"nodes\" or \"edges\" to create\n"
@@ -706,39 +707,55 @@ public class ImageMaker {
     int numThreads = Integer.decode((String) opts.get("--numThreads"));
     long reportInterval = Long.decode((String) opts.get("--reportInt"));
     String formatString = (String) opts.get("--reportFmt");
-    String inputDir = (String) opts.get("SOURCE");
+    String baseFilesInputDir = (String) opts.get("SOURCE1");
+    String suppFilesInputDir = (String) opts.get("SOURCE2");
 
     System.out.println(String.format(
         "ImageMaker: {mode: %s, outputDir: %s, graphName: %s, "
         + "numLoaders: %d, loaderIdx: %d, "
-        + "reportFmt: %s, inputDir: %s}",
+        + "reportFmt: %s, baseFilesInputDir: %s, suppFilesInputDir: %s}",
         mode,
         outputDir,
         graphName, 
         numLoaders,
         loaderIdx,
         formatString,
-        inputDir));
+        baseFilesInputDir,
+        suppFilesInputDir));
 
     // Construct a list of all the files that need to be loaded.
     List<LoadUnit> loadList = new ArrayList<>();
-    File dir = new File(inputDir);
+    File baseFilesDir = new File(baseFilesInputDir);
+    File suppFilesDir = new File(suppFilesInputDir);
     int totalNodeFiles = 0;
     if (mode.equals("all") || mode.equals("nodes")) {
       for (SnbEntity snbEntity : SnbEntity.values()) {
-        File [] fileList = dir.listFiles(new FilenameFilter() {
-              @Override
-              public boolean accept(File dir, String name) {
-                return name.matches(
-                    "^" + snbEntity.name + "_[0-9]+_[0-9]+\\.csv");
-              }
-            });
+        File [] fileList;
+        if (snbEntity.name == "person") {
+          // These supplementary person files have email and language properties
+          // merged into them.
+          fileList = suppFilesDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                  return name.matches(
+                      "^" + snbEntity.name + "_[0-9]+_[0-9]+\\.csv");
+                }
+              });
+        } else {
+          fileList = baseFilesDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                  return name.matches(
+                      "^" + snbEntity.name + "_[0-9]+_[0-9]+\\.csv");
+                }
+              });
+        }
 
         if (fileList.length > 0) {
           for (File f : fileList) {
             loadList.add(new LoadUnit(snbEntity, f.toPath(), false));
             System.out.println(String.format("Found file for %s nodes (%s)",
-                snbEntity.name, f.getName()));
+                snbEntity.name, f.getPath()));
             totalNodeFiles++;
           }
         } else {
@@ -767,36 +784,88 @@ public class ImageMaker {
             snbRelation.name,
             snbRelation.head.name);
 
-        File [] fileList;
-        fileList = dir.listFiles(new FilenameFilter() {
-              @Override
-              public boolean accept(File dir, String name) {
-                return name.matches(
-                    "^" + snbRelation.tail.name + 
-                    "_" + snbRelation.name + 
-                    "_" + snbRelation.head.name + 
-                    "(_ridx)?" +
-                    "_[0-9]+_[0-9]+\\.csv");
-              }
-            });
+        if (snbRelation.directed) {
+          File [] srcIndexedFileList;
+          srcIndexedFileList = baseFilesDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                  return name.matches(
+                      "^" + snbRelation.tail.name + 
+                      "_" + snbRelation.name + 
+                      "_" + snbRelation.head.name + 
+                      "_[0-9]+_[0-9]+\\.csv");
+                }
+              });
 
-        if (fileList.length > 0) {
-          for (File f : fileList) {
-            loadList.add(new LoadUnit(snbRelation, f.toPath(),
-                f.getName().matches(
-                    "^" + snbRelation.tail.name + 
-                    "_" + snbRelation.name + 
-                    "_" + snbRelation.head.name + 
-                    "_ridx" +
-                    "_[0-9]+_[0-9]+\\.csv")));
-            System.out.println(String.format("Found file for %s edges (%s)",
-                edgeStr, f.getName()));
+          File [] dstIndexedFileList;
+          dstIndexedFileList = suppFilesDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                  return name.matches(
+                      "^" + snbRelation.tail.name + 
+                      "_" + snbRelation.name + 
+                      "_" + snbRelation.head.name + 
+                      "_ridx" +
+                      "_[0-9]+_[0-9]+\\.csv");
+                }
+              });
 
-            totalEdgeFiles++;
+          if (srcIndexedFileList.length > 0) {
+            for (File f : srcIndexedFileList) {
+              loadList.add(new LoadUnit(snbRelation, f.toPath(), false));
+              System.out.println(String.format(
+                  "Found src indexed edge list file for %s edges (%s)",
+                  edgeStr, f.getPath()));
+
+              totalEdgeFiles++;
+            }
+          } else {
+            System.out.println(String.format("Missing file for %s edges",
+                edgeStr));
+          }
+
+          if (dstIndexedFileList.length > 0) {
+            for (File f : dstIndexedFileList) {
+              loadList.add(new LoadUnit(snbRelation, f.toPath(), true));
+              System.out.println(String.format(
+                  "Found dst indexed edge list file for %s edges (%s)",
+                  edgeStr, f.getPath()));
+
+              totalEdgeFiles++;
+            }
+          } else {
+            System.out.println(String.format(
+                "Missing reverse edge file for %s edges",
+                edgeStr));
           }
         } else {
-          System.out.println(String.format("Missing file for %s edges",
-              edgeStr));
+          // Undirected edge type.
+          File [] fileList;
+          fileList = suppFilesDir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                  return name.matches(
+                      "^" + snbRelation.tail.name + 
+                      "_" + snbRelation.name + 
+                      "_" + snbRelation.head.name + 
+                      "_[0-9]+_[0-9]+\\.csv");
+                }
+              });
+
+          if (fileList.length > 0) {
+            for (File f : fileList) {
+              loadList.add(new LoadUnit(snbRelation, f.toPath(), false));
+              System.out.println(String.format(
+                  "Found undirected edge list file for %s edges (%s)",
+                  edgeStr, f.getPath()));
+
+              totalEdgeFiles++;
+            }
+          } else {
+            System.out.println(String.format(
+                "Missing undirected edge list file for %s edges",
+                edgeStr));
+          }
         }
       }
 
