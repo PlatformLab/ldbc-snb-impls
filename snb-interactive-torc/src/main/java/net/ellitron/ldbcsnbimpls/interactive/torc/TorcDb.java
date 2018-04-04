@@ -98,6 +98,15 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.FileNotFoundException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.IOException;
 import java.util.*;
 
@@ -137,6 +146,11 @@ public class TorcDb extends Db {
 
   private TorcDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
+  private static boolean fakeComplexReads = false;
+  private static String personIDsFilename;
+  private static String messageIDsFilename;
+  private static List<Long> personIDs;
+  private static List<Long> messageIDs;
 
   // Maximum number of times to try a transaction before giving up.
   private static int MAX_TX_ATTEMPTS = 100;
@@ -149,6 +163,41 @@ public class TorcDb extends Db {
 
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
+    }
+
+    if (properties.containsKey("personIDsFile") && 
+        properties.containsKey("messageIDsFile")) {
+      this.personIDsFilename = properties.get("personIDsFile");
+      this.personIDs = new ArrayList<>();
+
+      try (BufferedReader br = 
+          new BufferedReader(new FileReader(personIDsFilename))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          personIDs.add(Long.decode(line));
+        }
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      } 
+
+      this.messageIDsFilename = properties.get("messageIDsFile");
+      this.messageIDs = new ArrayList<>();
+
+      try (BufferedReader br = 
+          new BufferedReader(new FileReader(messageIDsFilename))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          messageIDs.add(Long.decode(line));
+        }
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      } 
+
+      this.fakeComplexReads = true;
+    } else if (properties.containsKey("personIDsFile") ||
+               properties.containsKey("messageIDsFile")) {
+      throw new RuntimeException(
+          "Error: Must specify BOTH personIDs and messageIDs file");
     }
 
     /*
@@ -236,6 +285,32 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery1 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        System.out.println("Faking complex read 1");
+
+        List<LdbcQuery1Result> result = new ArrayList<>();
+
+        for (int i = 0; i < operation.limit(); i++) {
+          result.add(new LdbcQuery1Result(
+              64,
+              null,
+              0,
+              0,
+              0,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null));
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        return;
+      }
+
       executeOperationGremlin2(operation, dbConnectionState, resultReporter);
     }
 
@@ -841,6 +916,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery2 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long personId = operation.personId();
@@ -922,6 +1001,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery3 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -946,6 +1029,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery4 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -970,6 +1057,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery5 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -993,6 +1084,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery6 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -1019,6 +1114,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery7 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long personId = operation.personId();
@@ -1117,6 +1216,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery8 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long personId = operation.personId();
@@ -1200,6 +1303,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery9 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -1232,6 +1339,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery10 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long personId = operation.personId();
@@ -1387,6 +1498,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery11 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long personId = operation.personId();
@@ -1476,6 +1591,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery12 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
@@ -1497,6 +1616,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery13 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
       
       // Parameters of this query
       final long person1Id = operation.person1Id();
@@ -1571,6 +1694,10 @@ public class TorcDb extends Db {
     public void executeOperation(final LdbcQuery14 operation,
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
+      if (fakeComplexReads) {
+        
+        return;
+      }
 
     }
 
