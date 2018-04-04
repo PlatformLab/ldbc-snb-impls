@@ -109,6 +109,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for TorcDB.
@@ -291,8 +292,11 @@ public class TorcDb extends Db {
         List<LdbcQuery1Result> result = new ArrayList<>();
 
         for (int i = 0; i < operation.limit(); i++) {
+          int n = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n);
+          System.out.println("Picking ID(" + n + "): " + pid);
           result.add(new LdbcQuery1Result(
-              64,
+              pid,
               null,
               0,
               0,
