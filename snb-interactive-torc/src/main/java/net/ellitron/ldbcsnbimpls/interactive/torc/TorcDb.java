@@ -208,16 +208,30 @@ public class TorcDb extends Db {
         LdbcQuery1Handler.class);
     registerOperationHandler(LdbcQuery2.class,
         LdbcQuery2Handler.class);
+    registerOperationHandler(LdbcQuery3.class,
+        LdbcQuery3Handler.class);
+    registerOperationHandler(LdbcQuery4.class,
+        LdbcQuery4Handler.class);
+    registerOperationHandler(LdbcQuery5.class,
+        LdbcQuery5Handler.class);
+    registerOperationHandler(LdbcQuery6.class,
+        LdbcQuery6Handler.class);
     registerOperationHandler(LdbcQuery7.class,
         LdbcQuery7Handler.class);
     registerOperationHandler(LdbcQuery8.class,
         LdbcQuery8Handler.class);
+    registerOperationHandler(LdbcQuery9.class,
+        LdbcQuery9Handler.class);
     registerOperationHandler(LdbcQuery10.class,
         LdbcQuery10Handler.class);
     registerOperationHandler(LdbcQuery11.class,
         LdbcQuery11Handler.class);
+    registerOperationHandler(LdbcQuery12.class,
+        LdbcQuery12Handler.class);
     registerOperationHandler(LdbcQuery13.class,
         LdbcQuery13Handler.class);
+    registerOperationHandler(LdbcQuery14.class,
+        LdbcQuery14Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
@@ -287,14 +301,11 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        System.out.println("Faking complex read 1");
-
-        List<LdbcQuery1Result> result = new ArrayList<>();
+        List<LdbcQuery1Result> result = new ArrayList<>(operation.limit());
 
         for (int i = 0; i < operation.limit(); i++) {
-          int n = ThreadLocalRandom.current().nextInt(0, personIDs.size());
-          Long pid = personIDs.get(n);
-          System.out.println("Picking ID(" + n + "): " + pid);
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n1);
           result.add(new LdbcQuery1Result(
               pid,
               null,
@@ -921,7 +932,23 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery2Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
+          Long pid = personIDs.get(n1);
+          Long mid = messageIDs.get(n2);
+          result.add(new LdbcQuery2Result(
+              pid, 
+              null,
+              null,
+              mid,
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
       
@@ -1006,7 +1033,21 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n1);
+          result.add(new LdbcQuery3Result(
+              pid,
+              null,
+              null,
+              0,
+              0,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1034,7 +1075,15 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery4Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          result.add(new LdbcQuery4Result(
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1062,7 +1111,15 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          result.add(new LdbcQuery5Result(
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1089,7 +1146,15 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery6Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          result.add(new LdbcQuery6Result(
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1119,7 +1184,25 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery7Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
+          Long pid = personIDs.get(n1);
+          Long mid = messageIDs.get(n2);
+          result.add(new LdbcQuery7Result(
+              pid,
+              null,
+              null,
+              0,
+              mid,
+              null,
+              0,
+              false));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
       
@@ -1221,7 +1304,23 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery8Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
+          Long pid = personIDs.get(n1);
+          Long mid = messageIDs.get(n2);
+          result.add(new LdbcQuery8Result(
+              pid,
+              null,
+              null,
+              0,
+              mid,
+              null));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
       
@@ -1308,7 +1407,23 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery9Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
+          Long pid = personIDs.get(n1);
+          Long mid = messageIDs.get(n2);
+          result.add(new LdbcQuery9Result(
+              pid,
+              null,
+              null,
+              mid,
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1344,7 +1459,21 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery10Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n1);
+          result.add(new LdbcQuery10Result(
+              pid,
+              null,
+              null,
+              0,
+              null,
+              null));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
       
@@ -1503,7 +1632,20 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery11Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n1);
+          result.add(new LdbcQuery11Result(
+              pid,
+              null,
+              null,
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
       
@@ -1596,7 +1738,20 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        List<LdbcQuery12Result> result = new ArrayList<>(operation.limit());
+
+        for (int i = 0; i < operation.limit(); i++) {
+          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
+          Long pid = personIDs.get(n1);
+          result.add(new LdbcQuery12Result(
+              pid,
+              null,
+              null,
+              null,
+              0));
+        }
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
@@ -1621,7 +1776,7 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
-        
+        resultReporter.report(1, new LdbcQuery13Result(0), operation);
         return;
       }
       
@@ -1699,7 +1854,17 @@ public class TorcDb extends Db {
         DbConnectionState dbConnectionState,
         ResultReporter resultReporter) throws DbException {
       if (fakeComplexReads) {
+        List<LdbcQuery14Result> result = new ArrayList<>(1);
         
+        List<Long> personIDsInPath = new ArrayList<>(2);
+        personIDsInPath.add(operation.person1Id());
+        personIDsInPath.add(operation.person2Id());
+
+        result.add(new LdbcQuery14Result(
+            personIDsInPath,
+            42.0));
+
+        resultReporter.report(result.size(), result, operation);
         return;
       }
 
