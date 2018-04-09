@@ -1051,6 +1051,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1087,6 +1089,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery4Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1123,6 +1127,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1158,6 +1164,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery6Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1427,6 +1435,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery9Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1755,6 +1765,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery12Result> result = new ArrayList<>(operation.limit());
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
@@ -1868,6 +1880,8 @@ public class TorcDb extends Db {
         return;
       }
 
+      List<LdbcQuery14Result> result = new ArrayList<>(1);
+      resultReporter.report(result.size(), result, operation);
     }
 
   }
