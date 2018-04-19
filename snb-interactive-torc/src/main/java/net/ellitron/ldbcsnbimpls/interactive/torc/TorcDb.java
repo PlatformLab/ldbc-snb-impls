@@ -25,6 +25,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
 
+import net.ellitron.torc.*;
 import net.ellitron.torc.util.UInt128;
 import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
@@ -2255,9 +2256,12 @@ public class TorcDb extends Db {
             .next();
 
         Vertex creator =
-            message.edges(Direction.OUT, "hasCreator").next().inVertex();
+            ((TorcVertex) message).edges(Direction.OUT, 
+                new String[] {"hasCreator"}, 
+                new String[] {"Person"}).next().inVertex();
 
         long creatorId = ((UInt128) creator.id()).getLowerLong();
+
         String creatorFirstName =
             creator.<String>property("firstName").value();
         String creatorLastName =
