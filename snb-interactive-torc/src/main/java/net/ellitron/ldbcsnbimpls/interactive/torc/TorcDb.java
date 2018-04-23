@@ -1920,7 +1920,9 @@ public class TorcDb extends Db {
         });
 
         Vertex place =
-            person.edges(Direction.OUT, "isLocatedIn").next().inVertex();
+            ((TorcVertex) person).edges(Direction.OUT, 
+              new String[] {"isLocatedIn"}, 
+              new String[] {TorcEntity.PLACE.label}).next().inVertex();
         long placeId = ((UInt128) place.id()).getLowerLong();
 
         LdbcShortQuery1PersonProfileResult res =
@@ -1979,7 +1981,9 @@ public class TorcDb extends Db {
         Vertex person = client.vertices(
             new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
-        Iterator<Edge> edges = person.edges(Direction.IN, "hasCreator");
+        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.IN, 
+            new String[] {"hasCreator"}, 
+            new String[] {TorcEntity.POST.label, TorcEntity.COMMENT.label});
 
         List<Vertex> messageList = new ArrayList<>();
         edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
@@ -2042,13 +2046,19 @@ public class TorcDb extends Db {
                 person.<String>property("lastName").value();
           } else {
             Vertex parentMessage =
-                message.edges(Direction.OUT, "replyOf").next().inVertex();
+                ((TorcVertex) message).edges(Direction.OUT, 
+                  new String[] {"replyOf"},
+                  new String[] {TorcEntity.POST.label, 
+                    TorcEntity.COMMENT.label})
+                  .next().inVertex();
             while (true) {
               if (parentMessage.label().equals(TorcEntity.POST.label)) {
                 originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
 
                 Vertex author =
-                    parentMessage.edges(Direction.OUT, "hasCreator")
+                    ((TorcVertex) parentMessage).edges(Direction.OUT, 
+                      new String[] {"hasCreator"}, 
+                      new String[] {TorcEntity.PERSON.label})
                     .next().inVertex();
                 originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
                 originalPostAuthorFirstName =
@@ -2058,7 +2068,10 @@ public class TorcDb extends Db {
                 break;
               } else {
                 parentMessage =
-                    parentMessage.edges(Direction.OUT, "replyOf")
+                    ((TorcVertex) parentMessage).edges(Direction.OUT, 
+                      new String[] {"replyOf"},
+                      new String[] {TorcEntity.POST.label, 
+                        TorcEntity.COMMENT.label})
                     .next().inVertex();
               }
             }
@@ -2119,7 +2132,9 @@ public class TorcDb extends Db {
             new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
 
-        Iterator<Edge> edges = person.edges(Direction.OUT, "knows");
+        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.OUT, 
+            new String[] {"knows"}, 
+            new String[] {TorcEntity.PERSON.label});
 
         edges.forEachRemaining((e) -> {
           long creationDate = Long.decode(e.<String>property("creationDate")
@@ -2258,7 +2273,7 @@ public class TorcDb extends Db {
         Vertex creator =
             ((TorcVertex) message).edges(Direction.OUT, 
                 new String[] {"hasCreator"}, 
-                new String[] {"Person"}).next().inVertex();
+                new String[] {TorcEntity.PERSON.label}).next().inVertex();
 
         long creatorId = ((UInt128) creator.id()).getLowerLong();
 
@@ -2322,7 +2337,9 @@ public class TorcDb extends Db {
             String forumTitle = vertex.<String>property("title").value();
 
             Vertex moderator =
-                vertex.edges(Direction.OUT, "hasModerator").next().inVertex();
+                ((TorcVertex) vertex).edges(Direction.OUT, 
+                  new String[] {"hasModerator"},
+                  new String[] {TorcEntity.PERSON.label}).next().inVertex();
 
             long moderatorId = ((UInt128) moderator.id()).getLowerLong();
             String moderatorFirstName =
@@ -2340,9 +2357,15 @@ public class TorcDb extends Db {
             break;
           } else if (vertex.label().equals(TorcEntity.POST.label)) {
             vertex =
-                vertex.edges(Direction.IN, "containerOf").next().outVertex();
+                ((TorcVertex) vertex).edges(Direction.IN, 
+                  new String[] {"containerOf"},
+                  new String[] {TorcEntity.FORUM.label}).next().outVertex();
           } else {
-            vertex = vertex.edges(Direction.OUT, "replyOf").next().inVertex();
+            vertex = ((TorcVertex) vertex).edges(Direction.OUT, 
+                  new String[] {"replyOf"},
+                  new String[] {TorcEntity.POST.label, 
+                    TorcEntity.COMMENT.label})
+                  .next().inVertex();
           }
         }
 
@@ -2389,16 +2412,22 @@ public class TorcDb extends Db {
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
         Vertex messageAuthor =
-            message.edges(Direction.OUT, "hasCreator").next().inVertex();
+            ((TorcVertex) message).edges(Direction.OUT, 
+              new String[] {"hasCreator"},
+              new String[] {TorcEntity.PERSON.label}).next().inVertex();
         long messageAuthorId = ((UInt128) messageAuthor.id()).getLowerLong();
 
         List<Vertex> replies = new ArrayList<>();
-        message.edges(Direction.IN, "replyOf").forEachRemaining((e) -> {
+        ((TorcVertex) message).edges(Direction.IN, 
+          new String[] {"replyOf"},
+          new String[] {TorcEntity.COMMENT.label}).forEachRemaining((e) -> {
           replies.add(e.outVertex());
         });
 
         List<Long> messageAuthorFriendIds = new ArrayList<>();
-        messageAuthor.edges(Direction.OUT, "knows").forEachRemaining((e) -> {
+        ((TorcVertex) messageAuthor).edges(Direction.OUT, 
+          new String[] {"knows"},
+          new String[] {TorcEntity.PERSON.label}).forEachRemaining((e) -> {
           messageAuthorFriendIds.add(((UInt128) e.inVertex().id())
               .getLowerLong());
         });
@@ -2412,7 +2441,9 @@ public class TorcDb extends Db {
               Long.decode(reply.<String>property("creationDate").value());
 
           Vertex replyAuthor =
-              reply.edges(Direction.OUT, "hasCreator").next().inVertex();
+              ((TorcVertex) reply).edges(Direction.OUT, 
+                  new String[] {"hasCreator"},
+                  new String[] {TorcEntity.PERSON.label}).next().inVertex();
           long replyAuthorId = ((UInt128) replyAuthor.id()).getLowerLong();
           String replyAuthorFirstName =
               replyAuthor.<String>property("firstName").value();
