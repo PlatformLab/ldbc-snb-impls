@@ -2326,26 +2326,42 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
+        List<String> log = new ArrayList<>(64);
+        List<Long> start = new ArrayList<>(64);
+        List<Long> end = new ArrayList<>(64);
+
+        log.add("Get comment vertex");
+        start.add(System.nanoTime());
         Vertex vertex = client.vertices(
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
+        end.add(System.nanoTime());
 
         LdbcShortQuery6MessageForumResult result;
         while (true) {
           if (vertex.label().equals(TorcEntity.FORUM.label)) {
             long forumId = ((UInt128) vertex.id()).getLowerLong();
+            log.add("Get forum title");
+            start.add(System.nanoTime());
             String forumTitle = vertex.<String>property("title").value();
+            end.add(System.nanoTime());
 
+            log.add("Get forum moderator");
+            start.add(System.nanoTime());
             Vertex moderator =
                 ((TorcVertex) vertex).edges(Direction.OUT, 
                   new String[] {"hasModerator"},
                   new String[] {TorcEntity.PERSON.label}).next().inVertex();
+            end.add(System.nanoTime());
 
             long moderatorId = ((UInt128) moderator.id()).getLowerLong();
+            log.add("Get moderator properties");
+            start.add(System.nanoTime());
             String moderatorFirstName =
                 moderator.<String>property("firstName").value();
             String moderatorLastName =
                 moderator.<String>property("lastName").value();
+            end.add(System.nanoTime());
 
             result = new LdbcShortQuery6MessageForumResult(
                 forumId,
@@ -2356,16 +2372,22 @@ public class TorcDb extends Db {
 
             break;
           } else if (vertex.label().equals(TorcEntity.POST.label)) {
+            log.add("Get containing forum");
+            start.add(System.nanoTime());
             vertex =
                 ((TorcVertex) vertex).edges(Direction.IN, 
                   new String[] {"containerOf"},
                   new String[] {TorcEntity.FORUM.label}).next().outVertex();
+            end.add(System.nanoTime());
           } else {
+            log.add("Get parent message");
+            start.add(System.nanoTime());
             vertex = ((TorcVertex) vertex).edges(Direction.OUT, 
                   new String[] {"replyOf"},
                   new String[] {TorcEntity.POST.label, 
                     TorcEntity.COMMENT.label})
                   .next().inVertex();
+            end.add(System.nanoTime());
           }
         }
 
@@ -2379,6 +2401,17 @@ public class TorcDb extends Db {
         } else {
           client.tx().rollback();
         }
+
+        int colWidth = 0;
+        for (int i = 0; i < log.size(); i++) {
+          colWidth = java.lang.Math.max(colWidth, log.get(i).length());
+        }
+
+        System.out.println("## Section: LdbcShortQuery6 ##");
+        for (int i = 0; i < log.size(); i++) {
+          System.out.println(String.format(String.format("%%%ds %%d", colWidth), log.get(i), (end.get(i) - start.get(i)))); 
+        }
+        System.out.println();
 
         resultReporter.report(1, result, operation);
         break;
