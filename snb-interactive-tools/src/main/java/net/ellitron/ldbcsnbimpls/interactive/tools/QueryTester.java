@@ -794,6 +794,8 @@ public class QueryTester {
     if (repeatCount == 1) {
       printResult(resultReporter.result());
     }
+
+    dbConnectionState.close();
   }
 
   /**
