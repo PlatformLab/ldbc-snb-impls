@@ -112,6 +112,10 @@ public class ImageMaker {
       + "                      d - Per thread disk read bandwidth in KB/s.\n"
       + "                      T - Total time elapsed.\n"
       + "                    [default: LFDT].\n"
+      + "  --noLabelLists    Cut out the edge label list and neighbor label\n"
+      + "                    lists from the output image files. These take up\n"
+      + "                    a lot of space and can be programmatically\n"
+      + "                    generated.\n"
       + "  -h --help         Show this screen.\n"
       + "  --version         Show version.\n"
       + "\n";
@@ -256,6 +260,7 @@ public class ImageMaker {
     private final int totalThreads;
     private final int threadIdx;
     private final ThreadStats stats;
+    private final boolean noLabelLists;
     private final Map<SnbEntity, List<String>> edgeLabelLists;
     private final Map<SnbEntity, 
         Map<Entry<String, TorcEdgeDirection>, List<String>>> 
@@ -288,7 +293,7 @@ public class ImageMaker {
      */
     public LoaderThread(TorcGraph graph, List<LoadUnit> loadList, 
         int totalThreads, int threadIdx, ThreadStats stats, 
-        Map<SnbEntity, List<String>> edgeLabelLists,
+        boolean noLabelLists, Map<SnbEntity, List<String>> edgeLabelLists,
         Map<SnbEntity, Map<Entry<String, TorcEdgeDirection>, List<String>>> 
             neighborLabelListMaps) {
       this.graph = graph;
@@ -296,6 +301,7 @@ public class ImageMaker {
       this.totalThreads = totalThreads;
       this.threadIdx = threadIdx;
       this.stats = stats;
+      this.noLabelLists = noLabelLists;
       this.edgeLabelLists = edgeLabelLists;
       this.neighborLabelListMaps = neighborLabelListMaps;
 
@@ -407,9 +413,13 @@ public class ImageMaker {
                 }
               }
 
-              graph.loadVertex(vertexId, vertexLabel, propMap, 
-                  edgeLabelLists.get(snbEntity),
-                  neighborLabelListMaps.get(snbEntity));
+              if (noLabelLists) {
+                graph.loadVertex(vertexId, vertexLabel, propMap, null, null);
+              } else {
+                graph.loadVertex(vertexId, vertexLabel, propMap, 
+                    edgeLabelLists.get(snbEntity),
+                    neighborLabelListMaps.get(snbEntity));
+              }
 
               localLinesProcessed++;
               stats.linesProcessed++;
@@ -707,19 +717,22 @@ public class ImageMaker {
     int numThreads = Integer.decode((String) opts.get("--numThreads"));
     long reportInterval = Long.decode((String) opts.get("--reportInt"));
     String formatString = (String) opts.get("--reportFmt");
+    boolean noLabelLists = (boolean) opts.get("--noLabelLists");
     String baseFilesInputDir = (String) opts.get("SOURCE1");
     String suppFilesInputDir = (String) opts.get("SOURCE2");
 
     System.out.println(String.format(
         "ImageMaker: {mode: %s, outputDir: %s, graphName: %s, "
         + "numLoaders: %d, loaderIdx: %d, "
-        + "reportFmt: %s, baseFilesInputDir: %s, suppFilesInputDir: %s}",
+        + "reportFmt: %s, noLabelLists: %s, baseFilesInputDir: %s, "
+        + "suppFilesInputDir: %s}",
         mode,
         outputDir,
         graphName, 
         numLoaders,
         loaderIdx,
         formatString,
+        noLabelLists,
         baseFilesInputDir,
         suppFilesInputDir));
 
@@ -962,8 +975,8 @@ public class ImageMaker {
       TorcGraph graph = TorcGraph.open(torcConfig);
 
       threads.add(new Thread(new LoaderThread(graph, loadList,
-          numLoaders * numThreads, loaderIdx * numThreads + i, stats,
-          edgeLabelLists, neighborLabelListMaps)));
+          numLoaders * numThreads, loaderIdx * numThreads + i, stats, 
+          noLabelLists, edgeLabelLists, neighborLabelListMaps)));
 
       threads.get(i).start();
 
