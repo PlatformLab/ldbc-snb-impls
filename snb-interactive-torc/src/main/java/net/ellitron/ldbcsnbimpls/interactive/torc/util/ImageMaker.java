@@ -98,7 +98,7 @@ public class ImageMaker {
       + "                    for loading. Indexes start from 0.\n"
       + "                    [default: 0].\n"
       + "  --numThreads=<n>  The number of threads to use in this loader\n"
-      + "                    instance.\n This loader's dataset partition is\n"
+      + "                    instance. This loader's dataset partition is\n"
       + "                    divided up among this number of threads."
       + "                    [default: 1].\n"
       + "  --reportInt=<i>   Number of seconds between reporting status to\n"
