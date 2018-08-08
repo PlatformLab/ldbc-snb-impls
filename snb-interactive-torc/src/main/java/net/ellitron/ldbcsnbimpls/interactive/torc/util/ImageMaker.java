@@ -969,7 +969,7 @@ public class ImageMaker {
       torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_CREATION_MODE, "yes");
       torcConfig.put(TorcGraph.CONFIG_RC_IMAGE_DIRECTORY, outputDir);
       torcConfig.put(TorcGraph.CONFIG_GRAPH_NAME, 
-          String.format("part%04d.%s", loaderIdx * numThreads + i, 
+          String.format("part%d.%s", loaderIdx * numThreads + i, 
             (String) opts.get("--graphName")));
 
       TorcGraph graph = TorcGraph.open(torcConfig);
