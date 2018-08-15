@@ -59,6 +59,13 @@ public class TorcDbConnectionState extends DbConnectionState {
     } else {
       graphName = "default";
     }
+
+    if (props.containsKey("dpdkPort")) {
+      int dpdkPort = Integer.decode(props.get("dpdkPort"));
+      config.setProperty(
+          TorcGraph.CONFIG_DPDK_PORT,
+          dpdkPort);
+    } 
     
     config.setProperty(
         TorcGraph.CONFIG_COORD_LOCATOR,
