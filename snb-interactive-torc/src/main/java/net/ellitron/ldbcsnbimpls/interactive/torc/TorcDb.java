@@ -631,10 +631,74 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String countryXName = operation.countryXName();
+      final String countryYName = operation.countryYName();
+      final long startDate = operation.startDate().getTime();
+      final int durationDays = operation.durationDays();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery3Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+            .aggregate("done")
+            .union(
+                out("knows"),
+                out("knows").out("knows"))
+            .dedup().where(without("done")).as("friend")
+            .in("hasCreator").out("isLocatedIn")
+            .or(has("name", countryXName), has("name", countryYName))
+            .order()
+                .by(select("workAt").values("workFrom"), incr)
+                .by(select("friend").id())
+                .by(select("company").values("name"), decr)
+            .limit(limit)
+            .project("personId", 
+                "personFirstName", 
+                "personLastName", 
+                "xCount", 
+                "yCount",
+                "count")
+                .by(select("friend").id())
+                .by(select("friend").values("firstName"))
+                .by(select("friend").values("lastName"))
+                .by(select("xCount"))
+                .by(select("yCount"))
+                .by(select("count"))
+            .map(t -> new LdbcQuery3Result(
+                ((UInt128)t.get().get("personId")).getLowerLong(),
+                (String)t.get().get("firstName"), 
+                (String)t.get().get("lastName"),
+                ((Integer)t.get().get("xCount")), 
+                ((Integer)t.get().get("yCount")), 
+                ((Integer)t.get().get("count"))))
+            .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
