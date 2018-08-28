@@ -121,11 +121,31 @@ public class QueryScratchPad {
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, 68);
 
-    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows").aggregate("done")
-      .out("knows").aggregate("done");
+//    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows")
+//        .union(identity(), out("knows")).dedup().where(without("person"))
+//        .as("friends")
+//        .in("hasCreator")
+//        .filter(t -> Long.valueOf(t.get().value("creationDate")) <= maxDate)
+//        .filter(t -> Long.valueOf(t.get().value("creationDate")) >= minDate)
+//        .out("isLocatedIn")
+//        .where( 
+//          or( 
+//            value("name").is(eq(countryXName)),
+//            value("name").is(eq(countryYname))
+//            )
+//          )
+
+//    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows")
+//        .union(identity(), out("knows")).dedup().where(neq("person"))
+//        .as("friends")
+//        .local(in("hasCreator").count());
+
+    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows").out("knows")
+//        .union(identity(), out("knows"))
+        .barrier().local(groupCount().by("firstName"));
 
     while (gt.hasNext()) {
-      System.out.println(((TorcVertex) gt.next()).toString());
+      System.out.println(gt.next().toString());
     }
 
     graph.close();
