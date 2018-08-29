@@ -1,5 +1,4 @@
 /* 
-./src/main/java/net/ellitron/ldbcsnbimpls/interactive/torc/TorcDbConnectionState.java
  * Copyright (C) 2018 Stanford University
  *
  * This program is free software: you can redistribute it and/or modify
@@ -117,26 +116,6 @@ public class QueryScratchPad {
     Graph graph = TorcGraph.open(config);
 
     GraphTraversalSource g = graph.traversal();
-
-
-//    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows")
-//        .union(identity(), out("knows")).dedup().where(without("person"))
-//        .as("friends")
-//        .in("hasCreator")
-//        .filter(t -> Long.valueOf(t.get().value("creationDate")) <= maxDate)
-//        .filter(t -> Long.valueOf(t.get().value("creationDate")) >= minDate)
-//        .out("isLocatedIn")
-//        .where( 
-//          or( 
-//            value("name").is(eq(countryXName)),
-//            value("name").is(eq(countryYname))
-//            )
-//          )
-
-//    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows")
-//        .union(identity(), out("knows")).dedup().where(neq("person"))
-//        .as("friends")
-//        .local(in("hasCreator").count());
 
     long personId = 4398046511979L;
     String countryXName = "Mauritania";
