@@ -137,6 +137,39 @@ public class QueryScratchPad {
     * count, and then ascending by Tag name.[1]
     */
 
+    g.V(torcPersonId).out("knows")
+      .in("hasCreator")
+      .as("posts")
+      .filter(t -> {
+                long date = Long.valueOf(t.get().value("creationDate"));
+                return date < startDate;
+              })
+      .as("beforeTimePosts")
+      .out("hasTag").aggregate("beforeTimeTags")
+      .select("posts")
+      .filter(t -> {
+                long date = Long.valueOf(t.get().value("creationDate"));
+                return date <= endDate && date >= startDate;
+              })
+      .as("timeIntervalPosts")
+      .out("hasTag")
+      .where(without("beforeTimeTags"))
+      .aggregate("timeIntervalFilteredTags")
+      .groupCount()
+      .order(local)
+        .by(values, decr)
+      .limit(local, limit)
+      .select(keys)
+      .unfold()
+      .aggregate("topTags")
+      .select("timeIntervalFilteredTags")
+      .group().by(select("timeIntervalPosts"))
+
+      .out("hasTag")
+      .where(select("post").filter(t -> {
+                long date = Long.valueOf(t.get().value("creationDate"));
+                return date <= endDate && date >= startDate;
+              })
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
