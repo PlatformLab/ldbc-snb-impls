@@ -631,10 +631,94 @@ public class TorcDb extends Db {
         return;
       }
 
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String countryXName = operation.countryXName();
+      final String countryYName = operation.countryYName();
+      final long startDate = operation.startDate().getTime();
+      final long durationDate = operation.durationDays();
+
+      final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
+
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery3Result> result = new ArrayList<>(limit);
+
+        g.V(torcPersonId).as("person").out("knows")
+          .union(identity(), out("knows")).dedup().where(neq("person"))
+          .where(
+            out("isLocatedIn").out("isPartOf").is(without(countryXName, countryYName))
+          )
+          .as("friend")
+          .in("hasCreator")
+          .filter(t -> {
+                    long date = Long.valueOf(t.get().value("creationDate"));
+                    return date <= endDate && date >= startDate;
+                  })
+          .out("isLocatedIn").values("name")
+          .where( is(within(countryXName, countryYName)) )
+          .group().by(select("friend"))
+          .flatMap(t -> {
+                Map m = t.get();
+                List removeList = new ArrayList<Object>();
+                for (Object k : m.keySet()) {
+                  List v = (List) m.get(k);
+                  if ( !v.contains(countryXName) || !v.contains(countryYName) )
+                    removeList.add(k);
+                }
+
+                for (Object k : removeList)
+                  m.remove(k);
+
+                return m.entrySet().iterator();
+              })
+          .order().by(select(values).unfold().count(), decr).by(select(keys).id(), incr)
+          .project("personId",
+              "firstName",
+              "lastName",
+              "countryXCount",
+              "countryYCount",
+              "totalCount")
+            .by(select(keys).id())
+            .by(select(keys).values("firstName"))
+            .by(select(keys).values("lastName"))
+            .by(select(values).unfold().is(eq(countryXName)).count())
+            .by(select(values).unfold().is(eq(countryYName)).count())
+            .by(select(values).unfold().count())
+          .map(t -> new LdbcQuery3Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("firstName"), 
+              (String)t.get().get("lastName"),
+              (Long)t.get().get("countryXCount"),
+              (Long)t.get().get("countryYCount"),
+              (Long)t.get().get("totalCount")))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+
       List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
       resultReporter.report(result.size(), result, operation);
     }
-
   }
 
   /**
