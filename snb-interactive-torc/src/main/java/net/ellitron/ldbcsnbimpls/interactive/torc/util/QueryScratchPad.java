@@ -24,6 +24,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
+import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
 import net.ellitron.torc.util.UInt128;
@@ -117,61 +118,25 @@ public class QueryScratchPad {
 
     GraphTraversalSource g = graph.traversal();
 
-    long personId = 4398046511979L;
-    String countryXName = "Mauritania";
-    String countryYName = "El_Salvador";
-    long startDate = 1280620800000L;
-    long durationDays = 39L;
+    long personId = 1690L;
+    long startDate = 1291161600000L;
+    long durationDays = 43L;
     long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
-    int limit = 20;
+    int limit = 10;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    GraphTraversal gt = g.V(torcPersonId).as("person").out("knows")
-        .union(identity(), out("knows")).dedup().where(neq("person"))
-        .where(
-          out("isLocatedIn").out("isPartOf").is(without(countryXName, countryYName))
-        )
-        .as("friend")
-        .map(
-          in("hasCreator")
-          .filter(t -> {
-                    long date = Long.valueOf(t.get().value("creationDate"));
-                    return date <= endDate && date >= startDate;
-                  })
-          .out("isLocatedIn").values("name")
-          .where( is(within(countryXName, countryYName)) )
-          .fold()
-        )
-        .filter(t -> t.get().contains(countryXName) && t.get().contains(countryYName))
-        .as("countryList")
-        .map(
-          unfold()
-          .groupCount()
-        )
-        .as("countryMap")
-        .select("countryList")
-        .map(
-          unfold()
-          .count()
-        ).as("postCount")
-        .order()
-          .by(select("postCount"), decr)
-          .by(select("friend").id(), incr)
-        .project("personId",
-            "firstName",
-            "lastName",
-            "countryXCount",
-            "countryYCount",
-            "totalCount")
-          .by(select("friend").id())
-          .by(select("friend").values("firstName"))
-          .by(select("friend").values("lastName"))
-          .by(select("countryMap").select(countryXName))
-          .by(select("countryMap").select(countryYName))
-          .by(select("postCount"))          
-        ;
+    /**
+    * Given a start Person, find Tags that are attached to Posts that were
+    * created by that Person’s friends. Only include Tags that were attached to
+    * friends’ Posts created within a given time interval, and that were never
+    * attached to friends’ Posts created before this interval. Return top 10
+    * Tags, and the count of Posts, which were created within the given time
+    * interval, that this Tag was attached to. Sort results descending by Post
+    * count, and then ascending by Tag name.[1]
+    */
+
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
