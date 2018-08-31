@@ -24,6 +24,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
+import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
 import net.ellitron.torc.util.UInt128;
@@ -89,6 +90,7 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
+import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -636,7 +638,8 @@ public class TorcDb extends Db {
       final String countryXName = operation.countryXName();
       final String countryYName = operation.countryYName();
       final long startDate = operation.startDate().getTime();
-      final long durationDate = operation.durationDays();
+      final long durationDays = operation.durationDays();
+      final int limit = operation.limit();
 
       final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
 
@@ -697,12 +700,12 @@ public class TorcDb extends Db {
             .by(select(values).unfold().is(eq(countryYName)).count())
             .by(select(values).unfold().count())
           .map(t -> new LdbcQuery3Result(
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("firstName"), 
-              (String)t.get().get("lastName"),
-              (Long)t.get().get("countryXCount"),
-              (Long)t.get().get("countryYCount"),
-              (Long)t.get().get("totalCount")))
+              ((UInt128)((Traverser<Map>)t).get().get("personId")).getLowerLong(),
+              (String)((Traverser<Map>)t).get().get("firstName"), 
+              (String)((Traverser<Map>)t).get().get("lastName"),
+              (Long)((Traverser<Map>)t).get().get("countryXCount"),
+              (Long)((Traverser<Map>)t).get().get("countryYCount"),
+              (Long)((Traverser<Map>)t).get().get("totalCount")))
           .store("result").iterate(); 
 
         if (doTransactionalReads) {
