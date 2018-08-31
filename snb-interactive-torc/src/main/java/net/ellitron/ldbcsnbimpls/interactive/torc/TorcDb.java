@@ -651,7 +651,8 @@ public class TorcDb extends Db {
 
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
-        g.V(torcPersonId).as("person").out("knows")
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows")
           .union(identity(), out("knows")).dedup().where(neq("person"))
           .where(
             out("isLocatedIn").out("isPartOf").is(without(countryXName, countryYName))
@@ -679,7 +680,10 @@ public class TorcDb extends Db {
 
                 return m.entrySet().iterator();
               })
-          .order().by(select(values).unfold().count(), decr).by(select(keys).id(), incr)
+          .order()
+            .by(select(values).unfold().count(), decr)
+            .by(select(keys).id(), incr)
+          .limit(limit)
           .project("personId",
               "firstName",
               "lastName",
