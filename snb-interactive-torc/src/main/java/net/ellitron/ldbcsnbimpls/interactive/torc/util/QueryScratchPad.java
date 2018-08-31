@@ -32,11 +32,70 @@ import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
 import net.ellitron.ldbcsnbimpls.interactive.torc.*;
 
+import com.ldbc.driver.control.LoggingService;
+import com.ldbc.driver.Db;
+import com.ldbc.driver.DbConnectionState;
+import com.ldbc.driver.DbException;
+import com.ldbc.driver.OperationHandler;
+import com.ldbc.driver.ResultReporter;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcNoResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery1Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery2Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery3Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery4Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery5Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery6Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery7Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery8Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery9Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery10Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery11Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery12Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery13Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcQuery14Result;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfile;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery1PersonProfileResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPosts;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery2PersonPostsResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriends;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery3PersonFriendsResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContent;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery4MessageContentResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreator;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery5MessageCreatorResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery6MessageForumResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageReplies;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcShortQuery7MessageRepliesResult;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate1AddPerson;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate2AddPostLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate3AddCommentLike;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate4AddForum;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate5AddForumMembership;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate6AddPost;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate7AddComment;
+import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
+
 import org.apache.commons.configuration.BaseConfiguration;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
+import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -118,15 +177,6 @@ public class QueryScratchPad {
 
     GraphTraversalSource g = graph.traversal();
 
-    long personId = 1690L;
-    long startDate = 1291161600000L;
-    long durationDays = 43L;
-    long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
-    int limit = 10;
-
-    final UInt128 torcPersonId = 
-        new UInt128(TorcEntity.PERSON.idSpace, personId);
-
     /**
     * Given a start Person, find Tags that are attached to Posts that were
     * created by that Person’s friends. Only include Tags that were attached to
@@ -137,7 +187,18 @@ public class QueryScratchPad {
     * count, and then ascending by Tag name.[1]
     */
 
-    g.V(torcPersonId).out("knows")
+    long personId = 1690L;
+    long startDate = 1291161600000L;
+    long durationDays = 43L;
+    long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
+    int limit = 10;
+
+    final UInt128 torcPersonId = 
+        new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+    List<LdbcQuery4Result> result = new ArrayList<>(limit);
+
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).out("knows")
       .in("hasCreator")
       .as("posts")
       .filter(t -> {
@@ -146,36 +207,42 @@ public class QueryScratchPad {
               })
       .as("beforeTimePosts")
       .out("hasTag").aggregate("beforeTimeTags")
-      .select("posts")
+      .<Vertex>select("posts")
       .filter(t -> {
                 long date = Long.valueOf(t.get().value("creationDate"));
                 return date <= endDate && date >= startDate;
-              })
-      .as("timeIntervalPosts")
-      .out("hasTag")
-      .where(without("beforeTimeTags"))
-      .aggregate("timeIntervalFilteredTags")
-      .groupCount()
-      .order(local)
-        .by(values, decr)
-      .limit(local, limit)
-      .select(keys)
-      .unfold()
-      .aggregate("topTags")
-      .select("timeIntervalFilteredTags")
-      .group().by(select("timeIntervalPosts"))
+              });
+//      .as("timeIntervalPosts")
+//      .out("hasTag")
+//      .where(without("beforeTimeTags"))
+//      .aggregate("timeIntervalFilteredTags")
+//      .select("timeIntervalPosts")
+//      .group().by(select("timeIntervalFilteredTags"));
 
-      .out("hasTag")
-      .where(select("post").filter(t -> {
-                long date = Long.valueOf(t.get().value("creationDate"));
-                return date <= endDate && date >= startDate;
-              })
+//      .groupCount()
+//      .order(local)
+//        .by(values, decr)
+//      .limit(local, limit)
+//      .select(keys)
+//      .unfold()
+//      .aggregate("topTags")
+//      .select("timeIntervalFilteredTags")
+//      .group().by(select("timeIntervalPosts"))
+//      .out("hasTag")
+//      .where(select("post").filter(t -> {
+//                long date = Long.valueOf(t.get().value("creationDate"));
+//                return date <= endDate && date >= startDate;
+//              })
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
-      System.out.println(gt.next().toString());
+      System.out.println(gt.next().getClass());
     }
     long end = System.nanoTime();
+
+    for (int i = 0; i < result.size(); i++) {
+      System.out.println(result.get(i));
+    }
 
     System.out.println(String.format("Query Time: %dms", (end-start)/1000000L));
 
