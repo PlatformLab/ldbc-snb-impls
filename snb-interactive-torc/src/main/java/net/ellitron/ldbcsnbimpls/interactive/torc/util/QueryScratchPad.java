@@ -96,6 +96,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.BulkSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -187,9 +188,15 @@ public class QueryScratchPad {
     * count, and then ascending by Tag name.[1]
     */
 
-    long personId = 1690L;
-    long startDate = 1291161600000L;
-    long durationDays = 43L;
+//    long personId = 1690L;
+//    long startDate = 1291161600000L;
+//    long durationDays = 43L;
+//    long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
+//    int limit = 10;
+
+    long personId = 1099511629394L;
+    long startDate = 1280620800000L;
+    long durationDays = 32L;
     long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
     int limit = 10;
 
@@ -200,43 +207,43 @@ public class QueryScratchPad {
 
     GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).out("knows")
       .in("hasCreator")
-      .as("posts")
-      .filter(t -> {
-                long date = Long.valueOf(t.get().value("creationDate"));
+      .as("post")
+      .values("creationDate")
+      .sideEffect(
+          filter(t -> {
+                long date = Long.valueOf((String)t.get());
                 return date < startDate;
-              })
-      .as("beforeTimePosts")
-      .out("hasTag").aggregate("beforeTimeTags")
-      .<Vertex>select("posts")
+                })
+          .select("post").out("hasTag").dedup().aggregate("oldTags")
+      )
+      .barrier()
       .filter(t -> {
-                long date = Long.valueOf(t.get().value("creationDate"));
+                long date = Long.valueOf((String)t.get());
                 return date <= endDate && date >= startDate;
-              });
-//      .as("timeIntervalPosts")
-//      .out("hasTag")
-//      .where(without("beforeTimeTags"))
-//      .aggregate("timeIntervalFilteredTags")
-//      .select("timeIntervalPosts")
-//      .group().by(select("timeIntervalFilteredTags"));
-
-//      .groupCount()
-//      .order(local)
-//        .by(values, decr)
-//      .limit(local, limit)
-//      .select(keys)
-//      .unfold()
-//      .aggregate("topTags")
-//      .select("timeIntervalFilteredTags")
-//      .group().by(select("timeIntervalPosts"))
-//      .out("hasTag")
-//      .where(select("post").filter(t -> {
-//                long date = Long.valueOf(t.get().value("creationDate"));
-//                return date <= endDate && date >= startDate;
-//              })
+              })
+      .select("post")
+      .out("hasTag")
+      .where(without("oldTags")).values("name")
+      .as("newTags")
+      .select("post")
+      .group().by(select("newTags")).by(count())
+      .order(local)
+        .by(select(values), decr)
+        .by(select(keys), incr)
+      .limit(local, limit)
+      .unfold()
+      .project("tagName",
+          "postCount")
+        .by(select(keys))
+        .by(select(values))
+      .map(t -> new LdbcQuery4Result(
+          (String)(t.get().get("tagName")), 
+          ((Long)(t.get().get("postCount"))).intValue()))
+      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
-      System.out.println(gt.next().getClass());
+      System.out.println(gt.next().toString());
     }
     long end = System.nanoTime();
 
