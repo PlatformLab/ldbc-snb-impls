@@ -722,9 +722,6 @@ public class TorcDb extends Db {
         resultReporter.report(result.size(), result, operation);
         break;
       }
-
-      List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
     }
   }
 
@@ -760,10 +757,76 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery4Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final long startDate = operation.startDate().getTime();
+      final long durationDays = operation.durationDays();
+      final int limit = operation.limit();
 
+      final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
+
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery4Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).out("knows")
+          .in("hasCreator")
+          .as("post")
+          .values("creationDate")
+          .sideEffect(
+              filter(t -> {
+                    long date = Long.valueOf((String)t.get());
+                    return date < startDate;
+                    })
+              .select("post").out("hasTag").dedup().aggregate("oldTags")
+          )
+          .barrier()
+          .filter(t -> {
+                    long date = Long.valueOf((String)t.get());
+                    return date <= endDate && date >= startDate;
+                  })
+          .select("post")
+          .out("hasTag")
+          .where(without("oldTags")).values("name")
+          .as("newTags")
+          .select("post")
+          .group().by(select("newTags")).by(count())
+          .order(local)
+            .by(select(values), decr)
+            .by(select(keys), incr)
+          .limit(local, limit)
+          .unfold()
+          .project("tagName",
+              "postCount")
+            .by(select(keys))
+            .by(select(values))
+          .map(t -> new LdbcQuery4Result(
+              (String)(t.get().get("tagName")), 
+              ((Long)(t.get().get("postCount"))).intValue()))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
