@@ -179,67 +179,36 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
     /**
-    * Given a start Person, find Tags that are attached to Posts that were
-    * created by that Person’s friends. Only include Tags that were attached to
-    * friends’ Posts created within a given time interval, and that were never
-    * attached to friends’ Posts created before this interval. Return top 10
-    * Tags, and the count of Posts, which were created within the given time
-    * interval, that this Tag was attached to. Sort results descending by Post
-    * count, and then ascending by Tag name.[1]
+    * Given a start Person, find the Forums which that Person’s friends and
+    * friends of friends (excluding start Person) became Members of after a
+    * given date. Return top 20 Forums, and the number of Posts in each Forum
+    * that was Created by any of these Persons. For each Forum consider only
+    * those Persons which joined that particular Forum after the given date.
+    * Sort results descending by the count of Posts, and then ascending by Forum
+    * identifier.[1]
     */
 
-//    long personId = 1690L;
-//    long startDate = 1291161600000L;
-//    long durationDays = 43L;
-//    long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
-//    int limit = 10;
-
-    long personId = 1099511629394L;
-    long startDate = 1280620800000L;
-    long durationDays = 32L;
-    long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
-    int limit = 10;
+    long personId = 2979L;
+    long minDate = 1288137600000L;
+    int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery4Result> result = new ArrayList<>(limit);
+    List<LdbcQuery5Result> result = new ArrayList<>(limit);
 
-    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).out("knows")
-      .in("hasCreator")
-      .as("post")
-      .values("creationDate")
-      .sideEffect(
-          filter(t -> {
-                long date = Long.valueOf((String)t.get());
-                return date < startDate;
-                })
-          .select("post").out("hasTag").dedup().aggregate("oldTags")
-      )
-      .barrier()
-      .filter(t -> {
-                long date = Long.valueOf((String)t.get());
-                return date <= endDate && date >= startDate;
-              })
-      .select("post")
-      .out("hasTag")
-      .where(without("oldTags")).values("name")
-      .as("newTags")
-      .select("post")
-      .group().by(select("newTags")).by(count())
-      .order(local)
-        .by(select(values), decr)
-        .by(select(keys), incr)
-      .limit(local, limit)
-      .unfold()
-      .project("tagName",
-          "postCount")
-        .by(select(keys))
-        .by(select(values))
-      .map(t -> new LdbcQuery4Result(
-          (String)(t.get().get("tagName")), 
-          ((Long)(t.get().get("postCount"))).intValue()))
-      .store("result").iterate(); 
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
+      .out("knows")
+      .union(identity(), out("knows")).dedup().where(neq("person"));
+
+//      .project("tagName",
+//          "postCount")
+//        .by(select(keys))
+//        .by(select(values))
+//      .map(t -> new LdbcQuery4Result(
+//          (String)(t.get().get("tagName")), 
+//          ((Long)(t.get().get("postCount"))).intValue()))
+//      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
