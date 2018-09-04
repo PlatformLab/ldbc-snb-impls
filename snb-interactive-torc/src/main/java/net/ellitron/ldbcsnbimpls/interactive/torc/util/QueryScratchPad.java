@@ -178,69 +178,35 @@ public class QueryScratchPad {
 
     GraphTraversalSource g = graph.traversal();
 
-    /**
-    * Given a start Person, find the Forums which that Person’s friends and
-    * friends of friends (excluding start Person) became Members of after a
-    * given date. Return top 20 Forums, and the number of Posts in each Forum
-    * that was Created by any of these Persons. For each Forum consider only
-    * those Persons which joined that particular Forum after the given date.
-    * Sort results descending by the count of Posts, and then ascending by Forum
-    * identifier.[1]
-    */
+  /**
+   * Given a start Person and some Tag, find the other Tags that occur together
+   * with this Tag on Posts that were created by start Person’s friends and
+   * friends of friends (excluding start Person). Return top 10 Tags, and the
+   * count of Posts that were created by these Persons, which contain both this
+   * Tag and the given Tag. Sort results descending by count, and then
+   * ascending by Tag name.[1]
+   */
 
-    long personId = 2979L;
-    long minDate = 1288137600000L;
-    int limit = 20;
+    long personId = 5497558140453L;
+    String tagName = "Ovid";
+    int limit = 10;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery5Result> result = new ArrayList<>(limit);
+    List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
-    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
-      .out("knows")
-      .union(identity(), out("knows")).dedup().where(neq("person"))
-      .as("friend")
-      .aggregate("friendAgg")
-      .inE("hasMember")
-      .as("memberEdge")
-      .values("joinDate")
-      .filter(t -> {
-                long date = Long.valueOf((String)t.get());
-                return date > minDate;
-            })
-      .select("memberEdge")
-      .outV()
-      .group()
-        .by(select("friend"))
-      .as("friendForums")
-      .select("friendAgg")
-      .unfold()
-      .as("friend")
-      .in("hasCreator")
-      .as("post")
-      .in("containerOf")
-      .as("forum")
-      .filter(t -> {
-                Map<Vertex, List<Vertex>> m = t.path("friendForums");
-                Vertex v = t.path("friend");
-                List<Vertex> forums = m.get(v);
-                Vertex thisForum = t.get();
-                return forums.contains(thisForum);
-             })
-      .groupCount()
-      .order(local)
-        .by(select(values), decr)
-        .by(select(keys).id(), incr)
-      .limit(local, limit)
-      .unfold()
-      .project("forumTitle", "postCount")
-        .by(select(keys).values("title"))
-        .by(select(values))
-      .map(t -> new LdbcQuery5Result(
-          (String)(t.get().get("forumTitle")), 
-          ((Long)(t.get().get("postCount"))).intValue()))
-      .store("result").iterate(); 
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person");
+//      .out("knows")
+//      .union(identity(), out("knows")).dedup().where(neq("person"))
+//      .as("friend")
+//      .project("tagName", "postCount")
+//        .by(select(keys).values("tagName"))
+//        .by(select(values))
+//      .map(t -> new LdbcQuery6Result(
+//          (String)(t.get().get("tagName")), 
+//          ((Long)(t.get().get("postCount"))).intValue()))
+//      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
