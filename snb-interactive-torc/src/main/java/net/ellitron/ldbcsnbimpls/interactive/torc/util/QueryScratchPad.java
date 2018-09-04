@@ -199,7 +199,32 @@ public class QueryScratchPad {
 
     GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
       .out("knows")
-      .union(identity(), out("knows")).dedup().where(neq("person"));
+      .union(identity(), out("knows")).dedup().where(neq("person"))
+      .as("friend")
+      .inE("hasMember")
+      .as("memberEdge")
+      .values("joinDate")
+      .filter(t -> {
+                long date = Long.valueOf((String)t.get());
+                return date > minDate;
+            })
+      .select("memberEdge")
+      .outV()
+      .groupCount()
+      .order(local)
+        .by(select(values), decr)
+      .limit(local, limit)
+      .unfold()
+      .select(keys)
+      .as("topForums")
+      .out("hasMember")
+      .group()
+        .by(select("topForums"));
+
+//      .out("containerOf")
+//      .out("hasCreator")
+//      .where(within("friends"));
+      
 
 //      .project("tagName",
 //          "postCount")
