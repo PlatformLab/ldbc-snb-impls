@@ -201,6 +201,7 @@ public class QueryScratchPad {
       .out("knows")
       .union(identity(), out("knows")).dedup().where(neq("person"))
       .as("friend")
+      .aggregate("friendAgg")
       .inE("hasMember")
       .as("memberEdge")
       .values("joinDate")
@@ -210,30 +211,36 @@ public class QueryScratchPad {
             })
       .select("memberEdge")
       .outV()
+      .group()
+        .by(select("friend"))
+      .as("friendForums")
+      .select("friendAgg")
+      .unfold()
+      .as("friend")
+      .in("hasCreator")
+      .as("post")
+      .in("containerOf")
+      .as("forum")
+      .filter(t -> {
+                Map<Vertex, List<Vertex>> m = t.path("friendForums");
+                Vertex v = t.path("friend");
+                List<Vertex> forums = m.get(v);
+                Vertex thisForum = t.get();
+                return forums.contains(thisForum);
+             })
       .groupCount()
       .order(local)
         .by(select(values), decr)
+        .by(select(keys).id(), incr)
       .limit(local, limit)
       .unfold()
-      .select(keys)
-      .as("topForums")
-      .out("hasMember")
-      .group()
-        .by(select("topForums"));
-
-//      .out("containerOf")
-//      .out("hasCreator")
-//      .where(within("friends"));
-      
-
-//      .project("tagName",
-//          "postCount")
-//        .by(select(keys))
-//        .by(select(values))
-//      .map(t -> new LdbcQuery4Result(
-//          (String)(t.get().get("tagName")), 
-//          ((Long)(t.get().get("postCount"))).intValue()))
-//      .store("result").iterate(); 
+      .project("forumTitle", "postCount")
+        .by(select(keys).values("title"))
+        .by(select(values))
+      .map(t -> new LdbcQuery5Result(
+          (String)(t.get().get("forumTitle")), 
+          ((Long)(t.get().get("postCount"))).intValue()))
+      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
