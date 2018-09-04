@@ -861,10 +861,82 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final long minDate = operation.minDate().getTime();
+      final int limit = operation.limit();
 
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows")
+          .union(identity(), out("knows")).dedup().where(neq("person"))
+          .as("friend")
+          .aggregate("friendAgg")
+          .inE("hasMember")
+          .as("memberEdge")
+          .values("joinDate")
+          .filter(t -> {
+                    long date = Long.valueOf((String)t.get());
+                    return date > minDate;
+                })
+          .select("memberEdge")
+          .outV()
+          .group()
+            .by(select("friend"))
+          .as("friendForums")
+          .select("friendAgg")
+          .unfold()
+          .as("friend")
+          .in("hasCreator")
+          .as("post")
+          .in("containerOf")
+          .as("forum")
+          .filter(t -> {
+                    Map<Vertex, List<Vertex>> m = t.path("friendForums");
+                    Vertex v = t.path("friend");
+                    List<Vertex> forums = m.get(v);
+                    Vertex thisForum = t.get();
+                    return forums.contains(thisForum);
+                })
+          .groupCount()
+          .order(local)
+            .by(select(values), decr)
+            .by(select(keys).id(), incr)
+          .limit(local, limit)
+          .unfold()
+          .project("forumTitle", "postCount")
+            .by(select(keys).values("title"))
+            .by(select(values))
+          .map(t -> new LdbcQuery5Result(
+              (String)(t.get().get("forumTitle")), 
+              ((Long)(t.get().get("postCount"))).intValue()))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
