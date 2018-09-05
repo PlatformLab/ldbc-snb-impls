@@ -179,64 +179,59 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
   /**
-   * Given a start Person and some Tag, find the other Tags that occur together
-   * with this Tag on Posts that were created by start Person’s friends and
-   * friends of friends (excluding start Person). Return top 10 Tags, and the
-   * count of Posts that were created by these Persons, which contain both this
-   * Tag and the given Tag. Sort results descending by count, and then
-   * ascending by Tag name.[1]
+   * Given a start Person, find the (most recent) Posts/Comments created by
+   * that Person’s friends or friends of friends (excluding start Person). Only
+   * consider the Posts/Comments created before a given date (excluding that
+   * date). Return the top 20 Posts/Comments, and the Person that created each
+   * of those Posts/Comments. Sort results descending by creation date of
+   * Post/Comment, and then ascending by Post/Comment identifier.[1]
    */
 
-    long personId = 5497558140453L;
-    String tagName = "Ovid";
-    int limit = 10;
+    long personId = 3298534885687L;
+    long maxDate = 1290556800000L;
+    int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery6Result> result = new ArrayList<>(limit);
+    List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
     GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
       .out("knows")
       .union(identity(), out("knows")).dedup().where(neq("person"))
       .as("friend")
       .in("hasCreator")
-      .hasLabel("Post")
-      .as("post")
-      .out("hasTag")
-      .values("name")
-      .as("tag")
-      .group()
-        .by(select("post"))
-      .as("postToTagMap")
-      .flatMap(t -> {
-              Map m = t.get();
-              List removeList = new ArrayList<Object>();
-              for (Object k : m.keySet()) {
-                List v = (List) m.get(k);
-                if ( !v.contains(tagName) )
-                  removeList.add(k);
-              }
-
-              for (Object k : removeList)
-                m.remove(k);
-
-              return m.entrySet().iterator();
-            })
-      .select(values).unfold()
-      .where(is(neq(tagName)))
-      .groupCount()
-      .order(local)
-        .by(select(values), decr)
-        .by(select(keys), incr)
-      .limit(local, limit)
-      .unfold()
-      .project("tagName", "postCount")
-        .by(select(keys))
-        .by(select(values))
-      .map(t -> new LdbcQuery6Result(
-          (String)(((Traverser<Map>)t).get().get("tagName")), 
-          ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
+      .as("commentOrPost")
+      .values("creationDate")
+      .map(t -> Long.valueOf((String)t.get()))
+      .as("creationDate")
+      .where(is(lt(maxDate)))
+      .order()
+        .by(decr)
+        .by(select("friend").id(), incr)
+      .limit(limit)
+      .project("personId", 
+          "personFirstName", 
+          "personLastName", 
+          "commentOrPostId",
+          "commentOrPostContent",
+          "commentOrPostCreationDate")
+          .by(select("friend").id())
+          .by(select("friend").values("firstName"))
+          .by(select("friend").values("lastName"))
+          .by(select("commentOrPost").id())
+          .by(select("commentOrPost")
+              .choose(values("content").is(neq("")),
+                  values("content"),
+                  values("imageFile")))
+          .by(select("creationDate"))
+      .map(t -> new LdbcQuery9Result(
+          ((UInt128)t.get().get("personId")).getLowerLong(),
+          (String)t.get().get("personFirstName"), 
+          (String)t.get().get("personLastName"),
+          ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
+          (String)t.get().get("commentOrPostContent"),
+          (Long)t.get().get("commentOrPostCreationDate")))
       .store("result").iterate(); 
 
     long start = System.nanoTime();
