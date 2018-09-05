@@ -1312,10 +1312,75 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery9Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final long maxDate = operation.maxDate();
+      final int limit = operation.limit();
+      
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
 
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery9Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows")
+          .union(identity(), out("knows")).dedup().where(neq("person"))
+          .as("friend")
+          .in("hasCreator")
+          .as("commentOrPost")
+          .values("creationDate")
+          .map(t -> Long.valueOf((String)t.get()))
+          .as("creationDate")
+          .where(is(lt(maxDate)))
+          .order()
+            .by(decr)
+            .by(select("friend").id(), incr)
+          .limit(limit)
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "commentOrPostId",
+              "commentOrPostContent",
+              "commentOrPostCreationDate")
+              .by(select("friend").id())
+              .by(select("friend").values("firstName"))
+              .by(select("friend").values("lastName"))
+              .by(select("commentOrPost").id())
+              .by(select("commentOrPost")
+                  .choose(values("content").is(neq("")),
+                      values("content"),
+                      values("imageFile")))
+              .by(select("creationDate"))
+          .map(t -> new LdbcQuery9Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
+              (String)t.get().get("commentOrPostContent"),
+              (Long)t.get().get("commentOrPostCreationDate")))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
