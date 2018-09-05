@@ -970,10 +970,81 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery6Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String tagName = operation.tagName();
+      final int limit = operation.limit();
 
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery6Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows")
+          .union(identity(), out("knows")).dedup().where(neq("person"))
+          .as("friend")
+          .in("hasCreator")
+          .hasLabel("Post")
+          .as("post")
+          .out("hasTag")
+          .values("name")
+          .as("tag")
+          .group()
+            .by(select("post"))
+          .as("postToTagMap")
+          .flatMap(t -> {
+                  Map m = t.get();
+                  List removeList = new ArrayList<Object>();
+                  for (Object k : m.keySet()) {
+                    List v = (List) m.get(k);
+                    if ( !v.contains(tagName) )
+                      removeList.add(k);
+                  }
+
+                  for (Object k : removeList)
+                    m.remove(k);
+
+                  return m.entrySet().iterator();
+                })
+          .select(values).unfold()
+          .where(is(neq(tagName)))
+          .groupCount()
+          .order(local)
+            .by(select(values), decr)
+            .by(select(keys), incr)
+          .limit(local, limit)
+          .unfold()
+          .project("tagName", "postCount")
+            .by(select(keys))
+            .by(select(values))
+          .map(t -> new LdbcQuery6Result(
+              (String)(((Traverser<Map>)t).get().get("tagName")), 
+              ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
+          .store("result").iterate(); 
+
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
