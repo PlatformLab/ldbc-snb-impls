@@ -1314,7 +1314,7 @@ public class TorcDb extends Db {
 
       // Parameters of this query
       final long personId = operation.personId();
-      final long maxDate = operation.maxDate();
+      final long maxDate = operation.maxDate().getTime();
       final int limit = operation.limit();
       
       final UInt128 torcPersonId = 
