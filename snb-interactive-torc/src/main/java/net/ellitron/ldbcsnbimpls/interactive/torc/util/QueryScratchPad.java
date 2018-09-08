@@ -179,60 +179,113 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
   /**
-   * Given a start Person, find the (most recent) Posts/Comments created by
-   * that Person’s friends or friends of friends (excluding start Person). Only
-   * consider the Posts/Comments created before a given date (excluding that
-   * date). Return the top 20 Posts/Comments, and the Person that created each
-   * of those Posts/Comments. Sort results descending by creation date of
-   * Post/Comment, and then ascending by Post/Comment identifier.[1]
+   * Given a start Person, find the Comments that this Person’s friends made in
+   * reply to Posts, considering only those Comments that are immediate (1-hop)
+   * replies to Posts, not the transitive (multi-hop) case. Only consider Posts
+   * with a Tag in a given TagClass or in a descendent of that TagClass. Count
+   * the number of these reply Comments, and collect the Tags (with valid tag
+   * class) that were attached to the Posts they replied to. Return top 20
+   * Persons with at least one reply, the reply count, and the collection of
+   * Tags. Sort results descending by Comment count, and then ascending by
+   * Person identifier.[1]
    */
 
-    long personId = 3298534885687L;
-    long maxDate = 1290556800000L;
+    long personId = 2724L;
+    String tagClassName = "Chancellor";
     int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery9Result> result = new ArrayList<>(limit);
+    List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
     GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
       .out("knows")
-      .union(identity(), out("knows")).dedup().where(neq("person"))
       .as("friend")
       .in("hasCreator")
-      .as("commentOrPost")
-      .values("creationDate")
-      .map(t -> Long.valueOf((String)t.get()))
-      .as("creationDate")
-      .where(is(lt(maxDate)))
-      .order()
-        .by(decr)
-        .by(select("friend").id(), incr)
-      .limit(limit)
+      .hasLabel("Comment")
+      .as("comment")
+      .out("replyOf")
+      .hasLabel("Post")
+      .out("hasTag")
+      .as("tag")
+      .out("hasType")
+      .values("name")
+      .where(is(within("Chancellor")))
+      .select("tag").values("name")
+      .union(
+        group().by(select("friend")).aggregate("friendTags"),
+        select("comment").dedup().group().by(select("friend")).aggregate("friendComments")
+      )
+      .barrier()
+      .select("friendComments")
+      .unfold()
+      .unfold()
+      .select(keys)
+      .dedup()
       .project("personId", 
           "personFirstName", 
-          "personLastName", 
-          "commentOrPostId",
-          "commentOrPostContent",
-          "commentOrPostCreationDate")
-          .by(select("friend").id())
-          .by(select("friend").values("firstName"))
-          .by(select("friend").values("lastName"))
-          .by(select("commentOrPost").id())
-          .by(select("commentOrPost")
-              .choose(values("content").is(neq("")),
-                  values("content"),
-                  values("imageFile")))
-          .by(select("creationDate"))
-      .map(t -> new LdbcQuery9Result(
-          ((UInt128)t.get().get("personId")).getLowerLong(),
-          (String)t.get().get("personFirstName"), 
-          (String)t.get().get("personLastName"),
-          ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
-          (String)t.get().get("commentOrPostContent"),
-          (Long)t.get().get("commentOrPostCreationDate")))
-      .store("result").iterate(); 
+          "personLastName")
+//          "tagNames",
+//          "count")
+          .by(id())
+          .by(values("firstName"))
+          .by(values("lastName"));
+//          .by(select("tagNames"))
+//          .by(select("count"));
+
+//      .select(keys).unfold().dedup();
+//      .project("personId", 
+//          "personFirstName", 
+//          "personLastName", 
+//          "tagNames",
+//          "count")
+//          .by(select("friend").id())
+//          .by(select("friend").values("firstName"))
+//          .by(select("friend").values("lastName"))
+//          .by(select("tagNames"))
+//          .by(select("count"))
+//      .map(t -> new LdbcQuery12Result(
+//          ((UInt128)t.get().get("personId")).getLowerLong(),
+//          (String)t.get().get("personFirstName"), 
+//          (String)t.get().get("personLastName"),
+//          (Iterable<String>)t.get().get("tagNames"), 
+//          ((Long)t.get().get("count")).intValue()))
+//      .store("result").iterate(); 
+
+//      .sideEffect(
+//          path()
+//          .aggregate("savedPaths")
+//      )
+//      .group()
+//        .by(select("friend"))
+//      .select("savedPaths")
+//      .unfold()
+//      .select("comment");
+
+//      .unfold();
+//      .select("comment")
+//      .groupCount()
+//        .by(select("friend"));
+      
+    
+//      .project("personId", 
+//          "personFirstName", 
+//          "personLastName", 
+//          "tagNames",
+//          "count")
+//          .by(select("friend").id())
+//          .by(select("friend").values("firstName"))
+//          .by(select("friend").values("lastName"))
+//          .by(select("tagNames"))
+//          .by(select("count"))
+//      .map(t -> new LdbcQuery12Result(
+//          ((UInt128)t.get().get("personId")).getLowerLong(),
+//          (String)t.get().get("personFirstName"), 
+//          (String)t.get().get("personLastName"),
+//          (Iterable<String>)t.get().get("tagNames"), 
+//          ((Long)t.get().get("count")).intValue()))
+//      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
