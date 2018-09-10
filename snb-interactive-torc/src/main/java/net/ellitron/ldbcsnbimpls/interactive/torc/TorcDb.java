@@ -1707,10 +1707,69 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery12Result> result = new ArrayList<>(operation.limit());
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String tagClassName = operation.tagClassName();
+      final int limit = operation.limit();
 
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery12Result> result = new ArrayList<>(limit);
+
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows")
+          .as("friend")
+          .group()
+            .by(select("friend"))
+            .by(project("commentCount", "tags")
+                .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
+                .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
+          .order(local)
+            .by(select(values).select("commentCount"), decr)
+            .by(select(keys).id(), incr)
+          .limit(local, limit)
+          .unfold()
+          .where(select(values).where(select("commentCount").is(gt(0))))
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "tags",
+              "count")
+              .by(select(keys).id())
+              .by(select(keys).values("firstName"))
+              .by(select(keys).values("lastName"))
+              .by(select(values).select("tags"))
+              .by(select(values).select("commentCount"))
+          .map(t -> new LdbcQuery12Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              (Iterable<String>)t.get().get("tags"), 
+              ((Long)t.get().get("count")).intValue()))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
