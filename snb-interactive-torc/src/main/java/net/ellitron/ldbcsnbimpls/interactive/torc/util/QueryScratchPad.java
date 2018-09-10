@@ -202,90 +202,34 @@ public class QueryScratchPad {
     GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
       .out("knows")
       .as("friend")
-      .in("hasCreator")
-      .hasLabel("Comment")
-      .as("comment")
-      .out("replyOf")
-      .hasLabel("Post")
-      .out("hasTag")
-      .as("tag")
-      .out("hasType")
-      .values("name")
-      .where(is(within("Chancellor")))
-      .select("tag").values("name")
-      .union(
-        group().by(select("friend")).aggregate("friendTags"),
-        select("comment").dedup().group().by(select("friend")).aggregate("friendComments")
-      )
-      .barrier()
-      .select("friendComments")
+      .group()
+        .by(select("friend"))
+        .by(project("commentCount", "tags")
+            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
+            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").out("hasType").values("name").where(is(within("Chancellor"))).select("tag").values("name").dedup().fold()))
+      .order(local)
+        .by(select(values).select("commentCount"), decr)
+        .by(select(keys).id(), incr)
+      .limit(local, limit)
       .unfold()
-      .unfold()
-      .select(keys)
-      .dedup()
+      .where(select(values).where(select("commentCount").is(gt(0))))
       .project("personId", 
           "personFirstName", 
-          "personLastName")
-//          "tagNames",
-//          "count")
-          .by(id())
-          .by(values("firstName"))
-          .by(values("lastName"));
-//          .by(select("tagNames"))
-//          .by(select("count"));
-
-//      .select(keys).unfold().dedup();
-//      .project("personId", 
-//          "personFirstName", 
-//          "personLastName", 
-//          "tagNames",
-//          "count")
-//          .by(select("friend").id())
-//          .by(select("friend").values("firstName"))
-//          .by(select("friend").values("lastName"))
-//          .by(select("tagNames"))
-//          .by(select("count"))
-//      .map(t -> new LdbcQuery12Result(
-//          ((UInt128)t.get().get("personId")).getLowerLong(),
-//          (String)t.get().get("personFirstName"), 
-//          (String)t.get().get("personLastName"),
-//          (Iterable<String>)t.get().get("tagNames"), 
-//          ((Long)t.get().get("count")).intValue()))
-//      .store("result").iterate(); 
-
-//      .sideEffect(
-//          path()
-//          .aggregate("savedPaths")
-//      )
-//      .group()
-//        .by(select("friend"))
-//      .select("savedPaths")
-//      .unfold()
-//      .select("comment");
-
-//      .unfold();
-//      .select("comment")
-//      .groupCount()
-//        .by(select("friend"));
-      
-    
-//      .project("personId", 
-//          "personFirstName", 
-//          "personLastName", 
-//          "tagNames",
-//          "count")
-//          .by(select("friend").id())
-//          .by(select("friend").values("firstName"))
-//          .by(select("friend").values("lastName"))
-//          .by(select("tagNames"))
-//          .by(select("count"))
-//      .map(t -> new LdbcQuery12Result(
-//          ((UInt128)t.get().get("personId")).getLowerLong(),
-//          (String)t.get().get("personFirstName"), 
-//          (String)t.get().get("personLastName"),
-//          (Iterable<String>)t.get().get("tagNames"), 
-//          ((Long)t.get().get("count")).intValue()))
-//      .store("result").iterate(); 
+          "personLastName", 
+          "tags",
+          "count")
+          .by(select(keys).id())
+          .by(select(keys).values("firstName"))
+          .by(select(keys).values("lastName"))
+          .by(select(values).select("tags"))
+          .by(select(values).select("commentCount"))
+      .map(t -> new LdbcQuery12Result(
+          ((UInt128)t.get().get("personId")).getLowerLong(),
+          (String)t.get().get("personFirstName"), 
+          (String)t.get().get("personLastName"),
+          (Iterable<String>)t.get().get("tags"), 
+          ((Long)t.get().get("count")).intValue()))
+      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
