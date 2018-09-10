@@ -206,7 +206,7 @@ public class QueryScratchPad {
         .by(select("friend"))
         .by(project("commentCount", "tags")
             .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
-            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").out("hasType").values("name").where(is(within("Chancellor"))).select("tag").values("name").dedup().fold()))
+            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
       .order(local)
         .by(select(values).select("commentCount"), decr)
         .by(select(keys).id(), incr)
