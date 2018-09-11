@@ -179,57 +179,33 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
   /**
-   * Given a start Person, find the Comments that this Person’s friends made in
-   * reply to Posts, considering only those Comments that are immediate (1-hop)
-   * replies to Posts, not the transitive (multi-hop) case. Only consider Posts
-   * with a Tag in a given TagClass or in a descendent of that TagClass. Count
-   * the number of these reply Comments, and collect the Tags (with valid tag
-   * class) that were attached to the Posts they replied to. Return top 20
-   * Persons with at least one reply, the reply count, and the collection of
-   * Tags. Sort results descending by Comment count, and then ascending by
-   * Person identifier.[1]
+   * Given two Persons, find all (unweighted) shortest paths between these two
+   * Persons, in the subgraph induced by the Knows relationship. Then, for each
+   * path calculate a weight. The nodes in the path are Persons, and the weight
+   * of a path is the sum of weights between every pair of consecutive Person
+   * nodes in the path. The weight for a pair of Persons is calculated such
+   * that every reply (by one of the Persons) to a Post (by the other Person)
+   * contributes 1.0, and every reply (by ones of the Persons) to a Comment (by
+   * the other Person) contributes 0.5. Return all the paths with shortest
+   * length, and their weights. Sort results descending by path weight. The
+   * order of paths with the same weight is unspecified.[1]
    */
 
-    long personId = 2724L;
-    String tagClassName = "Chancellor";
-    int limit = 20;
+    // Parameters of this query
+    final long person1Id = 4398046511979L;
+    final long person2Id = 2199023258358L;
 
-    final UInt128 torcPersonId = 
-        new UInt128(TorcEntity.PERSON.idSpace, personId);
+    final UInt128 torcPerson1Id = 
+        new UInt128(TorcEntity.PERSON.idSpace, person1Id);
+    final UInt128 torcPerson2Id = 
+        new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 
-    List<LdbcQuery12Result> result = new ArrayList<>(limit);
+    List<LdbcQuery14Result> result = new ArrayList<>();
 
-    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
-      .out("knows")
-      .as("friend")
-      .group()
-        .by(select("friend"))
-        .by(project("commentCount", "tags")
-            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
-            .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
-      .order(local)
-        .by(select(values).select("commentCount"), decr)
-        .by(select(keys).id(), incr)
-      .limit(local, limit)
-      .unfold()
-      .where(select(values).where(select("commentCount").is(gt(0))))
-      .project("personId", 
-          "personFirstName", 
-          "personLastName", 
-          "tags",
-          "count")
-          .by(select(keys).id())
-          .by(select(keys).values("firstName"))
-          .by(select(keys).values("lastName"))
-          .by(select(values).select("tags"))
-          .by(select(values).select("commentCount"))
-      .map(t -> new LdbcQuery12Result(
-          ((UInt128)t.get().get("personId")).getLowerLong(),
-          (String)t.get().get("personFirstName"), 
-          (String)t.get().get("personLastName"),
-          (Iterable<String>)t.get().get("tags"), 
-          ((Long)t.get().get("count")).intValue()))
-      .store("result").iterate(); 
+    GraphTraversal gt = g.V(torcPerson1Id)
+      .repeat(out("knows").simplePath())
+        .until(hasId(torcPerson2Id).or().path().count(local).is(gt(3)))
+      .where(id().is(eq(torcPerson2Id))).path();
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
