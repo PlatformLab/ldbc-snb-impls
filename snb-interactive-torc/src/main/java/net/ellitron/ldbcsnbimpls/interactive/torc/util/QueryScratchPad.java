@@ -214,11 +214,12 @@ public class QueryScratchPad {
       .count(local)
       .next();
 
-    GraphTraversal gt = g.withSack(1f).V(torcPerson1Id)
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPerson1Id)
       .repeat(outE("knows").as("e").inV().simplePath())
         .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
       .where(id().is(eq(torcPerson2Id)))
       .select(all, "e")
+      .sideEffect(aggregate("paths"))
       .unfold()
       .dedup()
       .as("edge")
@@ -245,21 +246,39 @@ public class QueryScratchPad {
             as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("outV")
           ).select("inV", "cC", "outV").map(t -> 0.5f)
         ).sum()
-      );
-
-//        union(
-//          inV().as("inV").select("edge").outV().in("hasCreator").hasLabel("Comment").out("replyOf").out("hasCreator").where(eq("inV")).count(),
-//          outV().as("outV").select("edge").inV().in("hasCreator").hasLabel("Comment").out("replyOf").out("hasCreator").where(eq("outV")).count()
-//        )
-//        .fold()
-//      );
-//      .group()
-//        .by(select("edge"));
-//      .path();
-
-//      .sideEffect(t -> found.add(1L))
-//      .where(id().is(eq(torcPerson2Id)))
-//      .path();
+      )
+      .as("score")
+      .group()
+        .by(select("edge"))
+      .as("scoreMap")
+      .select("paths")
+      .unfold()
+      .as("path")
+      .unfold()
+      .group()
+        .by(select("path").map(t -> {
+                                  List<TorcEdge> eList = (List)t.get();
+                                  List<Number> personIdsList = new ArrayList<>(eList.size()+1);
+                                  for (int i = 0; i < eList.size(); i++) {
+                                    personIdsList.add(eList.get(i).getV1Id().getLowerLong());
+                                  }
+                                  personIdsList.add(eList.get(eList.size()-1).getV2Id().getLowerLong());
+                                  return personIdsList;
+                                }))
+        .by(map(t -> {
+                  Map<TorcEdge, List<Number>> m = t.path("scoreMap");
+                  return m.get(t.get()).get(0);
+            }).sum())
+      .order(local)
+        .by(select(values))
+      .project("personIdsInPath", 
+          "pathWeight")
+          .by(select(keys))
+          .by(select(values))
+      .map(t -> new LdbcQuery14Result(
+          (Iterable<Number>)t.get().get("personIdsInPath"), 
+          ((Double)((List)t.get().get("pathWeight")).get(0))))
+      .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
