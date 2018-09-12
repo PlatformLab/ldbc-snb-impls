@@ -203,8 +203,6 @@ public class QueryScratchPad {
 
     List<LdbcQuery14Result> result = new ArrayList<>();
 
-    List<Long> found = new ArrayList<>();
-
     // First get the length of the shortest path
     Long minPathLen = g.V(torcPerson1Id)
       .repeat(outE("knows").inV().simplePath())
