@@ -24,6 +24,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
 import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
+import static org.apache.tinkerpop.gremlin.process.traversal.Pop.*;
 import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
@@ -1881,10 +1882,113 @@ public class TorcDb extends Db {
         return;
       }
 
-      List<LdbcQuery14Result> result = new ArrayList<>(1);
-      resultReporter.report(result.size(), result, operation);
-    }
+      // Parameters of this query
+      final long person1Id = operation.person1Id();
+      final long person2Id = operation.person2Id();
 
+      final UInt128 torcPerson1Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person1Id);
+      final UInt128 torcPerson2Id = 
+          new UInt128(TorcEntity.PERSON.idSpace, person2Id);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        GraphTraversalSource g = graph.traversal();
+
+        List<LdbcQuery14Result> result = new ArrayList<>();
+
+        // First get the length of the shortest path
+        Long minPathLen = g.V(torcPerson1Id)
+          .repeat(outE("knows").inV().simplePath())
+            .until(hasId(torcPerson2Id))
+          .limit(1)
+          .path()
+          .count(local)
+          .next();
+
+        g.withSideEffect("result", result).V(torcPerson1Id)
+          .repeat(outE("knows").as("e").inV().simplePath())
+            .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
+          .where(id().is(eq(torcPerson2Id)))
+          .select(all, "e")
+          .sideEffect(aggregate("paths"))
+          .unfold()
+          .dedup()
+          .as("edge")
+          .map(
+            union(
+              match(
+                as("i").outV().as("outV"),
+                as("i").inV().as("inV"),
+                as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("inV")
+              ).select("outV", "cP", "inV").map(t -> 1.0f),
+              match(
+                as("i").outV().as("outV"),
+                as("i").inV().as("inV"),
+                as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("inV")
+              ).select("outV", "cC", "inV").map(t -> 0.5f),
+              match(
+                as("i").outV().as("outV"),
+                as("i").inV().as("inV"),
+                as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("outV")
+              ).select("inV", "cP", "outV").map(t -> 1.0f),
+              match(
+                as("i").outV().as("outV"),
+                as("i").inV().as("inV"),
+                as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("outV")
+              ).select("inV", "cC", "outV").map(t -> 0.5f)
+            ).sum()
+          )
+          .as("score")
+          .group()
+            .by(select("edge"))
+          .as("scoreMap")
+          .select("paths")
+          .unfold()
+          .as("path")
+          .unfold()
+          .group()
+            .by(select("path").map(t -> {
+                                      List<TorcEdge> eList = (List)t.get();
+                                      List<Number> personIdsList = new ArrayList<>(eList.size()+1);
+                                      for (int i = 0; i < eList.size(); i++) {
+                                        personIdsList.add(eList.get(i).getV1Id().getLowerLong());
+                                      }
+                                      personIdsList.add(eList.get(eList.size()-1).getV2Id().getLowerLong());
+                                      return personIdsList;
+                                    }))
+            .by(map(t -> {
+                      Map<TorcEdge, List<Number>> m = t.path("scoreMap");
+                      return m.get(t.get()).get(0);
+                }).sum())
+          .order(local)
+            .by(select(values))
+          .project("personIdsInPath", 
+              "pathWeight")
+              .by(select(keys))
+              .by(select(values))
+          .map(t -> new LdbcQuery14Result(
+              (Iterable<Number>)t.get().get("personIdsInPath"), 
+              ((Double)((List)t.get().get("pathWeight")).get(0))))
+          .store("result").iterate(); 
+
+        if (doTransactionalReads) {
+          try {
+            graph.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          graph.tx().rollback();
+        }
+
+        resultReporter.report(result.size(), result, operation);
+        break;
+      }
+    }
   }
 
   /**
