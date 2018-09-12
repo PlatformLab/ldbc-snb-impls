@@ -23,7 +23,8 @@ import static org.apache.tinkerpop.gremlin.process.traversal.P.*;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.assign;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.mult;
 import static org.apache.tinkerpop.gremlin.process.traversal.Operator.minus;
-import static org.apache.tinkerpop.gremlin.process.traversal.Scope.local;
+import static org.apache.tinkerpop.gremlin.process.traversal.Scope.*;
+import static org.apache.tinkerpop.gremlin.process.traversal.Pop.*;
 import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
@@ -202,10 +203,63 @@ public class QueryScratchPad {
 
     List<LdbcQuery14Result> result = new ArrayList<>();
 
-    GraphTraversal gt = g.V(torcPerson1Id)
-      .repeat(out("knows").simplePath())
-        .until(hasId(torcPerson2Id).or().path().count(local).is(gt(3)))
-      .where(id().is(eq(torcPerson2Id))).path();
+    List<Long> found = new ArrayList<>();
+
+    // First get the length of the shortest path
+    Long minPathLen = g.V(torcPerson1Id)
+      .repeat(outE("knows").inV().simplePath())
+        .until(hasId(torcPerson2Id))
+      .limit(1)
+      .path()
+      .count(local)
+      .next();
+
+    GraphTraversal gt = g.withSack(1f).V(torcPerson1Id)
+      .repeat(outE("knows").as("e").inV().simplePath())
+        .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
+      .where(id().is(eq(torcPerson2Id)))
+      .select(all, "e")
+      .unfold()
+      .dedup()
+      .as("edge")
+      .map(
+        union(
+          match(
+            as("i").outV().as("outV"),
+            as("i").inV().as("inV"),
+            as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("inV")
+          ).select("outV", "cP", "inV").map(t -> 1.0f),
+          match(
+            as("i").outV().as("outV"),
+            as("i").inV().as("inV"),
+            as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("inV")
+          ).select("outV", "cC", "inV").map(t -> 0.5f),
+          match(
+            as("i").outV().as("outV"),
+            as("i").inV().as("inV"),
+            as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("outV")
+          ).select("inV", "cP", "outV").map(t -> 1.0f),
+          match(
+            as("i").outV().as("outV"),
+            as("i").inV().as("inV"),
+            as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("outV")
+          ).select("inV", "cC", "outV").map(t -> 0.5f)
+        ).sum()
+      );
+
+//        union(
+//          inV().as("inV").select("edge").outV().in("hasCreator").hasLabel("Comment").out("replyOf").out("hasCreator").where(eq("inV")).count(),
+//          outV().as("outV").select("edge").inV().in("hasCreator").hasLabel("Comment").out("replyOf").out("hasCreator").where(eq("outV")).count()
+//        )
+//        .fold()
+//      );
+//      .group()
+//        .by(select("edge"));
+//      .path();
+
+//      .sideEffect(t -> found.add(1L))
+//      .where(id().is(eq(torcPerson2Id)))
+//      .path();
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
