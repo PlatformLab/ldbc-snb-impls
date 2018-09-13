@@ -876,7 +876,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
+        List<LdbcQuery5Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
           .out("knows")
@@ -907,7 +907,10 @@ public class TorcDb extends Db {
                     Vertex v = t.path("friend");
                     List<Vertex> forums = m.get(v);
                     Vertex thisForum = t.get();
-                    return forums.contains(thisForum);
+                    if (forums == null)
+                      return false;
+                    else
+                      return forums.contains(thisForum);
                 })
           .groupCount()
           .order(local)
@@ -1961,8 +1964,9 @@ public class TorcDb extends Db {
                                     }))
             .by(map(t -> {
                       Map<TorcEdge, List<Number>> m = t.path("scoreMap");
-                      return m.get(t.get()).get(0);
+                      return m.get(t.get()).get(0).doubleValue();
                 }).sum())
+          .unfold()
           .order(local)
             .by(select(values))
           .project("personIdsInPath", 
@@ -1971,7 +1975,7 @@ public class TorcDb extends Db {
               .by(select(values))
           .map(t -> new LdbcQuery14Result(
               (Iterable<Number>)t.get().get("personIdsInPath"), 
-              ((Double)((List)t.get().get("pathWeight")).get(0))))
+              ((Double)t.get().get("pathWeight"))))
           .store("result").iterate(); 
 
         if (doTransactionalReads) {
