@@ -779,6 +779,7 @@ public class TorcDb extends Db {
 
         g.withSideEffect("result", result).V(torcPersonId).out("knows")
           .in("hasCreator")
+          .hasLabel("Post")
           .as("post")
           .values("creationDate")
           .sideEffect(

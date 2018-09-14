@@ -193,89 +193,53 @@ public class QueryScratchPad {
    */
 
     // Parameters of this query
-    final long person1Id = 4398046511979L;
-    final long person2Id = 2199023258358L;
+    final long personId = 1690L;
+    final long startDate = 1291161600000L;
+    final long durationDays = 43L;
+    final int limit = 10;
 
-    final UInt128 torcPerson1Id = 
-        new UInt128(TorcEntity.PERSON.idSpace, person1Id);
-    final UInt128 torcPerson2Id = 
-        new UInt128(TorcEntity.PERSON.idSpace, person2Id);
+    final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
 
-    List<LdbcQuery14Result> result = new ArrayList<>();
+    final UInt128 torcPersonId = 
+        new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    // First get the length of the shortest path
-    Long minPathLen = g.V(torcPerson1Id)
-      .repeat(outE("knows").inV().simplePath())
-        .until(hasId(torcPerson2Id))
-      .limit(1)
-      .path()
-      .count(local)
-      .next();
+    List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
-    GraphTraversal gt = g.withSideEffect("result", result).V(torcPerson1Id)
-      .repeat(outE("knows").as("e").inV().simplePath())
-        .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
-      .where(id().is(eq(torcPerson2Id)))
-      .select(all, "e")
-      .sideEffect(aggregate("paths"))
-      .unfold()
-      .dedup()
-      .as("edge")
-      .map(
-        union(
-          match(
-            as("i").outV().as("outV"),
-            as("i").inV().as("inV"),
-            as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("inV")
-          ).select("outV", "cP", "inV").map(t -> 1.0f),
-          match(
-            as("i").outV().as("outV"),
-            as("i").inV().as("inV"),
-            as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("inV")
-          ).select("outV", "cC", "inV").map(t -> 0.5f),
-          match(
-            as("i").outV().as("outV"),
-            as("i").inV().as("inV"),
-            as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("outV")
-          ).select("inV", "cP", "outV").map(t -> 1.0f),
-          match(
-            as("i").outV().as("outV"),
-            as("i").inV().as("inV"),
-            as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("outV")
-          ).select("inV", "cC", "outV").map(t -> 0.5f)
-        ).sum()
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).out("knows")
+      .in("hasCreator")
+      .hasLabel("Post")
+      .as("post")
+      .values("creationDate")
+      .sideEffect(
+          filter(t -> {
+                long date = Long.valueOf((String)t.get());
+                return date < startDate;
+                })
+          .select("post").out("hasTag").dedup().aggregate("oldTags")
       )
-      .as("score")
-      .group()
-        .by(select("edge"))
-      .as("scoreMap")
-      .select("paths")
-      .unfold()
-      .as("path")
-      .unfold()
-      .group()
-        .by(select("path").map(t -> {
-                                  List<TorcEdge> eList = (List)t.get();
-                                  List<Number> personIdsList = new ArrayList<>(eList.size()+1);
-                                  for (int i = 0; i < eList.size(); i++) {
-                                    personIdsList.add(eList.get(i).getV1Id().getLowerLong());
-                                  }
-                                  personIdsList.add(eList.get(eList.size()-1).getV2Id().getLowerLong());
-                                  return personIdsList;
-                                }))
-        .by(map(t -> {
-                  Map<TorcEdge, List<Number>> m = t.path("scoreMap");
-                  return m.get(t.get()).get(0);
-            }).sum())
+      .barrier()
+      .filter(t -> {
+                long date = Long.valueOf((String)t.get());
+                return date <= endDate && date >= startDate;
+              })
+      .select("post")
+      .out("hasTag")
+      .where(without("oldTags")).values("name")
+      .as("newTags")
+      .select("post")
+      .group().by(select("newTags")).by(count())
       .order(local)
+        .by(select(values), decr)
+        .by(select(keys), incr)
+      .limit(local, limit)
+      .unfold()
+      .project("tagName",
+          "postCount")
+        .by(select(keys))
         .by(select(values))
-      .project("personIdsInPath", 
-          "pathWeight")
-          .by(select(keys))
-          .by(select(values))
-      .map(t -> new LdbcQuery14Result(
-          (Iterable<Number>)t.get().get("personIdsInPath"), 
-          ((Double)((List)t.get().get("pathWeight")).get(0))))
+      .map(t -> new LdbcQuery4Result(
+          (String)(t.get().get("tagName")), 
+          ((Long)(t.get().get("postCount"))).intValue()))
       .store("result").iterate(); 
 
     long start = System.nanoTime();
