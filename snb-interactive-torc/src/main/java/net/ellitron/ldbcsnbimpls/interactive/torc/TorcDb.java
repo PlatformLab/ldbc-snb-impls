@@ -878,8 +878,10 @@ public class TorcDb extends Db {
         GraphTraversalSource g = graph.traversal();
 
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
+        List<Vertex> forums = new ArrayList<>();
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
+        g.withSideEffect("result", result).withSideEffect("forums", forums)
+          .V(torcPersonId).as("person")
           .out("knows")
           .union(identity(), out("knows")).dedup().where(neq("person"))
           .as("friend")
@@ -893,6 +895,8 @@ public class TorcDb extends Db {
                 })
           .select("memberEdge")
           .outV()
+          .store("forums")
+          .barrier()
           .group()
             .by(select("friend"))
           .as("friendForums")
@@ -906,14 +910,22 @@ public class TorcDb extends Db {
           .filter(t -> {
                     Map<Vertex, List<Vertex>> m = t.path("friendForums");
                     Vertex v = t.path("friend");
-                    List<Vertex> forums = m.get(v);
+                    List<Vertex> friendForums = m.get(v);
                     Vertex thisForum = t.get();
-                    if (forums == null)
+                    if (friendForums == null)
                       return false;
                     else
-                      return forums.contains(thisForum);
+                      return friendForums.contains(thisForum);
                 })
           .groupCount()
+          .map(t -> {
+                  Map<Object, Long> m = t.get();
+                  for (Vertex v : forums) {
+                    if (!m.containsKey((Object)v))
+                      m.put(v, 0L);
+                  }
+                  return t.get();
+              })
           .order(local)
             .by(select(values), decr)
             .by(select(keys).id(), incr)

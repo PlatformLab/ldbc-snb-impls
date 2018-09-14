@@ -193,54 +193,75 @@ public class QueryScratchPad {
    */
 
     // Parameters of this query
-    final long personId = 1690L;
-    final long startDate = 1291161600000L;
-    final long durationDays = 43L;
-    final int limit = 10;
-
-    final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
+    final long personId = 4398046511979L;
+    final long minDate = 1292803200000L;
+    final int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery4Result> result = new ArrayList<>(limit);
+      List<LdbcQuery5Result> result = new ArrayList<>(limit);
+      
+      List<Vertex> forums = new ArrayList<>();
 
-    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).out("knows")
-      .in("hasCreator")
-      .hasLabel("Post")
-      .as("post")
-      .values("creationDate")
-      .sideEffect(
-          filter(t -> {
-                long date = Long.valueOf((String)t.get());
-                return date < startDate;
-                })
-          .select("post").out("hasTag").dedup().aggregate("oldTags")
-      )
-      .barrier()
-      .filter(t -> {
-                long date = Long.valueOf((String)t.get());
-                return date <= endDate && date >= startDate;
+      GraphTraversal gt = g.withSideEffect("result", result).withSideEffect("forums", forums)
+        .V(torcPersonId).as("person")
+        .out("knows")
+        .union(identity(), out("knows")).dedup().where(neq("person"))
+        .as("friend")
+        .aggregate("friendAgg")
+        .inE("hasMember")
+        .as("memberEdge")
+        .values("joinDate")
+        .filter(t -> {
+                  long date = Long.valueOf((String)t.get());
+                  return date > minDate;
               })
-      .select("post")
-      .out("hasTag")
-      .where(without("oldTags")).values("name")
-      .as("newTags")
-      .select("post")
-      .group().by(select("newTags")).by(count())
-      .order(local)
-        .by(select(values), decr)
-        .by(select(keys), incr)
-      .limit(local, limit)
-      .unfold()
-      .project("tagName",
-          "postCount")
-        .by(select(keys))
-        .by(select(values))
-      .map(t -> new LdbcQuery4Result(
-          (String)(t.get().get("tagName")), 
-          ((Long)(t.get().get("postCount"))).intValue()))
-      .store("result").iterate(); 
+        .select("memberEdge")
+        .outV()
+        .store("forums")
+        .barrier()
+        .group()
+          .by(select("friend"))
+        .as("friendForums")
+        .select("friendAgg")
+        .unfold()
+        .as("friend")
+        .in("hasCreator")
+        .as("post")
+        .in("containerOf")
+        .as("forum")
+        .filter(t -> {
+                  Map<Vertex, List<Vertex>> m = t.path("friendForums");
+                  Vertex v = t.path("friend");
+                  List<Vertex> friendForums = m.get(v);
+                  Vertex thisForum = t.get();
+                  if (friendForums == null)
+                    return false;
+                  else
+                    return friendForums.contains(thisForum);
+              })
+        .groupCount()
+        .map(t -> {
+                Map<Object, Long> m = t.get();
+                for (Vertex v : forums) {
+                  if (!m.containsKey((Object)v))
+                    m.put(v, 0L);
+                }
+                return t.get();
+            })
+        .order(local)
+          .by(select(values), decr)
+          .by(select(keys).id(), incr)
+        .limit(local, limit)
+        .unfold()
+        .project("forumTitle", "postCount")
+          .by(select(keys).values("title"))
+          .by(select(values))
+        .map(t -> new LdbcQuery5Result(
+            (String)(t.get().get("forumTitle")), 
+            ((Long)(t.get().get("postCount"))).intValue()))
+        .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
