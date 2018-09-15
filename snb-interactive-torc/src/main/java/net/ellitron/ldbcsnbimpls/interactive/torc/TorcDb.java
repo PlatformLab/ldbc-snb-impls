@@ -1741,29 +1741,30 @@ public class TorcDb extends Db {
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows")
-          .as("friend")
+          .out("knows").as("friend")
+          .in("hasCreator").as("comment")
+          .hasLabel("Comment")
+          .out("replyOf")
+          .hasLabel("Post")
+          .out("hasTag")
+          .where(repeat(out("hasType")).until(values("name").is(eq(tagClassName))))
+          .values("name")
           .group()
             .by(select("friend"))
-            .by(project("commentCount", "tags")
-                .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
-                .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
-          .order(local)
-            .by(select(values).select("commentCount"), decr)
-            .by(select(keys).id(), incr)
-          .limit(local, limit)
+            .by(group()
+                  .by(select("comment"))
+                  .by(dedup().fold()))
           .unfold()
-          .where(select(values).where(select("commentCount").is(gt(0))))
           .project("personId", 
-              "personFirstName", 
-              "personLastName", 
-              "tags",
+              "personFirstName",
+              "personLastName",
+              "tags", 
               "count")
-              .by(select(keys).id())
-              .by(select(keys).values("firstName"))
-              .by(select(keys).values("lastName"))
-              .by(select(values).select("tags"))
-              .by(select(values).select("commentCount"))
+            .by(select(keys).id())
+            .by(select(keys).values("firstName"))
+            .by(select(keys).values("lastName"))
+            .by(select(values).select(values).unfold().dedup())
+            .by(select(values).count(local))
           .map(t -> new LdbcQuery12Result(
               ((UInt128)t.get().get("personId")).getLowerLong(),
               (String)t.get().get("personFirstName"), 

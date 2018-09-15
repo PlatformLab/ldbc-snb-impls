@@ -193,75 +193,80 @@ public class QueryScratchPad {
    */
 
     // Parameters of this query
-    final long personId = 4398046511979L;
-    final long minDate = 1292803200000L;
+    final long personId = 2199023257936L;
+    final String tagClassName = "Cricketer";
     final int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      List<LdbcQuery5Result> result = new ArrayList<>(limit);
-      
-      List<Vertex> forums = new ArrayList<>();
+      List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-      GraphTraversal gt = g.withSideEffect("result", result).withSideEffect("forums", forums)
-        .V(torcPersonId).as("person")
-        .out("knows")
-        .union(identity(), out("knows")).dedup().where(neq("person"))
-        .as("friend")
-        .aggregate("friendAgg")
-        .inE("hasMember")
-        .as("memberEdge")
-        .values("joinDate")
-        .filter(t -> {
-                  long date = Long.valueOf((String)t.get());
-                  return date > minDate;
-              })
-        .select("memberEdge")
-        .outV()
-        .store("forums")
-        .barrier()
+      GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
+        .out("knows").as("friend")
+        .in("hasCreator").as("comment")
+        .hasLabel("Comment")
+        .out("replyOf")
+        .hasLabel("Post")
+        .out("hasTag")
+        .where(repeat(out("hasType")).until(values("name").is(eq(tagClassName))))
+        .values("name")
         .group()
           .by(select("friend"))
-        .as("friendForums")
-        .select("friendAgg")
+          .by(group()
+                .by(select("comment"))
+                .by(dedup().fold()))
         .unfold()
-        .as("friend")
-        .in("hasCreator")
-        .as("post")
-        .in("containerOf")
-        .as("forum")
-        .filter(t -> {
-                  Map<Vertex, List<Vertex>> m = t.path("friendForums");
-                  Vertex v = t.path("friend");
-                  List<Vertex> friendForums = m.get(v);
-                  Vertex thisForum = t.get();
-                  if (friendForums == null)
-                    return false;
-                  else
-                    return friendForums.contains(thisForum);
-              })
-        .groupCount()
-        .map(t -> {
-                Map<Object, Long> m = t.get();
-                for (Vertex v : forums) {
-                  if (!m.containsKey((Object)v))
-                    m.put(v, 0L);
-                }
-                return t.get();
-            })
-        .order(local)
-          .by(select(values), decr)
-          .by(select(keys).id(), incr)
-        .limit(local, limit)
-        .unfold()
-        .project("forumTitle", "postCount")
-          .by(select(keys).values("title"))
-          .by(select(values))
-        .map(t -> new LdbcQuery5Result(
-            (String)(t.get().get("forumTitle")), 
-            ((Long)(t.get().get("postCount"))).intValue()))
+        .project("personId", 
+            "personFirstName",
+            "personLastName",
+            "tags", 
+            "count")
+          .by(select(keys).id())
+          .by(select(keys).values("firstName"))
+          .by(select(keys).values("lastName"))
+          .by(select(values).select(values).unfold().dedup())
+          .by(select(values).count(local))
+        .map(t -> new LdbcQuery12Result(
+            ((UInt128)t.get().get("personId")).getLowerLong(),
+            (String)t.get().get("personFirstName"), 
+            (String)t.get().get("personLastName"),
+            (Iterable<String>)t.get().get("tags"), 
+            ((Long)t.get().get("count")).intValue()))
         .store("result").iterate(); 
+              
+
+
+//        .out("knows")
+//        .as("friend")
+//        .group()
+//          .by(select("friend"))
+//          .by(project("commentCount", "tags")
+//              .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
+//              .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
+//        .order(local)
+//          .by(select(values).select("commentCount"), decr)
+//          .by(select(keys).id(), incr)
+//        .limit(local, limit)
+//        .unfold()
+//        .where(select(values).where(select("commentCount").is(gt(0))))
+//        .project("personId", 
+//            "personFirstName", 
+//            "personLastName", 
+//            "tags",
+//            "count")
+//            .by(select(keys).id())
+//            .by(select(keys).values("firstName"))
+//            .by(select(keys).values("lastName"))
+//            .by(select(values).select("tags"))
+//            .by(select(values).select("commentCount"))
+//        .map(t -> new LdbcQuery12Result(
+//            ((UInt128)t.get().get("personId")).getLowerLong(),
+//            (String)t.get().get("personFirstName"), 
+//            (String)t.get().get("personLastName"),
+//            (Iterable<String>)t.get().get("tags"), 
+//            ((Long)t.get().get("count")).intValue()))
+//        .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
