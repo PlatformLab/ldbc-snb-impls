@@ -718,7 +718,8 @@ public class TorcDb extends Db {
 
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).out("knows")
+        g.withSideEffect("result", result).V(torcPersonId)
+          .out("knows")
           .in("hasCreator")
           .hasLabel("Post")
           .as("post")
