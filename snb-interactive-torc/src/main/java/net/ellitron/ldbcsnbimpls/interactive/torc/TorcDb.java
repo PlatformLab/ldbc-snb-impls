@@ -493,31 +493,31 @@ public class TorcDb extends Db {
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId)
-            .out("knows").as("friend")
-            .in("hasCreator").as("message")
-            .order().by("creationDate", decr).by(id(), incr)
-            .filter(t -> 
-                Long.valueOf(t.get().value("creationDate")) <= maxDate)
-            .limit(limit)
-            .project("personId", "firstName", "lastName", "messageId", 
-                "content", "creationDate")
-                .by(select("friend").id())
-                .by(select("friend").values("firstName"))
-                .by(select("friend").values("lastName"))
-                .by(select("message").id())
-                .by(select("message")
-                    .choose(values("content").is(neq("")),
-                        values("content"),
-                        values("imageFile")))
-                .by(select("message").values("creationDate"))
-            .map(t -> new LdbcQuery2Result(
-                ((UInt128)t.get().get("personId")).getLowerLong(),
-                (String)t.get().get("firstName"), 
-                (String)t.get().get("lastName"),
-                ((UInt128)t.get().get("messageId")).getLowerLong(), 
-                (String)t.get().get("content"),
-                Long.valueOf((String)t.get().get("creationDate"))))
-            .store("result").iterate(); 
+          .out("knows").as("friend")
+          .in("hasCreator").as("message")
+          .order().by("creationDate", decr).by(id(), incr)
+          .filter(t -> 
+              Long.valueOf(t.get().value("creationDate")) <= maxDate)
+          .limit(limit)
+          .project("personId", "firstName", "lastName", "messageId", 
+              "content", "creationDate")
+              .by(select("friend").id())
+              .by(select("friend").values("firstName"))
+              .by(select("friend").values("lastName"))
+              .by(select("message").id())
+              .by(select("message")
+                  .choose(values("content").is(neq("")),
+                      values("content"),
+                      values("imageFile")))
+              .by(select("message").values("creationDate"))
+          .map(t -> new LdbcQuery2Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("firstName"), 
+              (String)t.get().get("lastName"),
+              ((UInt128)t.get().get("messageId")).getLowerLong(), 
+              (String)t.get().get("content"),
+              Long.valueOf((String)t.get().get("creationDate"))))
+          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
@@ -987,7 +987,6 @@ public class TorcDb extends Db {
               ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
           .store("result").iterate(); 
 
-
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1065,51 +1064,51 @@ public class TorcDb extends Db {
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
-            .in("hasCreator").as("message")
-            .inE("likes").as("like")
-            .outV().as("liker")
-            .order()
-                .by(select("like").values("creationDate"), decr)
-                .by(select("message").id(), incr)
-            .dedup()
-                .by(select("liker"))
-            .limit(limit)
-            .project("personId", 
-                "personFirstName", 
-                "personLastName", 
-                "likeCreationDate", 
-                "commentOrPostId",
-                "commentOrPostContent",
-                "commentOrPostCreationDate",
-                "isNew") 
-                .by(select("liker").id())
-                .by(select("liker").values("firstName"))
-                .by(select("liker").values("lastName"))
-                .by(select("like").values("creationDate")
-                    .map(t -> Long.valueOf((String)t.get())))
-                .by(select("message").id())
-                .by(select("message")
-                    .choose(values("content").is(neq("")),
-                        values("content"),
-                        values("imageFile")))
-                .by(select("message").values("creationDate")
-                    .map(t -> Long.valueOf((String)t.get())))
-                .by(choose(
-                    where(select("person").out("knows").as("liker")),
-                    constant(false),
-                    constant(true)))
-            .map(t -> new LdbcQuery7Result(
-                ((UInt128)t.get().get("personId")).getLowerLong(),
-                (String)t.get().get("personFirstName"), 
-                (String)t.get().get("personLastName"),
-                (Long)t.get().get("likeCreationDate"),
-                ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
-                (String)t.get().get("commentOrPostContent"),
-                (int)(((Long)t.get().get("likeCreationDate") 
-                    - (Long)t.get().get("commentOrPostCreationDate")) 
-                    / (1000l * 60l)),
-                (Boolean)t.get().get("isNew")))
-            .store("result").iterate(); 
+          .in("hasCreator").as("message")
+          .inE("likes").as("like")
+          .outV().as("liker")
+          .order()
+              .by(select("like").values("creationDate"), decr)
+              .by(select("message").id(), incr)
+          .dedup()
+              .by(select("liker"))
+          .limit(limit)
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "likeCreationDate", 
+              "commentOrPostId",
+              "commentOrPostContent",
+              "commentOrPostCreationDate",
+              "isNew") 
+              .by(select("liker").id())
+              .by(select("liker").values("firstName"))
+              .by(select("liker").values("lastName"))
+              .by(select("like").values("creationDate")
+                  .map(t -> Long.valueOf((String)t.get())))
+              .by(select("message").id())
+              .by(select("message")
+                  .choose(values("content").is(neq("")),
+                      values("content"),
+                      values("imageFile")))
+              .by(select("message").values("creationDate")
+                  .map(t -> Long.valueOf((String)t.get())))
+              .by(choose(
+                  where(select("person").out("knows").as("liker")),
+                  constant(false),
+                  constant(true)))
+          .map(t -> new LdbcQuery7Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              (Long)t.get().get("likeCreationDate"),
+              ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
+              (String)t.get().get("commentOrPostContent"),
+              (int)(((Long)t.get().get("likeCreationDate") 
+                  - (Long)t.get().get("commentOrPostCreationDate")) 
+                  / (1000l * 60l)),
+              (Boolean)t.get().get("isNew")))
+          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
@@ -1183,36 +1182,36 @@ public class TorcDb extends Db {
         List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
-            .in("hasCreator").as("message")
-            .in("replyOf").as("comment")
-            .order()
-                .by(select("comment").values("creationDate"), decr)
-                .by(select("comment").id(), incr)
-            .limit(limit)
-            .out("hasCreator").as("commenter")
-            .project("personId", 
-                "personFirstName", 
-                "personLastName", 
-                "commentCreationDate", 
-                "commentId",
-                "commentContent")
-                .by(select("commenter").id())
-                .by(select("commenter").values("firstName"))
-                .by(select("commenter").values("lastName"))
-                .by(select("comment").values("creationDate"))
-                .by(select("comment").id())
-                .by(select("comment")
-                    .choose(values("content").is(neq("")),
-                        values("content"),
-                        values("imageFile")))
-            .map(t -> new LdbcQuery8Result(
-                ((UInt128)t.get().get("personId")).getLowerLong(),
-                (String)t.get().get("personFirstName"), 
-                (String)t.get().get("personLastName"),
-                Long.valueOf((String)t.get().get("commentCreationDate")),
-                ((UInt128)t.get().get("commentId")).getLowerLong(), 
-                (String)t.get().get("commentContent")))
-            .store("result").iterate(); 
+          .in("hasCreator").as("message")
+          .in("replyOf").as("comment")
+          .order()
+              .by(select("comment").values("creationDate"), decr)
+              .by(select("comment").id(), incr)
+          .limit(limit)
+          .out("hasCreator").as("commenter")
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "commentCreationDate", 
+              "commentId",
+              "commentContent")
+              .by(select("commenter").id())
+              .by(select("commenter").values("firstName"))
+              .by(select("commenter").values("lastName"))
+              .by(select("comment").values("creationDate"))
+              .by(select("comment").id())
+              .by(select("comment")
+                  .choose(values("content").is(neq("")),
+                      values("content"),
+                      values("imageFile")))
+          .map(t -> new LdbcQuery8Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              Long.valueOf((String)t.get().get("commentCreationDate")),
+              ((UInt128)t.get().get("commentId")).getLowerLong(), 
+              (String)t.get().get("commentContent")))
+          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
@@ -1486,25 +1485,25 @@ public class TorcDb extends Db {
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result)
-            .V(topFriends.toArray())
-            .project("personId", 
-                "personFirstName", 
-                "personLastName", 
-                "personGender",
-                "personCityName")
-                .by(id())
-                .by(values("firstName"))
-                .by(values("lastName"))
-                .by(values("gender"))
-                .by(out("isLocatedIn").values("name"))
-            .map(t -> new LdbcQuery10Result(
-                ((UInt128)t.get().get("personId")).getLowerLong(),
-                (String)t.get().get("personFirstName"), 
-                (String)t.get().get("personLastName"),
-                scoreMap.get(t.get().get("personId")).intValue(),
-                (String)t.get().get("personGender"), 
-                (String)t.get().get("personCityName")))
-            .store("result").iterate(); 
+          .V(topFriends.toArray())
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "personGender",
+              "personCityName")
+              .by(id())
+              .by(values("firstName"))
+              .by(values("lastName"))
+              .by(values("gender"))
+              .by(out("isLocatedIn").values("name"))
+          .map(t -> new LdbcQuery10Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              scoreMap.get(t.get().get("personId")).intValue(),
+              (String)t.get().get("personGender"), 
+              (String)t.get().get("personCityName")))
+          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
@@ -1577,37 +1576,37 @@ public class TorcDb extends Db {
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
         g.withSideEffect("result", result).V(torcPersonId).as("person")
-            .aggregate("done")
-            .union(
-                out("knows"),
-                out("knows").out("knows"))
-            .dedup().where(without("done")).as("friend")
-            .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
-            .as("workAt")
-            .inV().as("company")
-            .out("isLocatedIn").has("name", countryName)
-            .order()
-                .by(select("workAt").values("workFrom"), incr)
-                .by(select("friend").id())
-                .by(select("company").values("name"), decr)
-            .limit(limit)
-            .project("personId", 
-                "personFirstName", 
-                "personLastName", 
-                "organizationName", 
-                "organizationWorkFromYear")
-                .by(select("friend").id())
-                .by(select("friend").values("firstName"))
-                .by(select("friend").values("lastName"))
-                .by(select("company").values("name"))
-                .by(select("workAt").values("workFrom"))
-            .map(t -> new LdbcQuery11Result(
-                ((UInt128)t.get().get("personId")).getLowerLong(),
-                (String)t.get().get("personFirstName"), 
-                (String)t.get().get("personLastName"),
-                (String)t.get().get("organizationName"),
-                Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
-            .store("result").iterate(); 
+          .aggregate("done")
+          .union(
+              out("knows"),
+              out("knows").out("knows"))
+          .dedup().where(without("done")).as("friend")
+          .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
+          .as("workAt")
+          .inV().as("company")
+          .out("isLocatedIn").has("name", countryName)
+          .order()
+              .by(select("workAt").values("workFrom"), incr)
+              .by(select("friend").id())
+              .by(select("company").values("name"), decr)
+          .limit(limit)
+          .project("personId", 
+              "personFirstName", 
+              "personLastName", 
+              "organizationName", 
+              "organizationWorkFromYear")
+              .by(select("friend").id())
+              .by(select("friend").values("firstName"))
+              .by(select("friend").values("lastName"))
+              .by(select("company").values("name"))
+              .by(select("workAt").values("workFrom"))
+          .map(t -> new LdbcQuery11Result(
+              ((UInt128)t.get().get("personId")).getLowerLong(),
+              (String)t.get().get("personFirstName"), 
+              (String)t.get().get("personLastName"),
+              (String)t.get().get("organizationName"),
+              Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
+          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
