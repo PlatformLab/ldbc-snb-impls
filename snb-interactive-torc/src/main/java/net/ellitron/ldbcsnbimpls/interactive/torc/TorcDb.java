@@ -330,155 +330,96 @@ public class TorcDb extends Db {
         return;
       }
 
+      // Parameters of this query
+      final long personId = operation.personId();
+      final String firstName = operation.firstName();
+      final int limit = operation.limit();
+
+      final UInt128 torcPersonId = 
+          new UInt128(TorcEntity.PERSON.idSpace, personId);
+
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        long personId = operation.personId();
-        String firstName = operation.firstName();
-        int resultLimit = operation.limit();
-        int maxLevels = 3;
-        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
-
         GraphTraversalSource g = graph.traversal();
 
-        List<Long> distList = new ArrayList<>(resultLimit);
-        List<Vertex> matchList = new ArrayList<>(resultLimit);
+        List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
-        Vertex root = g.V(new UInt128(TorcEntity.PERSON.idSpace, personId))
-            .next();
-
-        g.withSideEffect("x", matchList).withSideEffect("d", distList)
-            .V(root).aggregate("done").out("knows")
-            .where(without("done")).dedup().fold().sideEffect(
-                unfold().has("firstName", firstName).order()
-                .by("lastName", incr).by(id(), incr).limit(resultLimit)
-                .as("person")
-                .select("x").by(count(Scope.local)).is(lt(resultLimit))
-                .store("x").by(select("person"))
-            ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-                .store("d")).unfold().aggregate("done").out("knows")
-            .where(without("done")).dedup().fold().sideEffect(
-                unfold().has("firstName", firstName).order()
-                .by("lastName", incr).by(id(), incr).limit(resultLimit)
-                .as("person")
-                .select("x").by(count(Scope.local)).is(lt(resultLimit))
-                .store("x").by(select("person"))
-            ).filter(select("x").count(Scope.local).is(lt(resultLimit))
-                .store("d")).unfold().aggregate("done").out("knows")
-            .where(without("done")).dedup().fold().sideEffect(
-                unfold().has("firstName", firstName).order()
-                .by("lastName", incr).by(id(), incr).limit(resultLimit)
-                .as("person")
-                .select("x").by(count(Scope.local)).is(lt(resultLimit))
-                .store("x").by(select("person"))
-            ).select("x").count(Scope.local)
-            .store("d").iterate();
-
-        Map<Vertex, Map<String, List<String>>> propertiesMap =
-            new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
-            .<List<String>>valueMap().as("props")
-            .select("person", "props")
-            .forEachRemaining(map -> {
-              propertiesMap.put((Vertex) map.get("person"),
-                  (Map<String, List<String>>) map.get("props"));
-            });
-
-        Map<Vertex, String> placeNameMap = new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
-            .out("isLocatedIn")
-            .<String>values("name")
-            .as("placeName")
-            .select("person", "placeName")
-            .forEachRemaining(map -> {
-              placeNameMap.put((Vertex) map.get("person"),
-                  (String) map.get("placeName"));
-            });
-
-        Map<Vertex, List<List<Object>>> universityInfoMap =
-            new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
-            .outE("studyAt").as("classYear")
-            .inV().as("universityName")
-            .out("isLocatedIn").as("cityName")
-            .select("person", "universityName", "classYear", "cityName")
-            .by().by("name").by("classYear").by("name")
-            .forEachRemaining(map -> {
-              Vertex v = (Vertex) map.get("person");
-              List<Object> tuple = new ArrayList<>(3);
-              tuple.add(map.get("universityName"));
-              tuple.add(Integer.decode((String) map.get("classYear")));
-              tuple.add(map.get("cityName"));
-              if (universityInfoMap.containsKey(v)) {
-                universityInfoMap.get(v).add(tuple);
-              } else {
-                List<List<Object>> tupleList = new ArrayList<>();
-                tupleList.add(tuple);
-                universityInfoMap.put(v, tupleList);
-              }
-            });
-
-        Map<Vertex, List<List<Object>>> companyInfoMap =
-            new HashMap<>(matchList.size());
-        g.V(matchList.toArray()).as("person")
-            .outE("workAt").as("workFrom")
-            .inV().as("companyName")
-            .out("isLocatedIn").as("cityName")
-            .select("person", "companyName", "workFrom", "cityName")
-            .by().by("name").by("workFrom").by("name")
-            .forEachRemaining(map -> {
-              Vertex v = (Vertex) map.get("person");
-              List<Object> tuple = new ArrayList<>(3);
-              tuple.add(map.get("companyName"));
-              tuple.add(Integer.decode((String) map.get("workFrom")));
-              tuple.add(map.get("cityName"));
-              if (companyInfoMap.containsKey(v)) {
-                companyInfoMap.get(v).add(tuple);
-              } else {
-                List<List<Object>> tupleList = new ArrayList<>();
-                tupleList.add(tuple);
-                companyInfoMap.put(v, tupleList);
-              }
-            });
-
-        List<LdbcQuery1Result> result = new ArrayList<>();
-
-        for (int i = 0; i < matchList.size(); i++) {
-          Vertex match = matchList.get(i);
-          int distance = (i < distList.get(0)) ? 1
-              : (i < distList.get(1)) ? 2 : 3;
-          Map<String, List<String>> properties = propertiesMap.get(match);
-          List<String> emails = properties.get("email");
-          if (emails == null) {
-            emails = new ArrayList<>();
-          }
-          List<String> languages = properties.get("language");
-          if (languages == null) {
-            languages = new ArrayList<>();
-          }
-          String placeName = placeNameMap.get(match);
-          List<List<Object>> universityInfo = universityInfoMap.get(match);
-          if (universityInfo == null) {
-            universityInfo = new ArrayList<>();
-          }
-          List<List<Object>> companyInfo = companyInfoMap.get(match);
-          if (companyInfo == null) {
-            companyInfo = new ArrayList<>();
-          }
-          result.add(new LdbcQuery1Result(
-              ((UInt128) match.id()).getLowerLong(),
-              properties.get("lastName").get(0),
-              distance,
-              Long.decode(properties.get("birthday").get(0)),
-              Long.decode(properties.get("creationDate").get(0)),
-              properties.get("gender").get(0),
-              properties.get("browserUsed").get(0),
-              properties.get("locationIP").get(0),
-              emails,
-              languages,
-              placeName,
-              universityInfo,
-              companyInfo));
-        }
+        g.withSideEffect("result", result).V(torcPersonId).as("person")
+          .aggregate("seenSet")
+          .repeat(
+            barrier()
+            .out("knows").where(without("seenSet")).dedup()
+              .sideEffect(
+                has("firstName", firstName)
+                .project("friend", "distance")
+                  .by(identity())
+                  .by(path().count(local))
+                .aggregate("resultSet")
+              ).aggregate("seenSet")
+          ).until(select("resultSet").count(local).is(gte(limit)).or().loops().is(3))
+          .select("resultSet").dedup().unfold()
+          .project("friendId",
+              "lastName",
+              "distance",
+              "birthday",
+              "creationDate",
+              "gender",
+              "browserUsed",
+              "locationIP",
+              "emails",
+              "languages",
+              "placeName",
+              "universityInfo",
+              "companyInfo")
+            .by(select("friend").id())
+            .by(select("friend").values("lastName"))
+            .by(select("distance"))
+            .by(select("friend").values("birthday"))
+            .by(select("friend").values("creationDate"))
+            .by(select("friend").values("gender"))
+            .by(select("friend").values("browserUsed"))
+            .by(select("friend").values("locationIP"))
+            .by(select("friend").values("email").fold())
+            .by(select("friend").values("language").fold())
+            .by(select("friend").out("isLocatedIn").values("name"))
+            .by(select("friend")
+                  .outE("studyAt").as("studyAt").inV().as("university").out("isLocatedIn").as("city")
+                  .project("universityName", "classYear", "cityName")
+                    .by(select("university").values("name"))
+                    .by(select("studyAt").values("classYear"))
+                    .by(select("city").values("name"))
+                  .select(values)
+                  .fold())
+            .by(select("friend")
+                  .outE("workAt").as("workAt").inV().as("company").out("isLocatedIn").as("city")
+                  .project("companyName", "workFrom", "cityName")
+                    .by(select("company").values("name"))
+                    .by(select("workAt").values("workFrom"))
+                    .by(select("city").values("name"))
+                  .select(values)
+                  .fold())
+          .order()
+            .by(select("distance"), incr)
+            .by(select("lastName"), incr)
+            .by(select("friendId"), incr)
+          .limit(limit)
+          .map(t -> new LdbcQuery1Result(
+              ((UInt128)t.get().get("friendId")).getLowerLong(),
+              (String)t.get().get("lastName"),
+              ((Long)t.get().get("distance")).intValue(),
+              Long.valueOf((String)t.get().get("birthday")),
+              Long.valueOf((String)t.get().get("creationDate")),
+              (String)t.get().get("gender"),
+              (String)t.get().get("browserUsed"),
+              (String)t.get().get("locationIP"),
+              (List<String>)t.get().get("emails"),
+              (List<String>)t.get().get("languages"),
+              (String)t.get().get("placeName"),
+              (List<List<Object>>)t.get().get("universityInfo"),
+              (List<List<Object>>)t.get().get("companyInfo")))
+          .store("result").iterate();
 
         if (doTransactionalReads) {
           try {
