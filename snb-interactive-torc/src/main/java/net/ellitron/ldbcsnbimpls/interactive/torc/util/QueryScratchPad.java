@@ -251,7 +251,7 @@ public class QueryScratchPad {
       .map(t -> new LdbcQuery1Result(
           ((UInt128)t.get().get("friendId")).getLowerLong(),
           (String)t.get().get("lastName"),
-          ((Long)t.get().get("distance")).intValue(),
+          ((Long)t.get().get("distance")).intValue() - 1,
           Long.valueOf((String)t.get().get("birthday")),
           Long.valueOf((String)t.get().get("creationDate")),
           (String)t.get().get("gender"),
