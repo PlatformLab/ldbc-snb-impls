@@ -179,95 +179,90 @@ public class QueryScratchPad {
 
     GraphTraversalSource g = graph.traversal();
 
-  /**
-   * Given two Persons, find all (unweighted) shortest paths between these two
-   * Persons, in the subgraph induced by the Knows relationship. Then, for each
-   * path calculate a weight. The nodes in the path are Persons, and the weight
-   * of a path is the sum of weights between every pair of consecutive Person
-   * nodes in the path. The weight for a pair of Persons is calculated such
-   * that every reply (by one of the Persons) to a Post (by the other Person)
-   * contributes 1.0, and every reply (by ones of the Persons) to a Comment (by
-   * the other Person) contributes 0.5. Return all the paths with shortest
-   * length, and their weights. Sort results descending by path weight. The
-   * order of paths with the same weight is unspecified.[1]
-   */
-
     // Parameters of this query
-    final long personId = 2199023257936L;
-    final String tagClassName = "Cricketer";
-    final int limit = 20;
+    long personId = 1099511628726L;
+    String firstName = "Ken";
+    int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      List<LdbcQuery12Result> result = new ArrayList<>(limit);
+    List<LdbcQuery1Result> result = new ArrayList<>();
 
-      GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
-        .out("knows").as("friend")
-        .in("hasCreator").as("comment")
-        .hasLabel("Comment")
-        .out("replyOf")
-        .hasLabel("Post")
-        .out("hasTag")
-        .where(repeat(out("hasType")).until(values("name").is(eq(tagClassName))))
-        .values("name")
-        .group()
-          .by(select("friend"))
-          .by(group()
-                .by(select("comment"))
-                .by(dedup().fold()))
-        .unfold()
-        .project("personId", 
-            "personFirstName",
-            "personLastName",
-            "tags", 
-            "count")
-          .by(select(keys).id())
-          .by(select(keys).values("firstName"))
-          .by(select(keys).values("lastName"))
-          .by(select(values).select(values).unfold().dedup())
-          .by(select(values).count(local))
-        .map(t -> new LdbcQuery12Result(
-            ((UInt128)t.get().get("personId")).getLowerLong(),
-            (String)t.get().get("personFirstName"), 
-            (String)t.get().get("personLastName"),
-            (Iterable<String>)t.get().get("tags"), 
-            ((Long)t.get().get("count")).intValue()))
-        .store("result").iterate(); 
-              
-
-
-//        .out("knows")
-//        .as("friend")
-//        .group()
-//          .by(select("friend"))
-//          .by(project("commentCount", "tags")
-//              .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").out("hasType").values("name").where(is(within("Chancellor"))).count())
-//              .by(in("hasCreator").hasLabel("Comment").out("replyOf").hasLabel("Post").out("hasTag").as("tag").where(repeat(out("hasType")).until(values("name").is(eq(tagClassName)))).select("tag").values("name").dedup().fold()))
-//        .order(local)
-//          .by(select(values).select("commentCount"), decr)
-//          .by(select(keys).id(), incr)
-//        .limit(local, limit)
-//        .unfold()
-//        .where(select(values).where(select("commentCount").is(gt(0))))
-//        .project("personId", 
-//            "personFirstName", 
-//            "personLastName", 
-//            "tags",
-//            "count")
-//            .by(select(keys).id())
-//            .by(select(keys).values("firstName"))
-//            .by(select(keys).values("lastName"))
-//            .by(select(values).select("tags"))
-//            .by(select(values).select("commentCount"))
-//        .map(t -> new LdbcQuery12Result(
-//            ((UInt128)t.get().get("personId")).getLowerLong(),
-//            (String)t.get().get("personFirstName"), 
-//            (String)t.get().get("personLastName"),
-//            (Iterable<String>)t.get().get("tags"), 
-//            ((Long)t.get().get("count")).intValue()))
-//        .store("result").iterate(); 
-
+    GraphTraversal gt = g.withSideEffect("result", result).V(torcPersonId).as("person")
+      .aggregate("seenSet")
+      .repeat(
+        barrier()
+        .out("knows").where(without("seenSet")).dedup()
+          .sideEffect(
+            has("firstName", firstName)
+            .project("friend", "distance")
+              .by(identity())
+              .by(path().count(local))
+            .aggregate("resultSet")
+          ).aggregate("seenSet")
+      ).until(select("resultSet").count(local).is(gte(limit)).or().loops().is(3))
+      .select("resultSet").dedup().unfold()
+      .project("friendId",
+          "lastName",
+          "distance",
+          "birthday",
+          "creationDate",
+          "gender",
+          "browserUsed",
+          "locationIP",
+          "emails",
+          "languages",
+          "placeName",
+          "universityInfo",
+          "companyInfo")
+        .by(select("friend").id())
+        .by(select("friend").values("lastName"))
+        .by(select("distance"))
+        .by(select("friend").values("birthday"))
+        .by(select("friend").values("creationDate"))
+        .by(select("friend").values("gender"))
+        .by(select("friend").values("browserUsed"))
+        .by(select("friend").values("locationIP"))
+        .by(select("friend").values("email").fold())
+        .by(select("friend").values("language").fold())
+        .by(select("friend").out("isLocatedIn").values("name"))
+        .by(select("friend")
+              .outE("studyAt").as("studyAt").inV().as("university").out("isLocatedIn").as("city")
+              .project("universityName", "classYear", "cityName")
+                .by(select("university").values("name"))
+                .by(select("studyAt").values("classYear"))
+                .by(select("city").values("name"))
+              .select(values)
+              .fold())
+        .by(select("friend")
+              .outE("workAt").as("workAt").inV().as("company").out("isLocatedIn").as("city")
+              .project("companyName", "workFrom", "cityName")
+                .by(select("company").values("name"))
+                .by(select("workAt").values("workFrom"))
+                .by(select("city").values("name"))
+              .select(values)
+              .fold())
+      .order()
+        .by(select("distance"), incr)
+        .by(select("lastName"), incr)
+        .by(select("friendId"), incr)
+      .limit(limit)
+      .map(t -> new LdbcQuery1Result(
+          ((UInt128)t.get().get("friendId")).getLowerLong(),
+          (String)t.get().get("lastName"),
+          ((Long)t.get().get("distance")).intValue(),
+          Long.valueOf((String)t.get().get("birthday")),
+          Long.valueOf((String)t.get().get("creationDate")),
+          (String)t.get().get("gender"),
+          (String)t.get().get("browserUsed"),
+          (String)t.get().get("locationIP"),
+          (List<String>)t.get().get("emails"),
+          (List<String>)t.get().get("languages"),
+          (String)t.get().get("placeName"),
+          (List<List<Object>>)t.get().get("universityInfo"),
+          (List<List<Object>>)t.get().get("companyInfo")));
+      
     long start = System.nanoTime();
     while (gt.hasNext()) {
       System.out.println(gt.next().toString());
