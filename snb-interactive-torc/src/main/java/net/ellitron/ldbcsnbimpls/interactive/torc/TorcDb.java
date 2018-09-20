@@ -493,9 +493,10 @@ public class TorcDb extends Db {
 
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId)
-          .out("knows").as("friend")
-          .in("hasCreator").as("message")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId)
+          .out("knows").hasLabel("Person").as("friend")
+          .in("hasCreator").hasLabel("Comment", "Post").as("message")
           .order().by("creationDate", decr).by(id(), incr)
           .filter(t -> 
               Long.valueOf(t.get().value("creationDate")) <= maxDate)
@@ -597,19 +598,20 @@ public class TorcDb extends Db {
 
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows")
-          .union(identity(), out("knows")).dedup().where(neq("person"))
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows").hasLabel("Person")
+          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
           .where(
-            out("isLocatedIn").out("isPartOf").is(without(countryXName, countryYName))
+            out("isLocatedIn").hasLabel("Place").out("isPartOf").hasLabel("Place").is(without(countryXName, countryYName))
           )
           .as("friend")
-          .in("hasCreator")
+          .in("hasCreator").hasLabel("Comment", "Post")
           .filter(t -> {
                     long date = Long.valueOf(t.get().value("creationDate"));
                     return date <= endDate && date >= startDate;
                   })
-          .out("isLocatedIn").values("name")
+          .out("isLocatedIn").hasLabel("Place").values("name")
           .where( is(within(countryXName, countryYName)) )
           .group().by(select("friend"))
           .flatMap(t -> {
@@ -719,10 +721,10 @@ public class TorcDb extends Db {
 
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId)
-          .out("knows")
-          .in("hasCreator")
-          .hasLabel("Post")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId)
+          .out("knows").hasLabel("Person")
+          .in("hasCreator").hasLabel("Post")
           .as("post")
           .values("creationDate")
           .sideEffect(
@@ -730,7 +732,7 @@ public class TorcDb extends Db {
                     long date = Long.valueOf((String)t.get());
                     return date < startDate;
                     })
-              .select("post").out("hasTag").dedup().aggregate("oldTags")
+              .select("post").out("hasTag").hasLabel("Tag").dedup().aggregate("oldTags")
           )
           .barrier()
           .filter(t -> {
@@ -738,7 +740,7 @@ public class TorcDb extends Db {
                     return date <= endDate && date >= startDate;
                   })
           .select("post")
-          .out("hasTag")
+          .out("hasTag").hasLabel("Tag")
           .where(without("oldTags")).values("name")
           .as("newTags")
           .select("post")
@@ -823,10 +825,11 @@ public class TorcDb extends Db {
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
         List<Vertex> forums = new ArrayList<>();
 
-        g.withSideEffect("result", result).withSideEffect("forums", forums)
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).withSideEffect("forums", forums)
           .V(torcPersonId).as("person")
-          .out("knows")
-          .union(identity(), out("knows")).dedup().where(neq("person"))
+          .out("knows").hasLabel("Person")
+          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
           .as("friend")
           .aggregate("friendAgg")
           .inE("hasMember")
@@ -837,7 +840,7 @@ public class TorcDb extends Db {
                     return date > minDate;
                 })
           .select("memberEdge")
-          .outV()
+          .outV().hasLabel("Forum")
           .store("forums")
           .barrier()
           .group()
@@ -846,9 +849,9 @@ public class TorcDb extends Db {
           .select("friendAgg")
           .unfold()
           .as("friend")
-          .in("hasCreator")
+          .in("hasCreator").hasLabel("Comment", "Post")
           .as("post")
-          .in("containerOf")
+          .in("containerOf").hasLabel("Forum")
           .as("forum")
           .filter(t -> {
                     Map<Vertex, List<Vertex>> m = t.path("friendForums");
@@ -946,14 +949,14 @@ public class TorcDb extends Db {
 
         List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows")
-          .union(identity(), out("knows")).dedup().where(neq("person"))
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows").hasLabel("Person")
+          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
           .as("friend")
-          .in("hasCreator")
-          .hasLabel("Post")
+          .in("hasCreator").hasLabel("Post")
           .as("post")
-          .out("hasTag")
+          .out("hasTag").hasLabel("Tag")
           .values("name")
           .as("tag")
           .group()
@@ -1065,10 +1068,11 @@ public class TorcDb extends Db {
 
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .in("hasCreator").as("message")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .in("hasCreator").hasLabel("Comment", "Post").as("message")
           .inE("likes").as("like")
-          .outV().as("liker")
+          .outV().hasLabel("Person").as("liker")
           .order()
               .by(select("like").values("creationDate"), decr)
               .by(select("message").id(), incr)
@@ -1096,7 +1100,7 @@ public class TorcDb extends Db {
               .by(select("message").values("creationDate")
                   .map(t -> Long.valueOf((String)t.get())))
               .by(choose(
-                  where(select("person").out("knows").as("liker")),
+                  where(select("person").out("knows").hasLabel("Person").as("liker")),
                   constant(false),
                   constant(true)))
           .map(t -> new LdbcQuery7Result(
@@ -1183,14 +1187,15 @@ public class TorcDb extends Db {
 
         List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .in("hasCreator").as("message")
-          .in("replyOf").as("comment")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .in("hasCreator").hasLabel("Comment", "Post").as("message")
+          .in("replyOf").hasLabel("Comment").as("comment")
           .order()
               .by(select("comment").values("creationDate"), decr)
               .by(select("comment").id(), incr)
           .limit(limit)
-          .out("hasCreator").as("commenter")
+          .out("hasCreator").hasLabel("Person").as("commenter")
           .project("personId", 
               "personFirstName", 
               "personLastName", 
@@ -1287,11 +1292,12 @@ public class TorcDb extends Db {
 
         List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows")
-          .union(identity(), out("knows")).dedup().where(neq("person"))
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows").hasLabel("Person")
+          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
           .as("friend")
-          .in("hasCreator")
+          .in("hasCreator").hasLabel("Comment", "Post")
           .as("commentOrPost")
           .values("creationDate")
           .map(t -> Long.valueOf((String)t.get()))
@@ -1408,35 +1414,36 @@ public class TorcDb extends Db {
         List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
         List<UInt128> friendIds = new ArrayList<>();
 
-        g.withSideEffect("postCountMap", postCountMap)
-            .withSideEffect("commonPostCountMap", commonPostCountMap)
-            .withSideEffect("friendIds", friendIds)
-            .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-            .V(torcPersonId).as("person")
-            .aggregate("done")
-            .out("hasInterest").hasLabel("Tag")
-            .aggregate("personInterests")
-            .select("person").out("knows").hasLabel("Person")
-            .aggregate("done")
-            .out("knows").hasLabel("Person").where(without("done")).dedup()
-            .filter(t -> {
-                calendar.setTimeInMillis(
-                    Long.valueOf(t.get().value("birthday")));
-                int bmonth = calendar.get(Calendar.MONTH); // zero based 
-                int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
-                if ((bmonth == month && bday >= 21) || 
-                  (bmonth == ((month + 1) % 12) && bday < 22)) {
-                  return true;
-                }
-                return false;
-            }).as("friend2")
-            .sideEffect(id().store("friendIds"))
-            .in("hasCreator").hasLabel("Post").as("posts")
-            .union(
-                groupCount().by(select("friend2").id()).store("postCountMap"),
-                out("hasTag").hasLabel("Tag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
-                )
-            .iterate();
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("postCountMap", postCountMap)
+          .withSideEffect("commonPostCountMap", commonPostCountMap)
+          .withSideEffect("friendIds", friendIds)
+          .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .V(torcPersonId).as("person")
+          .aggregate("done")
+          .out("hasInterest").hasLabel("Tag")
+          .aggregate("personInterests")
+          .select("person").out("knows").hasLabel("Person")
+          .aggregate("done")
+          .out("knows").hasLabel("Person").where(without("done")).dedup()
+          .filter(t -> {
+              calendar.setTimeInMillis(
+                  Long.valueOf(t.get().value("birthday")));
+              int bmonth = calendar.get(Calendar.MONTH); // zero based 
+              int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
+              if ((bmonth == month && bday >= 21) || 
+                (bmonth == ((month + 1) % 12) && bday < 22)) {
+                return true;
+              }
+              return false;
+          }).as("friend2")
+          .sideEffect(id().store("friendIds"))
+          .in("hasCreator").hasLabel("Post").as("posts")
+          .union(
+              groupCount().by(select("friend2").id()).store("postCountMap"),
+              out("hasTag").hasLabel("Tag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
+              )
+          .iterate();
 
         Map<UInt128, Long> totalMap = postCountMap.get(0);
         Map<UInt128, Long> commonMap = commonPostCountMap.get(0);
@@ -1486,7 +1493,8 @@ public class TorcDb extends Db {
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result)
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result)
           .V(topFriends.toArray())
           .project("personId", 
               "personFirstName", 
@@ -1497,7 +1505,7 @@ public class TorcDb extends Db {
               .by(values("firstName"))
               .by(values("lastName"))
               .by(values("gender"))
-              .by(out("isLocatedIn").values("name"))
+              .by(out("isLocatedIn").hasLabel("Place").values("name"))
           .map(t -> new LdbcQuery10Result(
               ((UInt128)t.get().get("personId")).getLowerLong(),
               (String)t.get().get("personFirstName"), 
@@ -1577,16 +1585,17 @@ public class TorcDb extends Db {
 
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
           .aggregate("done")
           .union(
-              out("knows"),
-              out("knows").out("knows"))
+              out("knows").hasLabel("Person"),
+              out("knows").hasLabel("Person").out("knows").hasLabel("Person"))
           .dedup().where(without("done")).as("friend")
           .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
           .as("workAt")
-          .inV().as("company")
-          .out("isLocatedIn").has("name", countryName)
+          .inV().hasLabel("Organisation").as("company")
+          .out("isLocatedIn").hasLabel("Place").has("name", countryName)
           .order()
               .by(select("workAt").values("workFrom"), incr)
               .by(select("friend").id())
@@ -1682,14 +1691,13 @@ public class TorcDb extends Db {
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").as("friend")
-          .in("hasCreator").as("comment")
-          .hasLabel("Comment")
-          .out("replyOf")
-          .hasLabel("Post")
-          .out("hasTag")
-          .where(repeat(out("hasType")).until(values("name").is(eq(tagClassName))))
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
+          .out("knows").hasLabel("Person").as("friend")
+          .in("hasCreator").hasLabel("Comment").as("comment")
+          .out("replyOf").hasLabel("Post")
+          .out("hasTag").hasLabel("Tag")
+          .where(repeat(out("hasType").hasLabel("TagClass")).until(values("name").is(eq(tagClassName))))
           .values("name")
           .group()
             .by(select("friend"))
@@ -1773,18 +1781,19 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        Long pathLength = g.V(torcPerson1Id)
-            .choose(where(out("knows")),
-                repeat(out("knows").simplePath())
-                    .until(hasId(torcPerson2Id)
-                        .or()
-                        .path().count(local).is(gt(5)))
-                .limit(1)
-                .choose(id().is(eq(torcPerson2Id)), 
-                    union(path().count(local), constant(-1l)).sum(),
-                    constant(-1l)),
-                constant(-1l))
-            .next();
+        Long pathLength = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .V(torcPerson1Id)
+          .choose(where(out("knows").hasLabel("Person")),
+              repeat(out("knows").hasLabel("Person").simplePath())
+                  .until(hasId(torcPerson2Id)
+                      .or()
+                      .path().count(local).is(gt(5)))
+              .limit(1)
+              .choose(id().is(eq(torcPerson2Id)), 
+                  union(path().count(local), constant(-1l)).sum(),
+                  constant(-1l)),
+              constant(-1l))
+          .next();
 
         if (doTransactionalReads) {
           try {
@@ -1859,16 +1868,18 @@ public class TorcDb extends Db {
         List<LdbcQuery14Result> result = new ArrayList<>();
 
         // First get the length of the shortest path
-        Long minPathLen = g.V(torcPerson1Id)
-          .repeat(outE("knows").inV().simplePath())
+        Long minPathLen = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .V(torcPerson1Id)
+          .repeat(outE("knows").inV().hasLabel("Person").simplePath())
             .until(hasId(torcPerson2Id))
           .limit(1)
           .path()
           .count(local)
           .next();
 
-        g.withSideEffect("result", result).V(torcPerson1Id)
-          .repeat(outE("knows").as("e").inV().simplePath())
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPerson1Id)
+          .repeat(outE("knows").as("e").inV().hasLabel("Person").simplePath())
             .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
           .where(id().is(eq(torcPerson2Id)))
           .select(all, "e")
@@ -1881,22 +1892,22 @@ public class TorcDb extends Db {
               match(
                 as("i").outV().as("outV"),
                 as("i").inV().as("inV"),
-                as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("inV")
+                as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").hasLabel("Person").as("inV")
               ).select("outV", "cP", "inV").map(t -> 1.0f),
               match(
                 as("i").outV().as("outV"),
                 as("i").inV().as("inV"),
-                as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("inV")
+                as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").hasLabel("Person").as("inV")
               ).select("outV", "cC", "inV").map(t -> 0.5f),
               match(
                 as("i").outV().as("outV"),
                 as("i").inV().as("inV"),
-                as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").as("outV")
+                as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").hasLabel("Person").as("outV")
               ).select("inV", "cP", "outV").map(t -> 1.0f),
               match(
                 as("i").outV().as("outV"),
                 as("i").inV().as("inV"),
-                as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").as("outV")
+                as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").hasLabel("Person").as("outV")
               ).select("inV", "cC", "outV").map(t -> 0.5f)
             ).sum()
           )
