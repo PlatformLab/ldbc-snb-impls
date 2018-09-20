@@ -346,11 +346,12 @@ public class TorcDb extends Db {
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
-        g.withSideEffect("result", result).V(torcPersonId).as("person")
+        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+          .withSideEffect("result", result).V(torcPersonId).as("person")
           .aggregate("seenSet")
           .repeat(
             barrier()
-            .out("knows").where(without("seenSet")).dedup()
+            .out("knows").hasLabel("Person").where(without("seenSet")).dedup()
               .sideEffect(
                 has("firstName", firstName)
                 .project("friend", "distance")
@@ -383,9 +384,9 @@ public class TorcDb extends Db {
             .by(select("friend").values("locationIP"))
             .by(select("friend").values("email").fold())
             .by(select("friend").values("language").fold())
-            .by(select("friend").out("isLocatedIn").values("name"))
+            .by(select("friend").out("isLocatedIn").hasLabel("Place").values("name"))
             .by(select("friend")
-                  .outE("studyAt").as("studyAt").inV().as("university").out("isLocatedIn").as("city")
+                  .outE("studyAt").as("studyAt").inV().hasLabel("Organisation").as("university").out("isLocatedIn").hasLabel("Place").as("city")
                   .project("universityName", "classYear", "cityName")
                     .by(select("university").values("name"))
                     .by(select("studyAt").values("classYear"))
@@ -393,7 +394,7 @@ public class TorcDb extends Db {
                   .select(values)
                   .fold())
             .by(select("friend")
-                  .outE("workAt").as("workAt").inV().as("company").out("isLocatedIn").as("city")
+                  .outE("workAt").as("workAt").inV().hasLabel("Organisation").as("company").out("isLocatedIn").hasLabel("Place").as("city")
                   .project("companyName", "workFrom", "cityName")
                     .by(select("company").values("name"))
                     .by(select("workAt").values("workFrom"))
