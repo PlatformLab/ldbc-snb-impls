@@ -95,6 +95,7 @@ import org.apache.commons.configuration.BaseConfiguration;
 
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.BulkSet;
@@ -117,8 +118,6 @@ import java.io.FilenameFilter;
 import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -180,101 +179,95 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
     // Parameters of this query
-    final long personId = 5497558140453L;
-    final int month = 8 - 1; // make month zero based
-    final int limit = 10;
-
-    Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+    final long personId = 1099511628726L;
+    final String firstName = "Ken";
+    final int limit = 20;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery10Result> result = new ArrayList<>(limit);
-    List<TorcVertex> interests = new ArrayList<>();
+    List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
-    GraphTraversal gt = g.withSideEffect("result", result).withSideEffect("interests", interests)
-      .V(torcPersonId).as("person")
-      .sideEffect(
-        out("hasInterest").aggregate("interests")
-      )
+    GraphTraversal gt = 
+      g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+      .withSideEffect("result", result).V(torcPersonId).as("person")
       .aggregate("seenSet")
-      .out("knows").aggregate("seenSset")
-      .out("knows").where(without("seenSet")).dedup()
-      .filter(t -> {
-          calendar.setTimeInMillis(
-              Long.valueOf(t.get().value("birthday")));
-          int bmonth = calendar.get(Calendar.MONTH); // zero based 
-          int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
-          if ((bmonth == month && bday >= 21) || 
-            (bmonth == ((month + 1) % 12) && bday < 22)) {
-            return true;
-          }
-          return false;
-      })
-      .as("friend")
-      .in("hasCreator")
-      .hasLabel("Post")
-      .as("post")
-      .out("hasTag")
-      .as("tag")
-      .group()
-        .by(select("friend"))
-        .by(group()
-              .by(select("post"))
-              .by(dedup().fold()))
-      .select(keys).unfold()
-      .valueMap();
-//      .map(t -> {
-//        Map<Object, Object> fMap = t.get();
-//        Map<Object, Integer> newfMap = new HashMap<>();
-//        for (Object friend : fMap.keySet()) {
-//          Map<Object, Object> pMap = (Map<Object, Object>)(fMap.get(friend));
-//          int common = 0;
-//          int uncommon = 0;
-//          for (Object post : pMap.keySet()) {
-//            List<Object> tags = (List<Object>)(pMap.get(post));
-//            if (tags.removeAll(interests))
-//              common++;
-//            else 
-//              uncommon++;
-//          }
-//          newfMap.put(friend, common - uncommon);
-//        }
-//
-//        return newfMap;
-//      })
-//      .unfold()
-//      .order()
-//        .by(select(values), decr)
-//        .by(select(keys).id(), incr)
-//      .limit(limit)
-//      .project("personId", 
-//          "personFirstName", 
-//          "personLastName", 
-//          "score",
-//          "personGender",
-//          "personCityName")
-//          .by(select(keys).id())
-//          .by(select(keys).values("firstName"))
-//          .by(select(keys).values("lastName"))
-//          .by(select(values))
-//          .by(select(keys).values("gender"))
-//          .by(select(keys).out("isLocatedIn").values("name"))
-//      .map(t -> new LdbcQuery10Result(
-//          ((UInt128)t.get().get("personId")).getLowerLong(),
-//          (String)t.get().get("personFirstName"), 
-//          (String)t.get().get("personLastName"),
-//          (Integer)(t.get().get("score")),
-//          (String)t.get().get("personGender"), 
-//          (String)t.get().get("personCityName")))
-//      .store("result").iterate(); 
+      .repeat(
+        barrier()
+        .out("knows").hasLabel("Person").where(without("seenSet")).dedup()
+          .sideEffect(
+            has("firstName", firstName)
+            .project("friend", "distance")
+              .by(identity())
+              .by(path().count(local))
+            .aggregate("resultSet")
+          ).aggregate("seenSet")
+      ).until(select("resultSet").count(local).is(gte(limit)).or().loops().is(3))
+      .select("resultSet").dedup().unfold()
+      .project("friendId",
+          "lastName",
+          "distance",
+          "birthday",
+          "creationDate",
+          "gender",
+          "browserUsed",
+          "locationIP",
+          "emails",
+          "languages",
+          "placeName",
+          "universityInfo",
+          "companyInfo")
+        .by(select("friend").id())
+        .by(select("friend").values("lastName"))
+        .by(select("distance"))
+        .by(select("friend").values("birthday"))
+        .by(select("friend").values("creationDate"))
+        .by(select("friend").values("gender"))
+        .by(select("friend").values("browserUsed"))
+        .by(select("friend").values("locationIP"))
+        .by(select("friend").values("email").fold())
+        .by(select("friend").values("language").fold())
+        .by(select("friend").out("isLocatedIn").hasLabel("Place").values("name"))
+        .by(select("friend")
+              .outE("studyAt").as("studyAt").inV().hasLabel("Organisation").as("university").out("isLocatedIn").hasLabel("Place").as("city")
+              .project("universityName", "classYear", "cityName")
+                .by(select("university").values("name"))
+                .by(select("studyAt").values("classYear"))
+                .by(select("city").values("name"))
+              .select(values)
+              .fold())
+        .by(select("friend")
+              .outE("workAt").as("workAt").inV().hasLabel("Organisation").as("company").out("isLocatedIn").hasLabel("Place").as("city")
+              .project("companyName", "workFrom", "cityName")
+                .by(select("company").values("name"))
+                .by(select("workAt").values("workFrom"))
+                .by(select("city").values("name"))
+              .select(values)
+              .fold())
+      .order()
+        .by(select("distance"), incr)
+        .by(select("lastName"), incr)
+        .by(select("friendId"), incr)
+      .limit(limit)
+      .map(t -> new LdbcQuery1Result(
+          ((UInt128)t.get().get("friendId")).getLowerLong(),
+          (String)t.get().get("lastName"),
+          ((Long)t.get().get("distance")).intValue() - 1,
+          Long.valueOf((String)t.get().get("birthday")),
+          Long.valueOf((String)t.get().get("creationDate")),
+          (String)t.get().get("gender"),
+          (String)t.get().get("browserUsed"),
+          (String)t.get().get("locationIP"),
+          (List<String>)t.get().get("emails"),
+          (List<String>)t.get().get("languages"),
+          (String)t.get().get("placeName"),
+          (List<List<Object>>)t.get().get("universityInfo"),
+          (List<List<Object>>)t.get().get("companyInfo")))
+      .store("result").iterate();
 
-
-
-      
     long start = System.nanoTime();
     while (gt.hasNext()) {
-      System.out.println(gt.next().toString());
+      System.out.println(gt.next());
     }
     long end = System.nanoTime();
 
