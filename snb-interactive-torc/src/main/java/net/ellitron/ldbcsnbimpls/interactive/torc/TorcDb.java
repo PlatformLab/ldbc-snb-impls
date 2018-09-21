@@ -1211,6 +1211,9 @@ public class TorcDb extends Db {
                   .choose(values("content").is(neq("")),
                       values("content"),
                       values("imageFile")))
+          .order()
+              .by(select("commentCreationDate"), decr)
+              .by(select("commentId"), incr)
           .map(t -> new LdbcQuery8Result(
               ((UInt128)t.get().get("personId")).getLowerLong(),
               (String)t.get().get("personFirstName"), 
