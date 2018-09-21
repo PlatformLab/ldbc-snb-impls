@@ -1590,11 +1590,8 @@ public class TorcDb extends Db {
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .withSideEffect("result", result).V(torcPersonId).as("person")
-          .aggregate("done")
-          .union(
-              out("knows").hasLabel("Person"),
-              out("knows").hasLabel("Person").out("knows").hasLabel("Person"))
-          .dedup().where(without("done")).as("friend")
+          .out("knows").hasLabel("Person")
+          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person")).as("friend")
           .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
           .as("workAt")
           .inV().hasLabel("Organisation").as("company")
