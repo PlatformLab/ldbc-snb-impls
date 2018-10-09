@@ -19,11 +19,11 @@ package net.ellitron.ldbcsnbimpls.interactive.torc.util;
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbEntity;
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbRelation;
 import net.ellitron.ldbcsnbimpls.interactive.torc.TorcEntity;
-import net.ellitron.torc.TorcEdgeDirection;
 import net.ellitron.torc.TorcGraph;
 import net.ellitron.torc.TorcVertex;
 import net.ellitron.torc.util.UInt128;
 
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -411,15 +411,15 @@ public class ImageMaker {
             // But in reverse indexes, it is the opposite.
             TorcEntity baseEntity;
             TorcEntity neighborEntity;
-            TorcEdgeDirection edgeDir;
+            Direction edgeDir;
             if (loadUnit.isReverseIndex()) {
               baseEntity = TorcEntity.valueOf(snbRelation.head);
               neighborEntity = TorcEntity.valueOf(snbRelation.tail);
-              edgeDir = TorcEdgeDirection.DIRECTED_IN;
+              edgeDir = Direction.IN;
             } else {
               baseEntity = TorcEntity.valueOf(snbRelation.tail);
               neighborEntity = TorcEntity.valueOf(snbRelation.head);
-              edgeDir = TorcEdgeDirection.DIRECTED_OUT;
+              edgeDir = Direction.OUT;
             }
 
             UInt128 curBaseVertexId = null;
