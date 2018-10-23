@@ -179,95 +179,81 @@ public class QueryScratchPad {
     GraphTraversalSource g = graph.traversal();
 
     // Parameters of this query
-    final long personId = 1099511628726L;
-    final String firstName = "Ken";
-    final int limit = 20;
+    final long personId = 8796093030404L;
+    final long minDate = 1347062400000L;
+    final int limit = 10;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery1Result> result = new ArrayList<>(limit);
+    List<LdbcQuery5Result> result = new ArrayList<>(limit);
+    List<Vertex> forums = new ArrayList<>();
 
     GraphTraversal gt = 
       g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-      .withSideEffect("result", result).V(torcPersonId).as("person")
-      .aggregate("seenSet")
-      .repeat(
-        barrier()
-        .out("knows").hasLabel("Person").where(without("seenSet")).dedup()
-          .sideEffect(
-            has("firstName", firstName)
-            .project("friend", "distance")
-              .by(identity())
-              .by(path().count(local))
-            .aggregate("resultSet")
-          ).aggregate("seenSet")
-      ).until(select("resultSet").count(local).is(gte(limit)).or().loops().is(3))
-      .select("resultSet").dedup().unfold()
-      .project("friendId",
-          "lastName",
-          "distance",
-          "birthday",
-          "creationDate",
-          "gender",
-          "browserUsed",
-          "locationIP",
-          "emails",
-          "languages",
-          "placeName",
-          "universityInfo",
-          "companyInfo")
-        .by(select("friend").id())
-        .by(select("friend").values("lastName"))
-        .by(select("distance"))
-        .by(select("friend").values("birthday"))
-        .by(select("friend").values("creationDate"))
-        .by(select("friend").values("gender"))
-        .by(select("friend").values("browserUsed"))
-        .by(select("friend").values("locationIP"))
-        .by(select("friend").values("email").fold())
-        .by(select("friend").values("language").fold())
-        .by(select("friend").out("isLocatedIn").hasLabel("Place").values("name"))
-        .by(select("friend")
-              .outE("studyAt").as("studyAt").inV().hasLabel("Organisation").as("university").out("isLocatedIn").hasLabel("Place").as("city")
-              .project("universityName", "classYear", "cityName")
-                .by(select("university").values("name"))
-                .by(select("studyAt").values("classYear"))
-                .by(select("city").values("name"))
-              .select(values)
-              .fold())
-        .by(select("friend")
-              .outE("workAt").as("workAt").inV().hasLabel("Organisation").as("company").out("isLocatedIn").hasLabel("Place").as("city")
-              .project("companyName", "workFrom", "cityName")
-                .by(select("company").values("name"))
-                .by(select("workAt").values("workFrom"))
-                .by(select("city").values("name"))
-              .select(values)
-              .fold())
-      .order()
-        .by(select("distance"), incr)
-        .by(select("lastName"), incr)
-        .by(select("friendId"), incr)
-      .limit(limit)
-      .map(t -> new LdbcQuery1Result(
-          ((UInt128)t.get().get("friendId")).getLowerLong(),
-          (String)t.get().get("lastName"),
-          ((Long)t.get().get("distance")).intValue() - 1,
-          Long.valueOf((String)t.get().get("birthday")),
-          Long.valueOf((String)t.get().get("creationDate")),
-          (String)t.get().get("gender"),
-          (String)t.get().get("browserUsed"),
-          (String)t.get().get("locationIP"),
-          (List<String>)t.get().get("emails"),
-          (List<String>)t.get().get("languages"),
-          (String)t.get().get("placeName"),
-          (List<List<Object>>)t.get().get("universityInfo"),
-          (List<List<Object>>)t.get().get("companyInfo")))
-      .store("result").iterate();
+        .withSideEffect("result", result).withSideEffect("forums", forums)
+        .V(torcPersonId).as("person")
+        .out("knows").hasLabel("Person")
+        .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
+        .as("friend")
+        .aggregate("friendAgg")
+        .inE("hasMember")
+        .as("memberEdge")
+//        .values("joinDate")
+//        .filter(t -> {
+//                  long date = Long.valueOf((String)t.get());
+//                  return date > minDate;
+//              })
+        .select("memberEdge")
+        .outV().hasLabel("Forum").count();
+//        .store("forums")
+//        .barrier()
+//        .group()
+//          .by(select("friend"))
+//        .as("friendForums")
+//        .select("friendAgg")
+//        .unfold()
+//        .as("friend")
+//        .in("hasCreator").hasLabel("Comment", "Post")
+//        .as("post")
+//        .in("containerOf").hasLabel("Forum")
+//        .as("forum")
+//        .filter(t -> {
+//                  Map<Vertex, List<Vertex>> m = t.path("friendForums");
+//                  Vertex v = t.path("friend");
+//                  List<Vertex> friendForums = m.get(v);
+//                  Vertex thisForum = t.get();
+//                  if (friendForums == null)
+//                    return false;
+//                  else
+//                    return friendForums.contains(thisForum);
+//              })
+//        .groupCount()
+//        .map(t -> {
+//                Map<Object, Long> m = t.get();
+//                for (Vertex v : forums) {
+//                  if (!m.containsKey((Object)v))
+//                    m.put(v, 0L);
+//                }
+//                return t.get();
+//            })
+//        .order(local)
+//          .by(select(values), decr)
+//          .by(select(keys).id(), incr)
+//        .limit(local, limit)
+//        .unfold()
+//        .project("forumTitle", "postCount")
+//          .by(select(keys).values("title"))
+//          .by(select(values))
+//        .map(t -> new LdbcQuery5Result(
+//            (String)(t.get().get("forumTitle")), 
+//            ((Long)(t.get().get("postCount"))).intValue()))
+//        .store("result").iterate(); 
 
     long start = System.nanoTime();
     while (gt.hasNext()) {
       System.out.println(gt.next());
+      break;
     }
     long end = System.nanoTime();
 
