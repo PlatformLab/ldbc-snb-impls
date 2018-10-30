@@ -344,6 +344,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -430,7 +432,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -491,6 +493,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -529,7 +533,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -596,6 +600,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -661,7 +667,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -719,6 +725,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -767,7 +775,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -821,6 +829,8 @@ public class TorcDb extends Db {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
+
+        ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
         List<Vertex> forums = new ArrayList<>();
@@ -893,7 +903,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -946,6 +956,8 @@ public class TorcDb extends Db {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
+
+        ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
@@ -1000,7 +1012,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1066,6 +1078,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1124,7 +1138,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1185,6 +1199,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1231,7 +1247,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1293,6 +1309,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1342,7 +1360,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1412,6 +1430,8 @@ public class TorcDb extends Db {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
+
+        ((TorcGraph)graph).disableTx();
 
         List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
         List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
@@ -1526,7 +1546,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1586,6 +1606,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1627,7 +1649,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1689,6 +1711,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1731,7 +1755,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -1781,6 +1805,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
+        ((TorcGraph)graph).disableTx();
+
         Long pathLength = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .V(torcPerson1Id)
           .choose(where(out("knows").hasLabel("Person")),
@@ -1803,7 +1829,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(1, new LdbcQuery13Result(pathLength.intValue()), 
@@ -1864,6 +1890,8 @@ public class TorcDb extends Db {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
+
+        ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery14Result> result = new ArrayList<>();
 
@@ -1953,7 +1981,7 @@ public class TorcDb extends Db {
             continue;
           }
         } else {
-          graph.tx().rollback();
+          ((TorcGraph)graph).enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
