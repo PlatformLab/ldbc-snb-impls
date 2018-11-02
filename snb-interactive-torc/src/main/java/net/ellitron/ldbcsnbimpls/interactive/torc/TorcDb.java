@@ -273,6 +273,10 @@ public class TorcDb extends Db {
         LdbcUpdate7AddCommentHandler.class);
     registerOperationHandler(LdbcUpdate8AddFriendship.class,
         LdbcUpdate8AddFriendshipHandler.class);
+
+    System.out.println("doTransactionalReads: " + doTransactionalReads);
+    System.out.println("fakeComplexReads: " + fakeComplexReads);
+    System.out.println("fakeUpdates: " + fakeUpdates);
   }
 
   @Override
