@@ -152,6 +152,7 @@ public class TorcDb extends Db {
   private TorcDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
   private static boolean fakeComplexReads = false;
+  private static boolean fakeUpdates = false;
   private static String personIDsFilename;
   private static String messageIDsFilename;
   private static List<Long> personIDs;
@@ -203,6 +204,10 @@ public class TorcDb extends Db {
                properties.containsKey("messageIDsFile")) {
       throw new RuntimeException(
           "Error: Must specify BOTH personIDs and messageIDs file");
+    }
+
+    if (properties.containsKey("fakeUpdates")) {
+      fakeUpdates = true;
     }
 
     /*
@@ -2635,6 +2640,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate1AddPerson operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       // Build key value properties array
@@ -2747,6 +2756,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate2AddPostLike operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
@@ -2796,6 +2809,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate3AddCommentLike operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
@@ -2845,6 +2862,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate4AddForum operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> forumKeyValues = new ArrayList<>(8);
@@ -2913,6 +2934,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate5AddForumMembership operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<UInt128> ids = new ArrayList<>(2);
@@ -2963,6 +2988,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate6AddPost operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> postKeyValues = new ArrayList<>(18);
@@ -3047,6 +3076,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate7AddComment operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> commentKeyValues = new ArrayList<>(14);
@@ -3136,6 +3169,10 @@ public class TorcDb extends Db {
     public void executeOperation(LdbcUpdate8AddFriendship operation,
         DbConnectionState dbConnectionState,
         ResultReporter reporter) throws DbException {
+      if (fakeUpdates) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
       Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
