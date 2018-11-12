@@ -353,7 +353,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
@@ -502,7 +503,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
@@ -609,7 +611,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
@@ -734,7 +737,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
@@ -839,7 +843,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
         List<Vertex> forums = new ArrayList<>();
@@ -966,7 +971,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
@@ -1087,7 +1093,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
@@ -1208,7 +1215,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
@@ -1318,7 +1326,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
@@ -1440,7 +1449,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
         List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
@@ -1615,7 +1625,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
@@ -1720,7 +1731,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
@@ -1814,7 +1826,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         Long pathLength = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .V(torcPerson1Id)
@@ -1900,7 +1913,8 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        ((TorcGraph)graph).disableTx();
+        if (!doTransactionalReads)
+          ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery14Result> result = new ArrayList<>();
 
