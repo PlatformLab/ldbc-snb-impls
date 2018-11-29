@@ -151,7 +151,7 @@ public class TorcDb extends Db {
 
   private TorcDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
-  private static boolean useRAMCloudTransactionAPIForReads = false;
+  private static boolean useRAMCloudTransactionAPIForReads = true;
   private static boolean fakeComplexReads = false;
   private static boolean fakeUpdates = false;
   private static String personIDsFilename;
@@ -447,6 +447,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -549,6 +551,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -684,6 +688,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -793,6 +799,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -922,6 +930,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1032,6 +1042,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1159,6 +1171,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1269,6 +1283,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1383,6 +1399,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1570,6 +1588,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1674,6 +1694,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1781,6 +1803,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -1856,6 +1880,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
@@ -2009,6 +2035,8 @@ public class TorcDb extends Db {
             txAttempts++;
             continue;
           }
+        } else if (useRAMCloudTransactionAPIForReads) {
+          graph.tx().rollback();
         } else {
           ((TorcGraph)graph).enableTx();
         }
