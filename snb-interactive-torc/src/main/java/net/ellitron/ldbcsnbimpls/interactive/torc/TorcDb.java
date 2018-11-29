@@ -151,6 +151,7 @@ public class TorcDb extends Db {
 
   private TorcDbConnectionState connectionState = null;
   private static boolean doTransactionalReads = false;
+  private static boolean useRAMCloudTransactionAPIForReads = false;
   private static boolean fakeComplexReads = false;
   private static boolean fakeUpdates = false;
   private static String personIDsFilename;
@@ -169,6 +170,10 @@ public class TorcDb extends Db {
 
     if (properties.containsKey("txReads")) {
       doTransactionalReads = true;
+    }
+
+    if (properties.containsKey("RCTXAPIReads")) {
+      useRAMCloudTransactionAPIForReads = true;
     }
 
     if (properties.containsKey("personIDsFile") && 
@@ -275,6 +280,7 @@ public class TorcDb extends Db {
         LdbcUpdate8AddFriendshipHandler.class);
 
     System.out.println("doTransactionalReads: " + doTransactionalReads);
+    System.out.println("useRAMCloudTransactionAPIForReads: " + useRAMCloudTransactionAPIForReads);
     System.out.println("fakeComplexReads: " + fakeComplexReads);
     System.out.println("fakeUpdates: " + fakeUpdates);
   }
@@ -353,7 +359,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
@@ -503,7 +509,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
@@ -611,7 +617,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
@@ -737,7 +743,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
@@ -843,7 +849,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
@@ -971,7 +977,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery6Result> result = new ArrayList<>(limit);
@@ -1093,7 +1099,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
@@ -1215,7 +1221,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery8Result> result = new ArrayList<>(limit);
@@ -1326,7 +1332,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery9Result> result = new ArrayList<>(limit);
@@ -1449,7 +1455,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
@@ -1625,7 +1631,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
@@ -1731,7 +1737,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
@@ -1826,7 +1832,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         Long pathLength = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
@@ -1913,7 +1919,7 @@ public class TorcDb extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
-        if (!doTransactionalReads)
+        if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
           ((TorcGraph)graph).disableTx();
 
         List<LdbcQuery14Result> result = new ArrayList<>();
