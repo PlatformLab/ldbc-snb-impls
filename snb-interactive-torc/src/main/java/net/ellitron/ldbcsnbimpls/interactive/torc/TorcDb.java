@@ -367,9 +367,6 @@ public class TorcDb extends Db {
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
-        RAMCloud client = ((TorcGraph)graph).getClient();
-        client.nanoLogPrint("Query1 Start");
-
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .withSideEffect("result", result).V(torcPersonId).as("person")
           .aggregate("seenSet")
@@ -446,6 +443,7 @@ public class TorcDb extends Db {
               (List<List<Object>>)t.get().get("companyInfo")))
           .store("result").iterate();
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
         client.nanoLogPrint("Query1 End");
 
         if (doTransactionalReads) {
@@ -551,6 +549,9 @@ public class TorcDb extends Db {
               (String)t.get().get("content"),
               Long.valueOf((String)t.get().get("creationDate"))))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query2 End");
 
         if (doTransactionalReads) {
           try {
@@ -689,6 +690,9 @@ public class TorcDb extends Db {
               (Long)((Traverser<Map>)t).get().get("totalCount")))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query3 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -799,6 +803,9 @@ public class TorcDb extends Db {
               (String)(t.get().get("tagName")), 
               ((Long)(t.get().get("postCount"))).intValue()))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query4 End");
 
         if (doTransactionalReads) {
           try {
@@ -931,6 +938,9 @@ public class TorcDb extends Db {
               ((Long)(t.get().get("postCount"))).intValue()))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query5 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1042,6 +1052,9 @@ public class TorcDb extends Db {
               (String)(((Traverser<Map>)t).get().get("tagName")), 
               ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query6 End");
 
         if (doTransactionalReads) {
           try {
@@ -1172,6 +1185,9 @@ public class TorcDb extends Db {
               (Boolean)t.get().get("isNew")))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query7 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1283,6 +1299,9 @@ public class TorcDb extends Db {
               ((UInt128)t.get().get("commentId")).getLowerLong(), 
               (String)t.get().get("commentContent")))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query8 End");
 
         if (doTransactionalReads) {
           try {
@@ -1399,6 +1418,9 @@ public class TorcDb extends Db {
               (String)t.get().get("commentOrPostContent"),
               (Long)t.get().get("commentOrPostCreationDate")))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query9 End");
 
         if (doTransactionalReads) {
           try {
@@ -1589,6 +1611,9 @@ public class TorcDb extends Db {
               (String)t.get().get("personCityName")))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query10 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1694,6 +1719,9 @@ public class TorcDb extends Db {
               (String)t.get().get("organizationName"),
               Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
           .store("result").iterate(); 
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query11 End");
 
         if (doTransactionalReads) {
           try {
@@ -1804,6 +1832,9 @@ public class TorcDb extends Db {
               ((Long)t.get().get("count")).intValue()))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query12 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1880,6 +1911,9 @@ public class TorcDb extends Db {
                   constant(-1l)),
               constant(-1l))
           .next();
+
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query13 End");
 
         if (doTransactionalReads) {
           try {
@@ -2036,6 +2070,9 @@ public class TorcDb extends Db {
               ((Double)t.get().get("pathWeight"))))
           .store("result").iterate(); 
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query14 End");
+
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -2077,9 +2114,9 @@ public class TorcDb extends Db {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         long person_id = operation.personId();
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
-        Vertex person = client.vertices(
+        Vertex person = graph.vertices(
             new UInt128(TorcEntity.PERSON.idSpace, person_id)).next();
         Iterator<VertexProperty<String>> props = person.properties();
         Map<String, String> propertyMap = new HashMap<>();
@@ -2104,15 +2141,18 @@ public class TorcDb extends Db {
                 propertyMap.get("gender"),
                 Long.parseLong(propertyMap.get("creationDate")));
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery1 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(0, res, operation);
@@ -2142,11 +2182,11 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
-        Vertex person = client.vertices(
+        Vertex person = graph.vertices(
             new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
         Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.IN, 
@@ -2258,15 +2298,18 @@ public class TorcDb extends Db {
           result.add(res);
         }
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery2 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -2292,11 +2335,11 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
         List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 
-        Vertex person = client.vertices(
+        Vertex person = graph.vertices(
             new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
             .next();
 
@@ -2347,15 +2390,18 @@ public class TorcDb extends Db {
           }
         });
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery3 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -2381,9 +2427,9 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
-        Vertex message = client.vertices(
+        Vertex message = graph.vertices(
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
@@ -2399,15 +2445,18 @@ public class TorcDb extends Db {
                 content,
                 creationDate);
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery4 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(1, result, operation);
@@ -2432,9 +2481,9 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
-        Vertex message = client.vertices(
+        Vertex message = graph.vertices(
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
@@ -2456,15 +2505,18 @@ public class TorcDb extends Db {
                 creatorFirstName,
                 creatorLastName);
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery5 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(1, result, operation);
@@ -2492,9 +2544,9 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
-        Vertex vertex = client.vertices(
+        Vertex vertex = graph.vertices(
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
 
@@ -2537,15 +2589,18 @@ public class TorcDb extends Db {
           }
         }
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery6 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(1, result, operation);
@@ -2574,9 +2629,9 @@ public class TorcDb extends Db {
         ResultReporter resultReporter) throws DbException {
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
-        Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+        Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
-        Vertex message = client.vertices(
+        Vertex message = graph.vertices(
             new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
             .next();
         Vertex messageAuthor =
@@ -2659,15 +2714,18 @@ public class TorcDb extends Db {
           }
         });
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("ShortQuery7 End");
+
         if (doTransactionalReads) {
           try {
-            client.tx().commit();
+            graph.tx().commit();
           } catch (RuntimeException e) {
             txAttempts++;
             continue;
           }
         } else {
-          client.tx().rollback();
+          graph.tx().rollback();
         }
 
         resultReporter.report(result.size(), result, operation);
@@ -2704,7 +2762,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       // Build key value properties array
       List<Object> personKeyValues =
@@ -2744,10 +2802,10 @@ public class TorcDb extends Db {
       int txFailCount = 0;
       do {
         // Add person
-        Vertex person = client.addVertex(personKeyValues.toArray());
+        Vertex person = graph.addVertex(personKeyValues.toArray());
 
         // Add edge to place
-        Vertex place = client.vertices(
+        Vertex place = graph.vertices(
             new UInt128(TorcEntity.PLACE.idSpace, operation.cityId())).next();
         person.addEdge("isLocatedIn", place);
 
@@ -2755,7 +2813,7 @@ public class TorcDb extends Db {
         List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
         operation.tagIds().forEach((id) ->
             tagIds.add(new UInt128(TorcEntity.TAG.idSpace, id)));
-        Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
+        Iterator<Vertex> tagVItr = graph.vertices(tagIds.toArray());
         tagVItr.forEachRemaining((tag) -> {
           person.addEdge("hasInterest", tag);
         });
@@ -2766,7 +2824,7 @@ public class TorcDb extends Db {
           studiedAtKeyValues.clear();
           studiedAtKeyValues.add("classYear");
           studiedAtKeyValues.add(String.valueOf(org.year()));
-          Vertex orgV = client.vertices(
+          Vertex orgV = graph.vertices(
               new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId()))
               .next();
@@ -2779,14 +2837,17 @@ public class TorcDb extends Db {
           workedAtKeyValues.clear();
           workedAtKeyValues.add("workFrom");
           workedAtKeyValues.add(String.valueOf(org.year()));
-          Vertex orgV = client.vertices(
+          Vertex orgV = graph.vertices(
               new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId())).next();
           person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
         }
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update1 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -2820,7 +2881,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
           new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
@@ -2830,7 +2891,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Iterator<Vertex> results = client.vertices(personId, postId);
+        Iterator<Vertex> results = graph.vertices(personId, postId);
         Vertex person = results.next();
         Vertex post = results.next();
         List<Object> keyValues = new ArrayList<>(2);
@@ -2838,8 +2899,11 @@ public class TorcDb extends Db {
         keyValues.add(String.valueOf(operation.creationDate().getTime()));
         person.addEdge("likes", post, keyValues.toArray());
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update2 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -2873,7 +2937,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       UInt128 personId =
           new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
@@ -2883,7 +2947,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Iterator<Vertex> results = client.vertices(personId, commentId);
+        Iterator<Vertex> results = graph.vertices(personId, commentId);
         Vertex person = results.next();
         Vertex comment = results.next();
         List<Object> keyValues = new ArrayList<>(2);
@@ -2891,8 +2955,11 @@ public class TorcDb extends Db {
         keyValues.add(String.valueOf(operation.creationDate().getTime()));
         person.addEdge("likes", comment, keyValues.toArray());
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update3 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -2926,7 +2993,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> forumKeyValues = new ArrayList<>(8);
       forumKeyValues.add(T.id);
@@ -2942,7 +3009,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Vertex forum = client.addVertex(forumKeyValues.toArray());
+        Vertex forum = graph.addVertex(forumKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
         operation.tagIds().forEach((id) -> {
@@ -2951,7 +3018,7 @@ public class TorcDb extends Db {
         ids.add(new UInt128(TorcEntity.PERSON.idSpace,
             operation.moderatorPersonId()));
 
-        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+        graph.vertices(ids.toArray()).forEachRemaining((v) -> {
           if (v.label().equals(TorcEntity.TAG.label)) {
             forum.addEdge("hasTag", v);
           } else if (v.label().equals(TorcEntity.PERSON.label)) {
@@ -2963,8 +3030,11 @@ public class TorcDb extends Db {
           }
         });
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update4 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -2998,7 +3068,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<UInt128> ids = new ArrayList<>(2);
       ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
@@ -3007,7 +3077,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Iterator<Vertex> vItr = client.vertices(ids.toArray());
+        Iterator<Vertex> vItr = graph.vertices(ids.toArray());
         Vertex forum = vItr.next();
         Vertex member = vItr.next();
 
@@ -3017,8 +3087,11 @@ public class TorcDb extends Db {
 
         forum.addEdge("hasMember", member, edgeKeyValues.toArray());
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update5 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -3052,7 +3125,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> postKeyValues = new ArrayList<>(18);
       postKeyValues.add(T.id);
@@ -3078,7 +3151,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Vertex post = client.addVertex(postKeyValues.toArray());
+        Vertex post = graph.addVertex(postKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
         ids.add(new UInt128(TorcEntity.PERSON.idSpace,
@@ -3089,7 +3162,7 @@ public class TorcDb extends Db {
           ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
         });
 
-        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+        graph.vertices(ids.toArray()).forEachRemaining((v) -> {
           if (v.label().equals(TorcEntity.PERSON.label)) {
             post.addEdge("hasCreator", v);
           } else if (v.label().equals(TorcEntity.FORUM.label)) {
@@ -3105,8 +3178,11 @@ public class TorcDb extends Db {
           }
         });
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update6 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -3140,7 +3216,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> commentKeyValues = new ArrayList<>(14);
       commentKeyValues.add(T.id);
@@ -3162,7 +3238,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Vertex comment = client.addVertex(commentKeyValues.toArray());
+        Vertex comment = graph.addVertex(commentKeyValues.toArray());
 
         List<UInt128> ids = new ArrayList<>(2);
         ids.add(new UInt128(TorcEntity.PERSON.idSpace,
@@ -3180,7 +3256,7 @@ public class TorcDb extends Db {
               new UInt128(TorcEntity.POST.idSpace, operation.replyToPostId()));
         }
 
-        client.vertices(ids.toArray()).forEachRemaining((v) -> {
+        graph.vertices(ids.toArray()).forEachRemaining((v) -> {
           if (v.label().equals(TorcEntity.PERSON.label)) {
             comment.addEdge("hasCreator", v);
           } else if (v.label().equals(TorcEntity.PLACE.label)) {
@@ -3198,8 +3274,11 @@ public class TorcDb extends Db {
           }
         });
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update7 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
@@ -3233,7 +3312,7 @@ public class TorcDb extends Db {
         reporter.report(0, LdbcNoResult.INSTANCE, operation);
       }
 
-      Graph client = ((TorcDbConnectionState) dbConnectionState).getClient();
+      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
       knowsEdgeKeyValues.add("creationDate");
@@ -3247,7 +3326,7 @@ public class TorcDb extends Db {
       boolean txSucceeded = false;
       int txFailCount = 0;
       do {
-        Iterator<Vertex> vItr = client.vertices(ids.toArray());
+        Iterator<Vertex> vItr = graph.vertices(ids.toArray());
 
         Vertex person1 = vItr.next();
         Vertex person2 = vItr.next();
@@ -3255,8 +3334,11 @@ public class TorcDb extends Db {
         person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
         person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Update8 End");
+
         try {
-          client.tx().commit();
+          graph.tx().commit();
           txSucceeded = true;
         } catch (Exception e) {
           txFailCount++;
