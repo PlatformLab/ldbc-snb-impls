@@ -31,6 +31,9 @@ import net.ellitron.torc.*;
 import net.ellitron.torc.util.UInt128;
 import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
+import edu.stanford.ramcloud.*;
+import edu.stanford.ramcloud.ClientException.*;
+
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
@@ -364,6 +367,9 @@ public class TorcDb extends Db {
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Query1 Start");
+
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .withSideEffect("result", result).V(torcPersonId).as("person")
           .aggregate("seenSet")
@@ -439,6 +445,8 @@ public class TorcDb extends Db {
               (List<List<Object>>)t.get().get("universityInfo"),
               (List<List<Object>>)t.get().get("companyInfo")))
           .store("result").iterate();
+
+        client.nanoLogPrint("Query1 End");
 
         if (doTransactionalReads) {
           try {
