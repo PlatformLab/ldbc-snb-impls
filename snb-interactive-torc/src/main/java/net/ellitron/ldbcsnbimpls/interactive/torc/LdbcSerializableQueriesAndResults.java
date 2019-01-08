@@ -236,35 +236,35 @@ public class LdbcSerializableQueriesAndResults {
       public final long personId;
       public final String personFirstName;
       public final String personLastName;
-      public final long postOrCommentId;
-      public final String postOrCommentContent;
-      public final long postOrCommentCreationDate;
+      public final long messageId;
+      public final String messageContent;
+      public final long messageCreationDate;
 
       public LdbcQuery2ResultSerializable(LdbcQuery2Result query) {
           this.personId = query.personId();
           this.personFirstName = query.personFirstName();
           this.personLastName = query.personLastName();
-          this.postOrCommentId = query.postOrCommentId();
-          this.postOrCommentContent = query.postOrCommentContent();
-          this.postOrCommentCreationDate = query.postOrCommentCreationDate();
+          this.messageId = query.messageId();
+          this.messageContent = query.messageContent();
+          this.messageCreationDate = query.messageCreationDate();
       }
 
-      public LdbcQuery2ResultSerializable(long personId, String personFirstName, String personLastName, long postOrCommentId, String postOrCommentContent, long postOrCommentCreationDate) {
+      public LdbcQuery2ResultSerializable(long personId, String personFirstName, String personLastName, long messageId, String messageContent, long messageCreationDate) {
           this.personId = personId;
           this.personFirstName = personFirstName;
           this.personLastName = personLastName;
-          this.postOrCommentId = postOrCommentId;
-          this.postOrCommentContent = postOrCommentContent;
-          this.postOrCommentCreationDate = postOrCommentCreationDate;
+          this.messageId = messageId;
+          this.messageContent = messageContent;
+          this.messageCreationDate = messageCreationDate;
       }
 
       public LdbcQuery2Result unpack() {
           return new LdbcQuery2Result(personId,
                                       personFirstName,
                                       personLastName,
-                                      postOrCommentId,
-                                      postOrCommentContent,
-                                      postOrCommentCreationDate);
+                                      messageId,
+                                      messageContent,
+                                      messageCreationDate);
       }
 
       @Override
@@ -273,9 +273,9 @@ public class LdbcSerializableQueriesAndResults {
                   "personId=" + personId +
                   ", personFirstName='" + personFirstName + '\'' +
                   ", personLastName='" + personLastName + '\'' +
-                  ", postOrCommentId=" + postOrCommentId +
-                  ", postOrCommentContent='" + postOrCommentContent + '\'' +
-                  ", postOrCommentCreationDate=" + postOrCommentCreationDate +
+                  ", messageId=" + messageId +
+                  ", messageContent='" + messageContent + '\'' +
+                  ", messageCreationDate=" + messageCreationDate +
                   '}';
       }
   }
@@ -564,8 +564,8 @@ public class LdbcSerializableQueriesAndResults {
       public final String personFirstName;
       public final String personLastName;
       public final long likeCreationDate;
-      public final long commentOrPostId;
-      public final String commentOrPostContent;
+      public final long messageId;
+      public final String messageContent;
       public final int minutesLatency;
       public final boolean isNew;
 
@@ -574,19 +574,19 @@ public class LdbcSerializableQueriesAndResults {
           this.personFirstName = query.personFirstName();
           this.personLastName = query.personLastName();
           this.likeCreationDate = query.likeCreationDate();
-          this.commentOrPostId = query.commentOrPostId();
-          this.commentOrPostContent = query.commentOrPostContent();
+          this.messageId = query.messageId();
+          this.messageContent = query.messageContent();
           this.minutesLatency = query.minutesLatency();
           this.isNew = query.isNew();
       }
 
-      public LdbcQuery7ResultSerializable(long personId, String personFirstName, String personLastName, long likeCreationDate, long commentOrPostId, String commentOrPostContent, int minutesLatency, boolean isNew) {
+      public LdbcQuery7ResultSerializable(long personId, String personFirstName, String personLastName, long likeCreationDate, long messageId, String messageContent, int minutesLatency, boolean isNew) {
           this.personId = personId;
           this.personFirstName = personFirstName;
           this.personLastName = personLastName;
           this.likeCreationDate = likeCreationDate;
-          this.commentOrPostId = commentOrPostId;
-          this.commentOrPostContent = commentOrPostContent;
+          this.messageId = messageId;
+          this.messageContent = messageContent;
           this.minutesLatency = minutesLatency;
           this.isNew = isNew;
       }
@@ -596,8 +596,8 @@ public class LdbcSerializableQueriesAndResults {
                                       personFirstName,
                                       personLastName,
                                       likeCreationDate,
-                                      commentOrPostId,
-                                      commentOrPostContent,
+                                      messageId,
+                                      messageContent,
                                       minutesLatency,
                                       isNew);
       }
@@ -609,8 +609,8 @@ public class LdbcSerializableQueriesAndResults {
                   ", personFirstName='" + personFirstName + '\'' +
                   ", personLastName='" + personLastName + '\'' +
                   ", likeCreationDate=" + likeCreationDate +
-                  ", commentOrPostId=" + commentOrPostId +
-                  ", commentOrPostContent='" + commentOrPostContent + '\'' +
+                  ", messageId=" + messageId +
+                  ", messageContent='" + messageContent + '\'' +
                   ", minutesLatency=" + minutesLatency +
                   ", isNew=" + isNew +
                   '}';
@@ -719,35 +719,35 @@ public class LdbcSerializableQueriesAndResults {
       public final long personId;
       public final String personFirstName;
       public final String personLastName;
-      public final long commentOrPostId;
-      public final String commentOrPostContent;
-      public final long commentOrPostCreationDate;
+      public final long messageId;
+      public final String messageContent;
+      public final long messageCreationDate;
 
       public LdbcQuery9ResultSerializable(LdbcQuery9Result query) {
           this.personId = query.personId();
           this.personFirstName = query.personFirstName();
           this.personLastName = query.personLastName();
-          this.commentOrPostId = query.commentOrPostId();
-          this.commentOrPostContent = query.commentOrPostContent();
-          this.commentOrPostCreationDate = query.commentOrPostCreationDate();
+          this.messageId = query.messageId();
+          this.messageContent = query.messageContent();
+          this.messageCreationDate = query.messageCreationDate();
       }
 
-      public LdbcQuery9ResultSerializable(long personId, String personFirstName, String personLastName, long commentOrPostId, String commentOrPostContent, long commentOrPostCreationDate) {
+      public LdbcQuery9ResultSerializable(long personId, String personFirstName, String personLastName, long messageId, String messageContent, long messageCreationDate) {
           this.personId = personId;
           this.personFirstName = personFirstName;
           this.personLastName = personLastName;
-          this.commentOrPostId = commentOrPostId;
-          this.commentOrPostContent = commentOrPostContent;
-          this.commentOrPostCreationDate = commentOrPostCreationDate;
+          this.messageId = messageId;
+          this.messageContent = messageContent;
+          this.messageCreationDate = messageCreationDate;
       }
 
       public LdbcQuery9Result unpack() {
           return new LdbcQuery9Result(personId,
                                       personFirstName,
                                       personLastName,
-                                      commentOrPostId,
-                                      commentOrPostContent,
-                                      commentOrPostCreationDate);
+                                      messageId,
+                                      messageContent,
+                                      messageCreationDate);
       }
 
       @Override
@@ -756,9 +756,9 @@ public class LdbcSerializableQueriesAndResults {
                   "personId=" + personId +
                   ", personFirstName='" + personFirstName + '\'' +
                   ", personLastName='" + personLastName + '\'' +
-                  ", commentOrPostId=" + commentOrPostId +
-                  ", commentOrPostContent='" + commentOrPostContent + '\'' +
-                  ", commentOrPostCreationDate=" + commentOrPostCreationDate +
+                  ", messageId=" + messageId +
+                  ", messageContent='" + messageContent + '\'' +
+                  ", messageCreationDate=" + messageCreationDate +
                   '}';
       }
   }
