@@ -1753,48 +1753,75 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person").as("friend")
-          .in("hasCreator").hasLabel("Comment").as("comment")
-          .out("replyOf").hasLabel("Post")
-          .out("hasTag").hasLabel("Tag")
-          .where(repeat(out("hasType").hasLabel("TagClass")).until(values("name").is(eq(tagClassName))))
-          .values("name")
-          .group()
-            .by(select("friend"))
-            .by(group()
-                  .by(select("comment"))
-                  .by(dedup().fold()))
-          .unfold()
-          .project("personId", 
-              "personFirstName",
-              "personLastName",
-              "tags", 
-              "count")
-            .by(select(keys).id())
-            .by(select(keys).values("firstName"))
-            .by(select(keys).values("lastName"))
-            .by(select(values).select(values).unfold().dedup())
-            .by(select(values).count(local))
-          .map(t -> new LdbcQuery12Result(
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("personFirstName"), 
-              (String)t.get().get("personLastName"),
-              (Iterable<String>)t.get().get("tags"), 
-              ((Long)t.get().get("count")).intValue()))
-          .store("result").iterate(); 
+        List<Vertex> start = graph.getVertices(torcPersonId);
+        Map<Vertex, List<Vertex>> start_knows_person = graph.traverse(start, "knows", Direction.OUT, "Person");
+        Map<Vertex, List<Vertex>> person_hasCreator_comment = graph.traverse(start_knows_person, "hasCreator", Direction.IN, "Comment");
+        Map<Vertex, List<Vertex>> comment_replyOf_post = graph.traverse(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+        Map<Vertex, List<Vertex>> post_hasTag_tag = graph.traverse(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+
+        Map<Vertex, List<Vertex>> tag_hasType_tagClass = graph.traverse(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
+
+        List<Vertex> filteredTags;
+        while (!tag_hasType_tagClass.empty()) {
+          graph.fillProperties(tag_hasType_tagClass);
+          for (Entry e : tag_hasType_tagClass) {
+            if (e.second() is empty) {
+              tag_hasType_tagClass.remove(e);
+            } else if (e.second() contains tagClassName) {
+              filteredTags.add(e.first());
+              tag_hasType_tagClass.remove(e);
+            } else {
+            }
+          }
+
+          if (!tag_hasType_tagClass.empty()) {
+            Map<Vertex, List<Vertex>> tagClass_hasType_tagClass = graph.traverse(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
+            tag_hasType_tagClass = fuse(tag_hasType_tagClass, tagClass_hasType_tagClass);
+          } else {
+            break;
+          }
+        }
+        
+        graph.fillProperties(filteredTags);
+
+        filterValues(post_hasTag_tag, filteredTags); 
+
+        Map<Vertex, List<Vertex>> comment_assocTags_tags = fuse(comment_replyOf_post, post_hasTag_tag);
+
+        List<Vertex> filteredComments = keys(comment_assocTags_tags);
+
+        filterValues(person_hasCreator_comment, filteredComments);
+
+        Map<Vertex, List<Vertex>> person_assocTags_tags = fuse(person_hasCreator_comment, comment_assocTags_tags);
+
+        List<Vertex> friends = keys(person_hasCreator_comment);
+
+        friends.sort((a, b) -> {return person_hasCreator_comment.get(b).size() - person_hasCreator_comment.get(a).size();});
+
+        friends.subList(0, min(friends.size(), limit));
+
+        graph.fillProperties(friends);
+
+        for (int i = 0; i < friends.size(); i++) {
+          Vertex f = friends.get(i);
+          result.add(new LdbcQuery12Result(
+              f.id().getLowerLong(),
+              f.properties("firstName"),
+              f.properties("lastName"),
+              person_assocTags_tags.get(f),
+              person_hasCreator_comment.get(f).size());
+        }
 
         if (doTransactionalReads) {
           try {
@@ -1806,7 +1833,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
