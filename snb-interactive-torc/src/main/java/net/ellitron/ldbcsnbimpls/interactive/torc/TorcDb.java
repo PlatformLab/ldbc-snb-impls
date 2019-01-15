@@ -1764,7 +1764,7 @@ public class TorcDb extends Db {
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-        List<Vertex> start = graph.getVertices(torcPersonId);
+        Vertex start = new TorcVertex(torcPersonId);
         Map<Vertex, List<Vertex>> start_knows_person = graph.traverse(start, "knows", Direction.OUT, "Person");
         Map<Vertex, List<Vertex>> person_hasCreator_comment = graph.traverse(start_knows_person, "hasCreator", Direction.IN, "Comment");
         Map<Vertex, List<Vertex>> comment_replyOf_post = graph.traverse(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
@@ -1793,8 +1793,6 @@ public class TorcDb extends Db {
           }
         }
         
-        graph.fillProperties(filteredTags);
-
         filterValues(post_hasTag_tag, filteredTags); 
 
         Map<Vertex, List<Vertex>> comment_assocTags_tags = fuse(comment_replyOf_post, post_hasTag_tag);
