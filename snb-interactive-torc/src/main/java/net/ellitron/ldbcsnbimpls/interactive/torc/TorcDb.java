@@ -1764,18 +1764,18 @@ public class TorcDb extends Db {
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-        Vertex start = new TorcVertex(torcPersonId);
-        Map<Vertex, List<Vertex>> start_knows_person = graph.traverse(start, "knows", Direction.OUT, "Person");
-        Map<Vertex, List<Vertex>> person_hasCreator_comment = graph.traverse(start_knows_person, "hasCreator", Direction.IN, "Comment");
-        Map<Vertex, List<Vertex>> comment_replyOf_post = graph.traverse(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
-        Map<Vertex, List<Vertex>> post_hasTag_tag = graph.traverse(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+        TorcVertex start = new TorcVertex(torcPersonId);
+        Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
+        Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
+        Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+        Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
 
-        Map<Vertex, List<Vertex>> tag_hasType_tagClass = graph.traverse(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
+        Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
-        List<Vertex> filteredTags;
+        List<TorcVertex> filteredTags;
         while (!tag_hasType_tagClass.empty()) {
           graph.fillProperties(tag_hasType_tagClass);
-          for (Entry e : tag_hasType_tagClass) {
+          for (Map.Entry e : tag_hasType_tagClass) {
             if (e.second() is empty) {
               tag_hasType_tagClass.remove(e);
             } else if (e.second() contains tagClassName) {
@@ -1786,7 +1786,7 @@ public class TorcDb extends Db {
           }
 
           if (!tag_hasType_tagClass.empty()) {
-            Map<Vertex, List<Vertex>> tagClass_hasType_tagClass = graph.traverse(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
+            Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
             tag_hasType_tagClass = fuse(tag_hasType_tagClass, tagClass_hasType_tagClass);
           } else {
             break;
@@ -1795,15 +1795,15 @@ public class TorcDb extends Db {
         
         filterValues(post_hasTag_tag, filteredTags); 
 
-        Map<Vertex, List<Vertex>> comment_assocTags_tags = fuse(comment_replyOf_post, post_hasTag_tag);
+        Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = fuse(comment_replyOf_post, post_hasTag_tag);
 
-        List<Vertex> filteredComments = keys(comment_assocTags_tags);
+        List<TorcVertex> filteredComments = keys(comment_assocTags_tags);
 
         filterValues(person_hasCreator_comment, filteredComments);
 
-        Map<Vertex, List<Vertex>> person_assocTags_tags = fuse(person_hasCreator_comment, comment_assocTags_tags);
+        Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = fuse(person_hasCreator_comment, comment_assocTags_tags);
 
-        List<Vertex> friends = keys(person_hasCreator_comment);
+        List<TorcVertex> friends = keys(person_hasCreator_comment);
 
         friends.sort((a, b) -> {return person_hasCreator_comment.get(b).size() - person_hasCreator_comment.get(a).size();});
 
@@ -1812,7 +1812,7 @@ public class TorcDb extends Db {
         graph.fillProperties(friends);
 
         for (int i = 0; i < friends.size(); i++) {
-          Vertex f = friends.get(i);
+          TorcVertex f = friends.get(i);
           result.add(new LdbcQuery12Result(
               f.id().getLowerLong(),
               f.properties("firstName"),
