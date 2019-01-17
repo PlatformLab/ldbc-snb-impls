@@ -29,6 +29,7 @@ import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
 import net.ellitron.torc.util.UInt128;
+import net.ellitron.torc.util.TorcHelper;
 import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
 import com.ldbc.driver.control.LoggingService;
@@ -1764,7 +1765,7 @@ public class TorcDb extends Db {
 
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
-        TorcVertex start = new TorcVertex(torcPersonId);
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
         Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
         Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
         Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
@@ -1772,53 +1773,60 @@ public class TorcDb extends Db {
 
         Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
-        List<TorcVertex> filteredTags;
-        while (!tag_hasType_tagClass.empty()) {
+        List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
+        while (!tag_hasType_tagClass.isEmpty()) {
           graph.fillProperties(tag_hasType_tagClass);
-          for (Map.Entry e : tag_hasType_tagClass) {
-            if (e.second() is empty) {
-              tag_hasType_tagClass.remove(e);
-            } else if (e.second() contains tagClassName) {
-              filteredTags.add(e.first());
-              tag_hasType_tagClass.remove(e);
-            } else {
+          for (Map.Entry e : tag_hasType_tagClass.entrySet()) {
+            for (TorcVertex v : (List<TorcVertex>)e.getValue()) {
+              if (v.getProperty("name").get(0).equals(tagClassName)) {
+                filteredTags.add((TorcVertex)e.getKey());
+                tag_hasType_tagClass.remove(e.getKey());
+                break;
+              }
             }
           }
 
-          if (!tag_hasType_tagClass.empty()) {
+          if (!tag_hasType_tagClass.isEmpty()) {
             Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
-            tag_hasType_tagClass = fuse(tag_hasType_tagClass, tagClass_hasType_tagClass);
+            tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass);
           } else {
             break;
           }
         }
         
-        filterValues(post_hasTag_tag, filteredTags); 
+        TorcHelper.intersect(post_hasTag_tag, filteredTags); 
 
-        Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = fuse(comment_replyOf_post, post_hasTag_tag);
+        Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag);
 
-        List<TorcVertex> filteredComments = keys(comment_assocTags_tags);
+        List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
 
-        filterValues(person_hasCreator_comment, filteredComments);
+        TorcHelper.intersect(person_hasCreator_comment, filteredComments);
 
-        Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = fuse(person_hasCreator_comment, comment_assocTags_tags);
+        Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags);
 
-        List<TorcVertex> friends = keys(person_hasCreator_comment);
+        List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
 
         friends.sort((a, b) -> {return person_hasCreator_comment.get(b).size() - person_hasCreator_comment.get(a).size();});
 
-        friends.subList(0, min(friends.size(), limit));
+        friends.subList(0, Math.min(friends.size(), limit));
 
         graph.fillProperties(friends);
 
+        graph.fillProperties(person_assocTags_tags);
+
         for (int i = 0; i < friends.size(); i++) {
           TorcVertex f = friends.get(i);
+          List<TorcVertex> tagVertices = person_assocTags_tags.get(f);
+          List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
+          for (TorcVertex v : tagVertices) {
+            tagNameStrings.add(v.getProperty("name").get(0));
+          }
           result.add(new LdbcQuery12Result(
               f.id().getLowerLong(),
-              f.properties("firstName"),
-              f.properties("lastName"),
-              person_assocTags_tags.get(f),
-              person_hasCreator_comment.get(f).size());
+              f.getProperty("firstName").get(0),
+              f.getProperty("lastName").get(0),
+              tagNameStrings,
+              person_hasCreator_comment.get(f).size()));
         }
 
         if (doTransactionalReads) {
