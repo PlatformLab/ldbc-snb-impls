@@ -1770,21 +1770,19 @@ public class TorcDb extends Db {
         Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
         Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
         Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
-
         Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
         List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
         while (!tag_hasType_tagClass.isEmpty()) {
           graph.fillProperties(tag_hasType_tagClass);
-          for (Map.Entry e : tag_hasType_tagClass.entrySet()) {
-            for (TorcVertex v : (List<TorcVertex>)e.getValue()) {
-              if (v.getProperty("name").get(0).equals(tagClassName)) {
+          tag_hasType_tagClass.entrySet().removeIf( e -> {
+              if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
                 filteredTags.add((TorcVertex)e.getKey());
-                tag_hasType_tagClass.remove(e.getKey());
-                break;
+                return true;
               }
-            }
-          }
+
+              return false;
+            });
 
           if (!tag_hasType_tagClass.isEmpty()) {
             Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
@@ -1793,6 +1791,7 @@ public class TorcDb extends Db {
             break;
           }
         }
+
         
         TorcHelper.intersect(post_hasTag_tag, filteredTags); 
 
@@ -1806,7 +1805,17 @@ public class TorcDb extends Db {
 
         List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
 
-        friends.sort((a, b) -> {return person_hasCreator_comment.get(b).size() - person_hasCreator_comment.get(a).size();});
+        friends.sort((a, b) -> {
+            int a_comments = person_hasCreator_comment.get(a).size();
+            int b_comments = person_hasCreator_comment.get(b).size();
+            if (b_comments != a_comments)
+              return b_comments - a_comments;
+            else
+              if (a.id().compareTo(b.id()) > 0)
+                return 1;
+              else
+                return -1;
+          });
 
         friends.subList(0, Math.min(friends.size(), limit));
 

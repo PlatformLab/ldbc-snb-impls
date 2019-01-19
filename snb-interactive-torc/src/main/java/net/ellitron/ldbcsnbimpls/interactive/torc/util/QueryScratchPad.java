@@ -28,7 +28,7 @@ import static org.apache.tinkerpop.gremlin.process.traversal.Pop.*;
 import static org.apache.tinkerpop.gremlin.structure.Column.*;
 
 import net.ellitron.torc.*;
-import net.ellitron.torc.util.UInt128;
+import net.ellitron.torc.util.*;
 import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
 import net.ellitron.ldbcsnbimpls.interactive.torc.*;
@@ -174,94 +174,142 @@ public class QueryScratchPad {
         TorcGraph.CONFIG_DPDK_PORT,
         dpdkPort);
 
-    Graph graph = TorcGraph.open(config);
-
-    GraphTraversalSource g = graph.traversal();
-
     // Parameters of this query
-    final long personId = 8796093030404L;
-    final long minDate = 1347062400000L;
+    final long personId = 17592186052613L;
+    final String tagClassName = "BasketballPlayer";
     final int limit = 10;
 
     final UInt128 torcPersonId = 
         new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-    List<LdbcQuery5Result> result = new ArrayList<>(limit);
-    List<Vertex> forums = new ArrayList<>();
+    TorcGraph graph = TorcGraph.open(config);
 
-    GraphTraversal gt = 
-      g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-        .withSideEffect("result", result).withSideEffect("forums", forums)
-        .V(torcPersonId).as("person")
-        .out("knows").hasLabel("Person")
-        .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-        .as("friend")
-        .aggregate("friendAgg")
-        .inE("hasMember")
-        .as("memberEdge")
-//        .values("joinDate")
-//        .filter(t -> {
-//                  long date = Long.valueOf((String)t.get());
-//                  return date > minDate;
-//              })
-        .select("memberEdge")
-        .outV().hasLabel("Forum").count();
-//        .store("forums")
-//        .barrier()
+    graph.disableTx();
+
+    List<LdbcQuery12Result> result = new ArrayList<>(limit);
+
+    TorcVertex start = new TorcVertex(graph, torcPersonId);
+    Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
+    Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
+    Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+    Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+    Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
+
+    List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
+    while (!tag_hasType_tagClass.isEmpty()) {
+      graph.fillProperties(tag_hasType_tagClass);
+      tag_hasType_tagClass.entrySet().removeIf( e -> {
+          if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
+            filteredTags.add((TorcVertex)e.getKey());
+            return true;
+          }
+
+          return false;
+        });
+
+      if (!tag_hasType_tagClass.isEmpty()) {
+        Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
+        tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
+      } else {
+        break;
+      }
+    }
+
+    
+    TorcHelper.intersect(post_hasTag_tag, filteredTags); 
+
+    Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
+
+    List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
+
+    TorcHelper.intersect(person_hasCreator_comment, filteredComments);
+
+    Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
+
+    List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
+
+    friends.sort((a, b) -> {
+        int a_comments = person_hasCreator_comment.get(a).size();
+        int b_comments = person_hasCreator_comment.get(b).size();
+        if (b_comments != a_comments)
+          return b_comments - a_comments;
+        else
+          if (a.id().compareTo(b.id()) > 0)
+            return 1;
+          else
+            return -1;
+      });
+
+    friends.subList(0, Math.min(friends.size(), limit));
+
+    graph.fillProperties(friends);
+
+    graph.fillProperties(person_assocTags_tags);
+
+    for (int i = 0; i < friends.size(); i++) {
+      TorcVertex f = friends.get(i);
+      List<TorcVertex> tagVertices = person_assocTags_tags.get(f);
+      List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
+      for (TorcVertex v : tagVertices) {
+        tagNameStrings.add(v.getProperty("name").get(0));
+      }
+      result.add(new LdbcQuery12Result(
+          f.id().getLowerLong(),
+          f.getProperty("firstName").get(0),
+          f.getProperty("lastName").get(0),
+          tagNameStrings,
+          person_hasCreator_comment.get(f).size()));
+    }
+
+//    GraphTraversalSource g = graph.traversal();
+//    GraphTraversal gt = 
+//      g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+//        .withSideEffect("result", result).V(torcPersonId).as("person")
+//        .out("knows").hasLabel("Person").as("friend")
+//        .in("hasCreator").hasLabel("Comment").as("comment")
+//        .out("replyOf").hasLabel("Post")
+//        .out("hasTag").hasLabel("Tag")
+//        .where(repeat(out("hasType").hasLabel("TagClass")).until(values("name").is(eq(tagClassName))))
+//        .values("name")
 //        .group()
 //          .by(select("friend"))
-//        .as("friendForums")
-//        .select("friendAgg")
+//          .by(group()
+//                .by(select("comment"))
+//                .by(dedup().fold()))
 //        .unfold()
-//        .as("friend")
-//        .in("hasCreator").hasLabel("Comment", "Post")
-//        .as("post")
-//        .in("containerOf").hasLabel("Forum")
-//        .as("forum")
-//        .filter(t -> {
-//                  Map<Vertex, List<Vertex>> m = t.path("friendForums");
-//                  Vertex v = t.path("friend");
-//                  List<Vertex> friendForums = m.get(v);
-//                  Vertex thisForum = t.get();
-//                  if (friendForums == null)
-//                    return false;
-//                  else
-//                    return friendForums.contains(thisForum);
-//              })
-//        .groupCount()
-//        .map(t -> {
-//                Map<Object, Long> m = t.get();
-//                for (Vertex v : forums) {
-//                  if (!m.containsKey((Object)v))
-//                    m.put(v, 0L);
-//                }
-//                return t.get();
-//            })
-//        .order(local)
-//          .by(select(values), decr)
-//          .by(select(keys).id(), incr)
-//        .limit(local, limit)
-//        .unfold()
-//        .project("forumTitle", "postCount")
-//          .by(select(keys).values("title"))
-//          .by(select(values))
-//        .map(t -> new LdbcQuery5Result(
-//            (String)(t.get().get("forumTitle")), 
-//            ((Long)(t.get().get("postCount"))).intValue()))
+//	.order()
+//	  .by(select(values).count(local), decr)
+//	  .by(select(keys).id(), incr)
+//	.limit(limit)
+//        .project("personId", 
+//            "personFirstName",
+//            "personLastName",
+//            "tags", 
+//            "count")
+//          .by(select(keys).id())
+//          .by(select(keys).values("firstName"))
+//          .by(select(keys).values("lastName"))
+//          .by(select(values).select(values).unfold().dedup())
+//          .by(select(values).count(local))
+//        .map(t -> new LdbcQuery12Result(
+//            ((UInt128)t.get().get("personId")).getLowerLong(),
+//            (String)t.get().get("personFirstName"), 
+//            (String)t.get().get("personLastName"),
+//            (Iterable<String>)t.get().get("tags"), 
+//            ((Long)t.get().get("count")).intValue()))
 //        .store("result").iterate(); 
-
-    long start = System.nanoTime();
-    while (gt.hasNext()) {
-      System.out.println(gt.next());
-      break;
-    }
-    long end = System.nanoTime();
+//
+//    long start = System.nanoTime();
+//    while (gt.hasNext()) {
+//      System.out.println(gt.next());
+//    }
+//    long end = System.nanoTime();
 
     for (int i = 0; i < result.size(); i++) {
       System.out.println(result.get(i));
     }
 
-    System.out.println(String.format("Query Time: %dms", (end-start)/1000000L));
+    //System.out.println(String.format("Query Time: %dms", (end-start)/1000000L));
 
     graph.close();
   }
