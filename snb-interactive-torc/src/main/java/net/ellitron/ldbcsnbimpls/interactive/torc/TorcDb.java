@@ -1778,6 +1778,10 @@ public class TorcDb extends Db {
                   .by(select("comment"))
                   .by(dedup().fold()))
           .unfold()
+          .order()
+            .by(select(values).count(local), decr)
+            .by(select(keys).id(), incr)
+          .limit(limit)
           .project("personId", 
               "personFirstName",
               "personLastName",
