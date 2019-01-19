@@ -1788,7 +1788,7 @@ public class TorcDb extends Db {
 
           if (!tag_hasType_tagClass.isEmpty()) {
             Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
-            tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass);
+            tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
           } else {
             break;
           }
@@ -1796,13 +1796,13 @@ public class TorcDb extends Db {
         
         TorcHelper.intersect(post_hasTag_tag, filteredTags); 
 
-        Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag);
+        Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
 
         List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
 
         TorcHelper.intersect(person_hasCreator_comment, filteredComments);
 
-        Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags);
+        Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
 
         List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
 
