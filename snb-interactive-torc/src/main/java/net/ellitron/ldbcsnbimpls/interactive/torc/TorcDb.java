@@ -32,6 +32,8 @@ import net.ellitron.torc.util.UInt128;
 import net.ellitron.torc.util.TorcHelper;
 import net.ellitron.torc.TorcGraphProviderOptimizationStrategy;
 
+import edu.stanford.ramcloud.*;
+
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
 import com.ldbc.driver.DbConnectionState;
@@ -1756,6 +1758,7 @@ public class TorcDb extends Db {
 
       TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
+
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
@@ -1767,13 +1770,19 @@ public class TorcDb extends Db {
 
         TorcVertex start = new TorcVertex(graph, torcPersonId);
         Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
+        RAMCloud client = ((TorcGraph)graph).getClient();
+        client.nanoLogPrint("Get person_hasCreator_comment");
         Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
+        client.nanoLogPrint("Get comment_replyOf_post");
         Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+        client.nanoLogPrint("Get post_hasTag_tag");
         Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+        client.nanoLogPrint("Get tag_hasType_tagClass");
         Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
         List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
         while (!tag_hasType_tagClass.isEmpty()) {
+          client.nanoLogPrint("Get properties of tagClasses");
           graph.fillProperties(tag_hasType_tagClass);
           tag_hasType_tagClass.entrySet().removeIf( e -> {
               if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
@@ -1785,6 +1794,7 @@ public class TorcDb extends Db {
             });
 
           if (!tag_hasType_tagClass.isEmpty()) {
+            client.nanoLogPrint("Get tagClass_hasType_tagClass");
             Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
             tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
           } else {
@@ -1819,8 +1829,10 @@ public class TorcDb extends Db {
 
         friends.subList(0, Math.min(friends.size(), limit));
 
+        client.nanoLogPrint("Get properties of friends");
         graph.fillProperties(friends);
 
+        client.nanoLogPrint("Get properties of tags");
         graph.fillProperties(person_assocTags_tags);
 
         for (int i = 0; i < friends.size(); i++) {
