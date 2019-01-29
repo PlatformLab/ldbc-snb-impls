@@ -186,80 +186,80 @@ public class QueryScratchPad {
 
     graph.disableTx();
 
-    List<LdbcQuery12Result> result = new ArrayList<>(limit);
-
-    TorcVertex start = new TorcVertex(graph, torcPersonId);
-    Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
-    Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
-    Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
-    Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
-    Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
-
-    List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
-    while (!tag_hasType_tagClass.isEmpty()) {
-      graph.fillProperties(tag_hasType_tagClass);
-      tag_hasType_tagClass.entrySet().removeIf( e -> {
-          if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
-            filteredTags.add((TorcVertex)e.getKey());
-            return true;
-          }
-
-          return false;
-        });
-
-      if (!tag_hasType_tagClass.isEmpty()) {
-        Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
-        tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
-      } else {
-        break;
-      }
-    }
-
-    
-    TorcHelper.intersect(post_hasTag_tag, filteredTags); 
-
-    Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
-
-    List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
-
-    TorcHelper.intersect(person_hasCreator_comment, filteredComments);
-
-    Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
-
-    List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
-
-    friends.sort((a, b) -> {
-        int a_comments = person_hasCreator_comment.get(a).size();
-        int b_comments = person_hasCreator_comment.get(b).size();
-        if (b_comments != a_comments)
-          return b_comments - a_comments;
-        else
-          if (a.id().compareTo(b.id()) > 0)
-            return 1;
-          else
-            return -1;
-      });
-
-    friends.subList(0, Math.min(friends.size(), limit));
-
-    graph.fillProperties(friends);
-
-    graph.fillProperties(person_assocTags_tags);
-
-    for (int i = 0; i < friends.size(); i++) {
-      TorcVertex f = friends.get(i);
-      List<TorcVertex> tagVertices = person_assocTags_tags.get(f);
-      List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
-      for (TorcVertex v : tagVertices) {
-        tagNameStrings.add(v.getProperty("name").get(0));
-      }
-      result.add(new LdbcQuery12Result(
-          f.id().getLowerLong(),
-          f.getProperty("firstName").get(0),
-          f.getProperty("lastName").get(0),
-          tagNameStrings,
-          person_hasCreator_comment.get(f).size()));
-    }
+//    List<LdbcQuery12Result> result = new ArrayList<>(limit);
+//
+//    TorcVertex start = new TorcVertex(graph, torcPersonId);
+//    Map<TorcVertex, List<TorcVertex>> start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
+//    Map<TorcVertex, List<TorcVertex>> person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
+//    Map<TorcVertex, List<TorcVertex>> comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+//    Map<TorcVertex, List<TorcVertex>> post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+//    Map<TorcVertex, List<TorcVertex>> tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
+//
+//    List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.size());
+//    while (!tag_hasType_tagClass.isEmpty()) {
+//      graph.fillProperties(tag_hasType_tagClass);
+//      tag_hasType_tagClass.entrySet().removeIf( e -> {
+//          if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
+//            filteredTags.add((TorcVertex)e.getKey());
+//            return true;
+//          }
+//
+//          return false;
+//        });
+//
+//      if (!tag_hasType_tagClass.isEmpty()) {
+//        Map<TorcVertex, List<TorcVertex>> tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
+//        tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
+//      } else {
+//        break;
+//      }
+//    }
+//
+//    
+//    TorcHelper.intersect(post_hasTag_tag, filteredTags); 
+//
+//    Map<TorcVertex, List<TorcVertex>> comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
+//
+//    List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
+//
+//    TorcHelper.intersect(person_hasCreator_comment, filteredComments);
+//
+//    Map<TorcVertex, List<TorcVertex>> person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
+//
+//    List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
+//
+//    friends.sort((a, b) -> {
+//        int a_comments = person_hasCreator_comment.get(a).size();
+//        int b_comments = person_hasCreator_comment.get(b).size();
+//        if (b_comments != a_comments)
+//          return b_comments - a_comments;
+//        else
+//          if (a.id().compareTo(b.id()) > 0)
+//            return 1;
+//          else
+//            return -1;
+//      });
+//
+//    friends.subList(0, Math.min(friends.size(), limit));
+//
+//    graph.fillProperties(friends);
+//
+//    graph.fillProperties(person_assocTags_tags);
+//
+//    for (int i = 0; i < friends.size(); i++) {
+//      TorcVertex f = friends.get(i);
+//      List<TorcVertex> tagVertices = person_assocTags_tags.get(f);
+//      List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
+//      for (TorcVertex v : tagVertices) {
+//        tagNameStrings.add(v.getProperty("name").get(0));
+//      }
+//      result.add(new LdbcQuery12Result(
+//          f.id().getLowerLong(),
+//          f.getProperty("firstName").get(0),
+//          f.getProperty("lastName").get(0),
+//          tagNameStrings,
+//          person_hasCreator_comment.get(f).size()));
+//    }
 
 //    GraphTraversalSource g = graph.traversal();
 //    GraphTraversal gt = 
@@ -305,12 +305,12 @@ public class QueryScratchPad {
 //    }
 //    long end = System.nanoTime();
 
-    for (int i = 0; i < result.size(); i++) {
-      System.out.println(result.get(i));
-    }
+//    for (int i = 0; i < result.size(); i++) {
+//      System.out.println(result.get(i));
+//    }
 
     //System.out.println(String.format("Query Time: %dms", (end-start)/1000000L));
 
-    graph.close();
+//    graph.close();
   }
 }
