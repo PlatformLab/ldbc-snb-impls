@@ -1780,13 +1780,13 @@ public class TorcDb extends Db {
         client.nanoLogPrint("Get tag_hasType_tagClass");
         TraversalResult tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
-        List<TorcVertex> filteredTags = new ArrayList<>(tag_hasType_tagClass.vMap.size());
+        Set<TorcVertex> filteredTagSet = new HashSet<>(tag_hasType_tagClass.vMap.size());
         while (!tag_hasType_tagClass.vMap.isEmpty()) {
           client.nanoLogPrint("Get properties of tagClasses");
           graph.fillProperties(tag_hasType_tagClass.vList);
           tag_hasType_tagClass.vMap.entrySet().removeIf( e -> {
               if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
-                filteredTags.add((TorcVertex)e.getKey());
+                filteredTagSet.add((TorcVertex)e.getKey());
                 return true;
               }
 
@@ -1802,19 +1802,33 @@ public class TorcDb extends Db {
           }
         }
 
-        
-        TorcHelper.intersect(post_hasTag_tag, filteredTags); 
+        long startTime;
 
+        startTime = System.nanoTime();
+        TorcHelper.intersect(post_hasTag_tag, filteredTagSet); 
+        System.out.println(String.format("Query12Handler: TorcHelper.intersect(post_hasTag_tag, filteredTagSet): %dns", System.nanoTime() - startTime));
+
+        startTime = System.nanoTime();
         TraversalResult comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
+        System.out.println(String.format("Query12Handler: TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false): %dns", System.nanoTime() - startTime));
 
-        List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
+//        startTime = System.nanoTime();
+//        List<TorcVertex> filteredComments = TorcHelper.keylist(comment_assocTags_tags);
+//        System.out.println(String.format("Query12Handler: TorcHelper.keylist(comment_assocTags_tags): %dns", System.nanoTime() - startTime));
 
-        TorcHelper.intersect(person_hasCreator_comment, filteredComments);
+        startTime = System.nanoTime();
+        TorcHelper.intersect(person_hasCreator_comment, comment_assocTags_tags.vMap.keySet());
+        System.out.println(String.format("Query12Handler: TorcHelper.intersect(person_hasCreator_comment, comment_assocTags_tags.vMap.keySet()): %dns", System.nanoTime() - startTime));
 
+        startTime = System.nanoTime();
         TraversalResult person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
+        System.out.println(String.format("Query12Handler: TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true): %dns", System.nanoTime() - startTime));
 
+        startTime = System.nanoTime();
         List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
+        System.out.println(String.format("Query12Handler: TorcHelper.keylist(person_hasCreator_comment): %dns", System.nanoTime() - startTime));
 
+        startTime = System.nanoTime();
         friends.sort((a, b) -> {
             int a_comments = person_hasCreator_comment.vMap.get(a).size();
             int b_comments = person_hasCreator_comment.vMap.get(b).size();
@@ -1828,6 +1842,7 @@ public class TorcDb extends Db {
           });
 
         friends.subList(0, Math.min(friends.size(), limit));
+        System.out.println(String.format("Query12Handler: Sort: %dns", System.nanoTime() - startTime));
 
         client.nanoLogPrint("Get properties of friends");
         graph.fillProperties(friends);
