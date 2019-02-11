@@ -20,6 +20,7 @@ import org.docopt.Docopt;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -292,27 +293,30 @@ public class DataFormatConverter {
    *
    * @throws IOException
    */
-  private static Map<String, List<String>> parsePropFile(Path path)
+  private static Map<String, List<String>> parsePropFile(List<Path> paths)
       throws IOException {
     Map<String, List<String>> propMap = new HashMap<>();
-    BufferedReader propFile =
-        Files.newBufferedReader(path, StandardCharsets.UTF_8);
 
-    String line;
-    propFile.readLine(); // Skip over the first line (column headers).
-    while ((line = propFile.readLine()) != null) {
-      String[] lineParts = line.split("\\|");
-      String id = lineParts[0];
-      String prop = lineParts[1];
-      if (propMap.containsKey(id)) {
-        propMap.get(id).add(prop);
-      } else {
-        List<String> list = new ArrayList<>();
-        list.add(prop);
-        propMap.put(id, list);
+    for (Path path : paths) {
+      BufferedReader propFile =
+          Files.newBufferedReader(path, StandardCharsets.UTF_8);
+
+      String line;
+      propFile.readLine(); // Skip over the first line (column headers).
+      while ((line = propFile.readLine()) != null) {
+        String[] lineParts = line.split("\\|");
+        String id = lineParts[0];
+        String prop = lineParts[1];
+        if (propMap.containsKey(id)) {
+          propMap.get(id).add(prop);
+        } else {
+          List<String> list = new ArrayList<>();
+          list.add(prop);
+          propMap.put(id, list);
+        }
       }
+      propFile.close();
     }
-    propFile.close();
 
     return propMap;
   }
@@ -360,133 +364,146 @@ public class DataFormatConverter {
     System.out.println(String.format("Processing person properties..."));
 
     // Prepare email and speaks properties to be added to Person nodes.
-    String fileName =
-        Node.PERSON.getFileTag() + "_email_emailaddress_0_0.csv";
-    Path path = Paths.get(inputDir + "/" + fileName);
+    File allFiles[] = (new File(inputDir)).listFiles();
+    List<Path> emailaddressPropFilePaths = new ArrayList<>();
+    List<Path> languagePropFilePaths = new ArrayList<>();
+    for (int i = 0; i < allFiles.length; i++) {
+      if (allFiles[i].isFile()) {
+        if (allFiles[i].getName().matches(Node.PERSON.getFileTag() + "_email_emailaddress_\\d+_0.csv"))
+          emailaddressPropFilePaths.add(allFiles[i].toPath());
+        else if (allFiles[i].getName().matches(Node.PERSON.getFileTag() + "_speaks_language_\\d+_0.csv"))
+          languagePropFilePaths.add(allFiles[i].toPath());
+      }
+    }
 
-    Map<String, List<String>> personEmail = parsePropFile(path);
+    Map<String, List<String>> personEmail = parsePropFile(emailaddressPropFilePaths);
 
-    fileName = Node.PERSON.getFileTag() + "_speaks_language_0_0.csv";
-    path = Paths.get(inputDir + "/" + fileName);
-
-    Map<String, List<String>> personSpeaks = parsePropFile(path);
+    Map<String, List<String>> personSpeaks = parsePropFile(languagePropFilePaths);
 
     /*
      * Nodes.
      */
     for (Node node : Node.values()) {
-      fileName = node.getFileTag() + "_0_0.csv";
-
-      path = Paths.get(inputDir + "/" + fileName);
-      BufferedReader inFile =
-          Files.newBufferedReader(path, StandardCharsets.UTF_8);
-
-      path = Paths.get(outputDir + "/" + fileName);
-      BufferedWriter outFile =
-          Files.newBufferedWriter(path, StandardCharsets.UTF_8);
-
-      outputNodeFiles.add(fileName);
-
-      System.out.println(String.format(
-          "Processing %s nodes...", node.getFileTag()));
-
-      /*
-       * Replace the headers (first line) with those expected by the Neo4j
-       * Import Tool.
-       */
-      // Skip over header line of input file.
-      inFile.readLine();
-
-      // First field is always the ID.
-      outFile.append(String.format(
-          "%s:ID(%s)", node.getNeoIdPropKey(), node.getNeoIdSpace()));
-
-      // Then the properties.
-      List<String> nodeProps = Arrays.asList(node.getProps());
-      for (String property : nodeProps) {
-        outFile.append("|" + property + ":" + propDataTypes.get(property));
-
-        if (property.equals("birthday")) {
-          outFile.append("|birthday_day:int");
-          outFile.append("|birthday_month:int");
+      List<String> fileNames = new ArrayList<>();
+      for (int i = 0; i < allFiles.length; i++) {
+        if (allFiles[i].isFile()) {
+          if (allFiles[i].getName().matches(node.getFileTag() + "_\\d+_0.csv"))
+            fileNames.add(allFiles[i].getName());
         }
       }
 
-      // And the last field is always a label for this node type.
-      outFile.append("|:LABEL\n");
+      System.out.println(String.format("Processing %s nodes (%d files)...", 
+          node.getFileTag(), fileNames.size()));
 
-      /*
-       * Now go through every line of the file processing certain columns,
-       * adding fields, and adding labels as necessary.
-       */
-      String line;
-      while ((line = inFile.readLine()) != null) {
+      for (String fileName : fileNames) {
+        Path path = Paths.get(inputDir + "/" + fileName);
+        BufferedReader inFile =
+            Files.newBufferedReader(path, StandardCharsets.UTF_8);
+
+        path = Paths.get(outputDir + "/" + fileName);
+        BufferedWriter outFile =
+            Files.newBufferedWriter(path, StandardCharsets.UTF_8);
+
+        outputNodeFiles.add(fileName);
+
         /*
-         * Date-type fields (birthday, creationDate, ...) need to be converted
-         * to the number of milliseconds since January 1, 1970, 00:00:00 GMT.
-         * This is the format expected to be returned for these fields by LDBC
-         * SNB benchmark queries, although the format in the dataset files are
-         * things like "1989-12-04" and "2010-03-17T23:32:10.447+0000". We
-         * could do this conversion "live" during the benchmark, but that would
-         * detract from the performance numbers' reflection of true database
-         * performance since it would add to the client-side query processing
-         * overhead.
-         */
-        String[] colVals = line.split("\\|");
-        for (int i = 0; i < colVals.length; i++) {
-          if (i > 0) {
-            if (nodeProps.get(i - 1).equals("birthday")) {
-              Date birthday = birthdayDateFormat.parse(colVals[i]);
-              Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
-              cal.setTime(birthday);
-              outFile.append(
-                  String.valueOf(cal.getTimeInMillis()) + "|");
-              outFile.append(
-                  String.valueOf(cal.get(Calendar.DAY_OF_MONTH)) + "|");
-              outFile.append(
-                  String.valueOf(cal.get(Calendar.MONTH) + 1) + "|");
-            } else if (nodeProps.get(i - 1).equals("creationDate")) {
-              outFile.append(String.valueOf(
-                  creationDateDateFormat.parse(colVals[i]).getTime()) + "|");
+        * Replace the headers (first line) with those expected by the Neo4j
+        * Import Tool.
+        */
+        // Skip over header line of input file.
+        inFile.readLine();
+
+        // First field is always the ID.
+        outFile.append(String.format(
+            "%s:ID(%s)", node.getNeoIdPropKey(), node.getNeoIdSpace()));
+
+        // Then the properties.
+        List<String> nodeProps = Arrays.asList(node.getProps());
+        for (String property : nodeProps) {
+          outFile.append("|" + property + ":" + propDataTypes.get(property));
+
+          if (property.equals("birthday")) {
+            outFile.append("|birthday_day:int");
+            outFile.append("|birthday_month:int");
+          }
+        }
+
+        // And the last field is always a label for this node type.
+        outFile.append("|:LABEL\n");
+
+        /*
+        * Now go through every line of the file processing certain columns,
+        * adding fields, and adding labels as necessary.
+        */
+        String line;
+        while ((line = inFile.readLine()) != null) {
+          /*
+          * Date-type fields (birthday, creationDate, ...) need to be converted
+          * to the number of milliseconds since January 1, 1970, 00:00:00 GMT.
+          * This is the format expected to be returned for these fields by LDBC
+          * SNB benchmark queries, although the format in the dataset files are
+          * things like "1989-12-04" and "2010-03-17T23:32:10.447+0000". We
+          * could do this conversion "live" during the benchmark, but that would
+          * detract from the performance numbers' reflection of true database
+          * performance since it would add to the client-side query processing
+          * overhead.
+          */
+          String[] colVals = line.split("\\|");
+          for (int i = 0; i < colVals.length; i++) {
+            if (i > 0) {
+              if (nodeProps.get(i - 1).equals("birthday")) {
+                Date birthday = birthdayDateFormat.parse(colVals[i]);
+                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+                cal.setTime(birthday);
+                outFile.append(
+                    String.valueOf(cal.getTimeInMillis()) + "|");
+                outFile.append(
+                    String.valueOf(cal.get(Calendar.DAY_OF_MONTH)) + "|");
+                outFile.append(
+                    String.valueOf(cal.get(Calendar.MONTH) + 1) + "|");
+              } else if (nodeProps.get(i - 1).equals("creationDate")) {
+                outFile.append(String.valueOf(
+                    creationDateDateFormat.parse(colVals[i]).getTime()) + "|");
+              } else {
+                outFile.append(colVals[i] + "|");
+              }
             } else {
               outFile.append(colVals[i] + "|");
             }
-          } else {
-            outFile.append(colVals[i] + "|");
           }
+
+          /*
+          * For person nodes we merge their email and speaks properties listed
+          * in their respective property files into the person node file. This
+          * is because the Neo4j Import Tool does not have a way to import
+          * properties separate from those listed in node and relationship
+          * files.
+          */
+          if (node.equals(Node.PERSON)) {
+            String id = colVals[0];
+
+            // First append emails.
+            if (personEmail.containsKey(id)) {
+              String email = serializePropertyValueList(personEmail.get(id));
+              outFile.append(email);
+            }
+            outFile.append("|");
+
+            // Then append languages this person speaks.
+            if (personSpeaks.containsKey(id)) {
+              String speaks = serializePropertyValueList(personSpeaks.get(id));
+              outFile.append(speaks);
+            }
+            outFile.append("|");
+          }
+
+          // Append the node's label to the end of the line.
+          outFile.append(node.getNeoLabel() + "\n");
         }
 
-        /*
-         * For person nodes we merge their email and speaks properties listed
-         * in their respective property files into the person node file. This
-         * is because the Neo4j Import Tool does not have a way to import
-         * properties separate from those listed in node and relationship
-         * files.
-         */
-        if (node.equals(Node.PERSON)) {
-          String id = colVals[0];
-
-          // First append emails.
-          if (personEmail.containsKey(id)) {
-            String email = serializePropertyValueList(personEmail.get(id));
-            outFile.append(email);
-          }
-          outFile.append("|");
-
-          // Then append languages this person speaks.
-          if (personSpeaks.containsKey(id)) {
-            String speaks = serializePropertyValueList(personSpeaks.get(id));
-            outFile.append(speaks);
-          }
-          outFile.append("|");
-        }
-
-        // Append the node's label to the end of the line.
-        outFile.append(node.getNeoLabel() + "\n");
+        inFile.close();
+        outFile.close();
       }
-
-      inFile.close();
-      outFile.close();
     }
 
     /*
@@ -495,95 +512,105 @@ public class DataFormatConverter {
     for (Node srcNode : Node.values()) {
       for (Relationship rel : Relationship.values()) {
         for (Node dstNode : Node.values()) {
-          fileName = srcNode.getFileTag() + "_"
-              + rel.getFileTag() + "_"
-              + dstNode.getFileTag() + "_0_0.csv";
+          List<String> fileNames = new ArrayList<>();
+          for (int i = 0; i < allFiles.length; i++) {
+            if (allFiles[i].isFile()) {
+              if (allFiles[i].getName().matches(srcNode.getFileTag() 
+                    + "_" + rel.getFileTag() 
+                    + "_" + dstNode.getFileTag() 
+                    + "_\\d+_0.csv"))
+                fileNames.add(allFiles[i].getName());
+            }
+          }
 
-          path = Paths.get(inputDir + "/" + fileName);
-          BufferedReader inFile;
-          try {
-            inFile = Files.newBufferedReader(path, StandardCharsets.UTF_8);
-          } catch (NoSuchFileException e) {
-            // That's fine, just trying all possible combinations.
+          if (fileNames.size() == 0) {
+            // No relationships of this type.
             continue;
           }
 
-          outputRelFiles.add(fileName);
-
           System.out.println(String.format(
-              "Processing (%s)-[%s]->(%s) relationships...",
+              "Processing (%s)-[%s]->(%s) relationships (%d files)...",
               srcNode.getFileTag(),
               rel.getFileTag(),
-              dstNode.getFileTag()));
+              dstNode.getFileTag(),
+              fileNames.size()));
 
-          path = Paths.get(outputDir + "/" + fileName);
-          BufferedWriter outFile =
-              Files.newBufferedWriter(path, StandardCharsets.UTF_8);
+          for (String fileName : fileNames) {
+            Path path = Paths.get(inputDir + "/" + fileName);
 
-          /*
-           * Replace the headers (first line) with those expected by the Neo4j
-           * Import Tool.
-           */
-          // Skip over header line of input file.
-          inFile.readLine();
+            BufferedReader inFile = Files.newBufferedReader(path, StandardCharsets.UTF_8);
 
-          // First two fields are always the src/dst ID.
-          outFile.append(String.format(
-              ":START_ID(%s)", srcNode.getNeoIdSpace()));
-          outFile.append(String.format(
-              "|:END_ID(%s)", dstNode.getNeoIdSpace()));
+            outputRelFiles.add(fileName);
 
-          // Then the properties.
-          List<String> relProps = Arrays.asList(rel.getProps());
-          for (String property : relProps) {
-            outFile.append("|" + property + ":" + propDataTypes.get(property));
-          }
+            path = Paths.get(outputDir + "/" + fileName);
+            BufferedWriter outFile =
+                Files.newBufferedWriter(path, StandardCharsets.UTF_8);
 
-          // And the last field is always a type for this relationship type.
-          outFile.append("|:TYPE\n");
-
-          /*
-           * Now go through every line of the file processing certain columns
-           * and adding types as necessary.
-           */
-          String line;
-          while ((line = inFile.readLine()) != null) {
             /*
-             * Date-type fields (creationDate, joinDate...) need to be
-             * converted to the number of milliseconds since January 1, 1970,
-             * 00:00:00 GMT. This is the format expected to be returned for
-             * these fields by LDBC SNB benchmark queries, although the format
-             * in the dataset files are things like
-             * "2010-03-17T23:32:10.447+0000". We could do this conversion
-             * "live" during the benchmark, but that would detract from the
-             * performance numbers' reflection of true database performance
-             * since it would add to the client-side query processing overhead.
-             */
-            String[] colVals = line.split("\\|");
-            for (int i = 0; i < colVals.length; i++) {
-              if (i > 1) {
-                if (relProps.get(i - 2).equals("creationDate")) {
-                  outFile.append(String.valueOf(
-                      creationDateDateFormat.parse(colVals[i]).getTime())
-                      + "|");
-                } else if (relProps.get(i - 2).equals("joinDate")) {
-                  outFile.append(String.valueOf(
-                      creationDateDateFormat.parse(colVals[i]).getTime())
-                      + "|");
+            * Replace the headers (first line) with those expected by the Neo4j
+            * Import Tool.
+            */
+            // Skip over header line of input file.
+            inFile.readLine();
+
+            // First two fields are always the src/dst ID.
+            outFile.append(String.format(
+                ":START_ID(%s)", srcNode.getNeoIdSpace()));
+            outFile.append(String.format(
+                "|:END_ID(%s)", dstNode.getNeoIdSpace()));
+
+            // Then the properties.
+            List<String> relProps = Arrays.asList(rel.getProps());
+            for (String property : relProps) {
+              outFile.append("|" + property + ":" + propDataTypes.get(property));
+            }
+
+            // And the last field is always a type for this relationship type.
+            outFile.append("|:TYPE\n");
+
+            /*
+            * Now go through every line of the file processing certain columns
+            * and adding types as necessary.
+            */
+            String line;
+            while ((line = inFile.readLine()) != null) {
+              /*
+              * Date-type fields (creationDate, joinDate...) need to be
+              * converted to the number of milliseconds since January 1, 1970,
+              * 00:00:00 GMT. This is the format expected to be returned for
+              * these fields by LDBC SNB benchmark queries, although the format
+              * in the dataset files are things like
+              * "2010-03-17T23:32:10.447+0000". We could do this conversion
+              * "live" during the benchmark, but that would detract from the
+              * performance numbers' reflection of true database performance
+              * since it would add to the client-side query processing overhead.
+              */
+              String[] colVals = line.split("\\|");
+              for (int i = 0; i < colVals.length; i++) {
+                if (i > 1) {
+                  if (relProps.get(i - 2).equals("creationDate")) {
+                    outFile.append(String.valueOf(
+                        creationDateDateFormat.parse(colVals[i]).getTime())
+                        + "|");
+                  } else if (relProps.get(i - 2).equals("joinDate")) {
+                    outFile.append(String.valueOf(
+                        creationDateDateFormat.parse(colVals[i]).getTime())
+                        + "|");
+                  } else {
+                    outFile.append(colVals[i] + "|");
+                  }
                 } else {
                   outFile.append(colVals[i] + "|");
                 }
-              } else {
-                outFile.append(colVals[i] + "|");
               }
+
+              // Append the relationship's type to the end of the line.
+              outFile.append(rel.getNeoType() + "\n");
             }
 
-            // Append the relationship's type to the end of the line.
-            outFile.append(rel.getNeoType() + "\n");
+            inFile.close();
+            outFile.close();
           }
-
-          inFile.close();
-          outFile.close();
         }
       }
     }
@@ -592,12 +619,12 @@ public class DataFormatConverter {
      * Now we'll output a script the user can use to run the neo4j import tool
      * on all the files we just created.
      */
-    path = Paths.get(outputDir + "/import.sh");
+    Path path = Paths.get(outputDir + "/import.sh");
     BufferedWriter outFile =
         Files.newBufferedWriter(path, StandardCharsets.UTF_8);
 
     outFile.append("#!/bin/sh\n");
-    outFile.append("$NEO4J_HOME/bin/neo4j-import --into graph.db");
+    outFile.append("$NEO4J_HOME/bin/neo4j-admin import --database graph.db");
 
     for (String nodeFile : outputNodeFiles) {
       outFile.append(" --nodes " + nodeFile);
