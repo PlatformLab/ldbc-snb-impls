@@ -22,14 +22,9 @@
       <type>jar</type>
     </dependency>
     <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>neo4j</artifactId>
-      <version>2.3.3</version>
-    </dependency>
-    <dependency>
       <groupId>org.neo4j.driver</groupId>
       <artifactId>neo4j-java-driver</artifactId>
-      <version>1.2.0</version> 
+      <version>1.7.2</version> 
     </dependency>
     <dependency>
       <groupId>com.sun.jersey</groupId>
