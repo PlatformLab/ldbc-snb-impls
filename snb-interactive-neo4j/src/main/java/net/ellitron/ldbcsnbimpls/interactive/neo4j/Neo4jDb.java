@@ -1116,26 +1116,23 @@ public class Neo4jDb extends Db {
       // Execute the query and get the results.
       List<LdbcQuery12Result> resultList = new ArrayList<>();
       try (Session session = driver.session(AccessMode.READ)) {
-        try (Transaction tx = session.beginTransaction()) {
-          StatementResult result = tx.run(statement, parameters);
-          tx.success();
-          tx.close();
+        StatementResult result = 
+          session.readTransaction(tx -> tx.run(statement, parameters)); 
+            
+        while (result.hasNext()) {
+          Record record = result.next();
 
-          while (result.hasNext()) {
-            Record record = result.next();
+          if (record.get("count").asInt() > 0) {
+            List<String> tagNames = 
+                record.get("tagNames").asList((e) -> e.asString());
 
-            if (record.get("count").asInt() > 0) {
-              List<String> tagNames = 
-                  record.get("tagNames").asList((e) -> e.asString());
-
-              resultList.add(
-                  new LdbcQuery12Result(
-                      Long.valueOf(record.get("friendId").asString()),
-                      record.get("friendFirstName").asString(),
-                      record.get("friendLastName").asString(),
-                      tagNames,
-                      record.get("count").asInt()));
-            }
+            resultList.add(
+                new LdbcQuery12Result(
+                    Long.valueOf(record.get("friendId").asString()),
+                    record.get("friendFirstName").asString(),
+                    record.get("friendLastName").asString(),
+                    tagNames,
+                    record.get("count").asInt()));
           }
         }
       }
