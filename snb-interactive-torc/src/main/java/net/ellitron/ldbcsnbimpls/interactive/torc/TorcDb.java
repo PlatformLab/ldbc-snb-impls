@@ -356,16 +356,60 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = 
+        (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
+
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+        TraversalResult start_knows_friends1 = graph.getVertices(start, "knows", Direction.OUT, "Person");
+
+        List<TorcVertex> l1_matches = new ArrayList<>();
+        graph.fillProperties(start_knows_freinds1.vSet);
+        for (TorcVertex v : start_knows_friends1.vSet) {
+          if (v.getProperty("firstName").get(0).equals(firstName))
+            l1_matches.add(v);
+        }
+
+        if (l1_matches.size() >= limit) {
+          // then we're done
+        }
+
+        TraversalResult friends1_knows_friends2 = graph.getVertices(start_knows_friends1, "knows", Direction.OUT, "Person");
+
+        TorcHelper.subtract(friends1_knows_friends2, start_knows_friends1.vSet);
+
+        List<TorcVertex> l2_matches = new ArrayList<>();
+        graph.fillProperties(friends1_knows_freinds2.vSet);
+        for (TorcVertex v : friends1_knows_friends2.vSet) {
+          if (v.getProperty("firstName").get(0).equals(firstName))
+            l2_matches.add(v);
+        }
+
+        if (l1_matches.size() + l1_matches.size() >= limit) {
+          // then we're done
+        }
+
+
+        TraversalResult friends2_knows_friends3 = graph.getVertices(friend1_knows_friends2, "knows", Direction.OUT, "Person");
+
+        TorcHelper.subtract(friends2_knows_friends3, start_knows_friends1.vSet);
+        TorcHelper.subtract(friends2_knows_friends3, friends1_knows_friends2.vSet);
+
+        List<TorcVertex> l3_matches = new ArrayList<>();
+        graph.fillProperties(friends2_knows_freinds3.vSet);
+        for (TorcVertex v : friends2_knows_friends3.vSet) {
+          if (v.getProperty("firstName").get(0).equals(firstName))
+            l3_matches.add(v);
+        }
+
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .withSideEffect("result", result).V(torcPersonId).as("person")
@@ -1756,8 +1800,8 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
-
+      TorcGraph graph = 
+        (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1769,21 +1813,26 @@ public class TorcDb extends Db {
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
         TorcVertex start = new TorcVertex(graph, torcPersonId);
-        TraversalResult start_knows_person = graph.getVertices(start, "knows", Direction.OUT, "Person");
+        TraversalResult start_knows_person = 
+          graph.getVertices(start, "knows", Direction.OUT, "Person");
         RAMCloud client = ((TorcGraph)graph).getClient();
-        client.nanoLogPrint("Get person_hasCreator_comment");
-        TraversalResult person_hasCreator_comment = graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
-        client.nanoLogPrint("Get comment_replyOf_post");
-        TraversalResult comment_replyOf_post = graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
-        client.nanoLogPrint("Get post_hasTag_tag");
-        TraversalResult post_hasTag_tag = graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
-        client.nanoLogPrint("Get tag_hasType_tagClass");
-        TraversalResult tag_hasType_tagClass = graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
+//        client.nanoLogPrint("Get person_hasCreator_comment");
+        TraversalResult person_hasCreator_comment = 
+          graph.getVertices(start_knows_person, "hasCreator", Direction.IN, "Comment");
+//        client.nanoLogPrint("Get comment_replyOf_post");
+        TraversalResult comment_replyOf_post = 
+          graph.getVertices(person_hasCreator_comment, "replyOf", Direction.OUT, "Post");
+//        client.nanoLogPrint("Get post_hasTag_tag");
+        TraversalResult post_hasTag_tag = 
+          graph.getVertices(comment_replyOf_post, "hasTag", Direction.OUT, "Tag");
+//        client.nanoLogPrint("Get tag_hasType_tagClass");
+        TraversalResult tag_hasType_tagClass = 
+          graph.getVertices(post_hasTag_tag, "hasType", Direction.OUT, "TagClass");
 
         Set<TorcVertex> filteredTagSet = new HashSet<>(tag_hasType_tagClass.vMap.size());
         while (!tag_hasType_tagClass.vMap.isEmpty()) {
-          client.nanoLogPrint("Get properties of tagClasses");
-          graph.fillProperties(tag_hasType_tagClass.vList);
+//          client.nanoLogPrint("Get properties of tagClasses");
+          graph.fillProperties(tag_hasType_tagClass.vSet);
           tag_hasType_tagClass.vMap.entrySet().removeIf( e -> {
               if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
                 filteredTagSet.add((TorcVertex)e.getKey());
@@ -1794,7 +1843,7 @@ public class TorcDb extends Db {
             });
 
           if (!tag_hasType_tagClass.vMap.isEmpty()) {
-            client.nanoLogPrint("Get tagClass_hasType_tagClass");
+//            client.nanoLogPrint("Get tagClass_hasType_tagClass");
             TraversalResult tagClass_hasType_tagClass = graph.getVertices(tag_hasType_tagClass, "hasType", Direction.OUT, "TagClass");
             tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
           } else {
@@ -1840,11 +1889,11 @@ public class TorcDb extends Db {
         friends.subList(0, Math.min(friends.size(), limit));
 //        System.out.println(String.format("Query12Handler: Sort: %dns", System.nanoTime() - startTime));
 
-        client.nanoLogPrint("Get properties of friends");
+//        client.nanoLogPrint("Get properties of friends");
         graph.fillProperties(friends);
 
-        client.nanoLogPrint("Get properties of tags");
-        graph.fillProperties(person_assocTags_tags.vList);
+//        client.nanoLogPrint("Get properties of tags");
+        graph.fillProperties(person_assocTags_tags.vSet);
 
 //        startTime = System.nanoTime();
         for (int i = 0; i < friends.size(); i++) {
