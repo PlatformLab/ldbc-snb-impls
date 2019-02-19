@@ -372,7 +372,7 @@ public class TorcDb extends Db {
         TraversalResult start_knows_friends1 = graph.getVertices(start, "knows", Direction.OUT, "Person");
 
         List<TorcVertex> l1_matches = new ArrayList<>();
-        graph.fillProperties(start_knows_freinds1.vSet);
+        graph.fillProperties(start_knows_friends1.vSet);
         for (TorcVertex v : start_knows_friends1.vSet) {
           if (v.getProperty("firstName").get(0).equals(firstName))
             l1_matches.add(v);
@@ -387,7 +387,7 @@ public class TorcDb extends Db {
         TorcHelper.subtract(friends1_knows_friends2, start_knows_friends1.vSet);
 
         List<TorcVertex> l2_matches = new ArrayList<>();
-        graph.fillProperties(friends1_knows_freinds2.vSet);
+        graph.fillProperties(friends1_knows_friends2.vSet);
         for (TorcVertex v : friends1_knows_friends2.vSet) {
           if (v.getProperty("firstName").get(0).equals(firstName))
             l2_matches.add(v);
@@ -398,13 +398,13 @@ public class TorcDb extends Db {
         }
 
 
-        TraversalResult friends2_knows_friends3 = graph.getVertices(friend1_knows_friends2, "knows", Direction.OUT, "Person");
+        TraversalResult friends2_knows_friends3 = graph.getVertices(friends1_knows_friends2, "knows", Direction.OUT, "Person");
 
         TorcHelper.subtract(friends2_knows_friends3, start_knows_friends1.vSet);
         TorcHelper.subtract(friends2_knows_friends3, friends1_knows_friends2.vSet);
 
         List<TorcVertex> l3_matches = new ArrayList<>();
-        graph.fillProperties(friends2_knows_freinds3.vSet);
+        graph.fillProperties(friends2_knows_friends3.vSet);
         for (TorcVertex v : friends2_knows_friends3.vSet) {
           if (v.getProperty("firstName").get(0).equals(firstName))
             l3_matches.add(v);
