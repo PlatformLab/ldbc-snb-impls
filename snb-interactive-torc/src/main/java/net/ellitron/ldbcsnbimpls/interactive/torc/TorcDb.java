@@ -368,124 +368,113 @@ public class TorcDb extends Db {
 
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
+        // Vertices that match our search criteria.
+        List<TorcVertex> matches = new ArrayList<>();
+        int l1_matchcount = 0;
+        int l2_matchcount = 0;
+        int l3_matchcount = 0;
+
         TorcVertex start = new TorcVertex(graph, torcPersonId);
-        TraversalResult start_knows_friends1 = graph.getVertices(start, "knows", Direction.OUT, "Person");
+        TraversalResult l1_freinds = graph.traverse(start, "knows", Direction.OUT, "Person");
 
-        List<TorcVertex> l1_matches = new ArrayList<>();
-        graph.fillProperties(start_knows_friends1.vSet);
-        for (TorcVertex v : start_knows_friends1.vSet) {
-          if (v.getProperty("firstName").get(0).equals(firstName))
-            l1_matches.add(v);
+        graph.fillVertexProperties(l1_friends);
+        for (TorcVertex v : l1_friends.asSet()) {
+          if (v.getProperty("firstName").get(0).equals(firstName)) {
+            matches.add(v);
+            l1_matchcount++;
+            if (matches.size() == limit)
+              break;
+          }
         }
 
-        if (l1_matches.size() >= limit) {
-          // then we're done
+        if (matches.size() < limit) {
+          TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, "Person");
+
+          TorcHelper.subtract(l2_friends, l1_friends);
+
+          graph.fillVertexProperties(l2_friends);
+          for (TorcVertex v : l2_friends.asSet()) {
+            if (v.getProperty("firstName").get(0).equals(firstName)) {
+              matches.add(v);
+              l2_matchcount++;
+              if (matches.size() == limit)
+                break;
+            }
+          }
         }
 
-        TraversalResult friends1_knows_friends2 = graph.getVertices(start_knows_friends1, "knows", Direction.OUT, "Person");
+        if (matches.size() < limit) {
+          TraversalResult l3_friends = graph.traverse(l2_friends, "knows", Direction.OUT, "Person");
 
-        TorcHelper.subtract(friends1_knows_friends2, start_knows_friends1.vSet);
+          TorcHelper.subtract(l3_friends, l1_friends, l2_friends);
 
-        List<TorcVertex> l2_matches = new ArrayList<>();
-        graph.fillProperties(friends1_knows_friends2.vSet);
-        for (TorcVertex v : friends1_knows_friends2.vSet) {
-          if (v.getProperty("firstName").get(0).equals(firstName))
-            l2_matches.add(v);
+          graph.fillVertexProperties(l3_friends);
+          for (TorcVertex v : l3_friends.asSet()) {
+            if (v.getProperty("firstName").get(0).equals(firstName)) {
+              matches.add(v);
+              l3_matchcount++;
+              if (matches.size() == limit)
+                break;
+            }
+          }
         }
 
-        if (l1_matches.size() + l1_matches.size() >= limit) {
-          // then we're done
+        TraversalResult match_place = graph.traverse(matches, "isLocatedIn", Direction.OUT, "Place");
+        TraversalResult match_universities = graph.traverse(matches, "studyAt", Direction.OUT, "Organisation");
+        TraversalResult match_companies = graph.traverse(matches, "workAt", Direction.OUT, "Organisation");
+        TraversalResult university_place = graph.traverse(match_universities, "isLocatedIn", Direction.OUT, "Place");
+        TraversalResult company_place = graph.traverse(match_companies, "isLocatedIn", Direction.OUT, "Place");
+
+        graph.fillVertexProperties(match_place, match_universities, match_companies, university_place, company_place);
+        graph.fillEdgeProperties(match_universities, match_companies);
+
+        for (int i = 0; i < matches.size(); i++) {
+          TorcVertex f = matches.get(i);
+          long distance;
+          if (i < l1_matches)
+            distance = 0;
+          else if (i < l1_matches + l2_matches)
+            distance = 1;
+          else
+            distance = 2;
+
+
+          List<HalfEdge> universities = match_universities.asMap().get(f);
+          List<List<Object>> universityInfo = new ArrayList<>(universities.size());
+          for (HalfEdge university : universities) {
+            List<Object> info = new ArrayList<>(3);
+            info.add(university.v().getProperty("name").get(0));
+            info.add(university.p().get("classYear").get(0));
+            info.add(university_place.asMap().get(university).get(0).v().getProperty("name").get(0));
+            universityInfo.add(info);
+          }
+
+          List<HalfEdge> companies = match_companies.asMap().get(f);
+          List<List<Object>> companyInfo = new ArrayList<>(companies.size());
+          for (HalfEdge company : companies) {
+            List<Object> info = new ArrayList<>(3);
+            info.add(company.v().getProperty("name").get(0));
+            info.add(company.p().get("workFrom").get(0));
+            info.add(company_place.asMap().get(company).get(0).v().getProperty("name").get(0));
+            companyInfo.add(info);
+          }
+
+          result.add(new LdbcQuery1Result(
+              f.id().getLowerLong(), //((UInt128)t.get().get("friendId")).getLowerLong(),
+              f.getProperty("lastName").get(0), //(String)t.get().get("lastName"),
+              distance, //((Long)t.get().get("distance")).intValue() - 1,
+              Long.valueOf(f.getProperty("birthday").get(0)), //Long.valueOf((String)t.get().get("birthday")),
+              Long.valueOf(f.getProperty("creationDate").get(0)), //Long.valueOf((String)t.get().get("creationDate")),
+              f.getProperty("gender").get(0), //(String)t.get().get("gender"),
+              f.getProperty("browserUsed").get(0), //(String)t.get().get("browserUsed"),
+              f.getProperty("locationIP").get(0), //(String)t.get().get("locationIP"),
+              f.getProperty("emails"), //(List<String>)t.get().get("emails"),
+              f.getProperty("languages"), //(List<String>)t.get().get("languages"),
+              match_place.asMap().get(f).get(0).v().getProperty("name").get(0), //(String)t.get().get("placeName"),
+              universityInfo, //(List<List<Object>>)t.get().get("universityInfo"),
+              companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
         }
 
-
-        TraversalResult friends2_knows_friends3 = graph.getVertices(friends1_knows_friends2, "knows", Direction.OUT, "Person");
-
-        TorcHelper.subtract(friends2_knows_friends3, start_knows_friends1.vSet);
-        TorcHelper.subtract(friends2_knows_friends3, friends1_knows_friends2.vSet);
-
-        List<TorcVertex> l3_matches = new ArrayList<>();
-        graph.fillProperties(friends2_knows_friends3.vSet);
-        for (TorcVertex v : friends2_knows_friends3.vSet) {
-          if (v.getProperty("firstName").get(0).equals(firstName))
-            l3_matches.add(v);
-        }
-
-
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .aggregate("seenSet")
-          .repeat(
-            barrier()
-            .out("knows").hasLabel("Person").where(without("seenSet")).dedup()
-              .sideEffect(
-                has("firstName", firstName)
-                .project("friend", "distance")
-                  .by(identity())
-                  .by(path().count(local))
-                .aggregate("resultSet")
-              ).aggregate("seenSet")
-          ).until(select("resultSet").count(local).is(gte(limit)).or().loops().is(3))
-          .select("resultSet").dedup().unfold()
-          .project("friendId",
-              "lastName",
-              "distance",
-              "birthday",
-              "creationDate",
-              "gender",
-              "browserUsed",
-              "locationIP",
-              "emails",
-              "languages",
-              "placeName",
-              "universityInfo",
-              "companyInfo")
-            .by(select("friend").id())
-            .by(select("friend").values("lastName"))
-            .by(select("distance"))
-            .by(select("friend").values("birthday"))
-            .by(select("friend").values("creationDate"))
-            .by(select("friend").values("gender"))
-            .by(select("friend").values("browserUsed"))
-            .by(select("friend").values("locationIP"))
-            .by(select("friend").values("email").fold())
-            .by(select("friend").values("language").fold())
-            .by(select("friend").out("isLocatedIn").hasLabel("Place").values("name"))
-            .by(select("friend")
-                  .outE("studyAt").as("studyAt").inV().hasLabel("Organisation").as("university").out("isLocatedIn").hasLabel("Place").as("city")
-                  .project("universityName", "classYear", "cityName")
-                    .by(select("university").values("name"))
-                    .by(select("studyAt").values("classYear"))
-                    .by(select("city").values("name"))
-                  .select(values)
-                  .fold())
-            .by(select("friend")
-                  .outE("workAt").as("workAt").inV().hasLabel("Organisation").as("company").out("isLocatedIn").hasLabel("Place").as("city")
-                  .project("companyName", "workFrom", "cityName")
-                    .by(select("company").values("name"))
-                    .by(select("workAt").values("workFrom"))
-                    .by(select("city").values("name"))
-                  .select(values)
-                  .fold())
-          .order()
-            .by(select("distance"), incr)
-            .by(select("lastName"), incr)
-            .by(select("friendId"), incr)
-          .limit(limit)
-          .map(t -> new LdbcQuery1Result(
-              ((UInt128)t.get().get("friendId")).getLowerLong(),
-              (String)t.get().get("lastName"),
-              ((Long)t.get().get("distance")).intValue() - 1,
-              Long.valueOf((String)t.get().get("birthday")),
-              Long.valueOf((String)t.get().get("creationDate")),
-              (String)t.get().get("gender"),
-              (String)t.get().get("browserUsed"),
-              (String)t.get().get("locationIP"),
-              (List<String>)t.get().get("emails"),
-              (List<String>)t.get().get("languages"),
-              (String)t.get().get("placeName"),
-              (List<List<Object>>)t.get().get("universityInfo"),
-              (List<List<Object>>)t.get().get("companyInfo")))
-          .store("result").iterate();
 
         if (doTransactionalReads) {
           try {
