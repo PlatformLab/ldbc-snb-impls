@@ -369,10 +369,9 @@ public class TorcDb extends Db {
         List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
         // Vertices that match our search criteria.
-        List<TorcVertex> matches = new ArrayList<>();
-        int l1_matchcount = 0;
-        int l2_matchcount = 0;
-        int l3_matchcount = 0;
+        List<TorcVertex> l1_matches = new ArrayList<>();
+        List<TorcVertex> l2_matches = new ArrayList<>();
+        List<TorcVertex> l3_matches = new ArrayList<>();
 
         TorcVertex start = new TorcVertex(graph, torcPersonId);
         TraversalResult l1_freinds = graph.traverse(start, "knows", Direction.OUT, "Person");
@@ -380,14 +379,11 @@ public class TorcDb extends Db {
         graph.fillVertexProperties(l1_friends);
         for (TorcVertex v : l1_friends.asSet()) {
           if (v.getProperty("firstName").get(0).equals(firstName)) {
-            matches.add(v);
-            l1_matchcount++;
-            if (matches.size() == limit)
-              break;
+            l1_matches.add(v);
           }
         }
 
-        if (matches.size() < limit) {
+        if (l1_matches.size() < limit) {
           TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, "Person");
 
           TorcHelper.subtract(l2_friends, l1_friends);
@@ -395,15 +391,12 @@ public class TorcDb extends Db {
           graph.fillVertexProperties(l2_friends);
           for (TorcVertex v : l2_friends.asSet()) {
             if (v.getProperty("firstName").get(0).equals(firstName)) {
-              matches.add(v);
-              l2_matchcount++;
-              if (matches.size() == limit)
-                break;
+              l2_matches.add(v);
             }
           }
         }
 
-        if (matches.size() < limit) {
+        if (l1_matches.size() + l2_matches.size() < limit) {
           TraversalResult l3_friends = graph.traverse(l2_friends, "knows", Direction.OUT, "Person");
 
           TorcHelper.subtract(l3_friends, l1_friends, l2_friends);
@@ -411,13 +404,38 @@ public class TorcDb extends Db {
           graph.fillVertexProperties(l3_friends);
           for (TorcVertex v : l3_friends.asSet()) {
             if (v.getProperty("firstName").get(0).equals(firstName)) {
-              matches.add(v);
-              l3_matchcount++;
-              if (matches.size() == limit)
-                break;
+              l3_matches.add(v);
             }
           }
         }
+
+        // Sort the matches ascending by lastname and then ascending by
+        // identifier for a given distance.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                String v1LastName = v1.getProperty("lastName").get(0);
+                String v2LastName = v2.getProperty("lastName").get(0);
+               
+                if (v1LastName.compareTo(v2LastName) != 0) {
+                  return v1LastName.compareTo(v2LastName);
+                } else {
+                  Long v1Id = v1.id().getLowerLong();
+                  Long v2Id = v2.id().getLowerLong();
+                  return v1Id - v2Id;
+                }
+              }
+            } 
+
+        Collections.sort(l1_matches, c);
+        Collections.sort(l2_matches, c);
+        Collections.sort(l3_matches, c);
+        
+        List<TorcVertex> matches = new ArrayList<>();
+        matches.addAll(l1_matches);
+        matches.addAll(l2_matches);
+        matches.addAll(l3_matches);
+
+        matches.subList(0, Math.min(matches.size(), limit));
 
         TraversalResult match_place = graph.traverse(matches, "isLocatedIn", Direction.OUT, "Place");
         TraversalResult match_universities = graph.traverse(matches, "studyAt", Direction.OUT, "Organisation");
@@ -437,7 +455,6 @@ public class TorcDb extends Db {
             distance = 1;
           else
             distance = 2;
-
 
           List<HalfEdge> universities = match_universities.asMap().get(f);
           List<List<Object>> universityInfo = new ArrayList<>(universities.size());
@@ -474,7 +491,6 @@ public class TorcDb extends Db {
               universityInfo, //(List<List<Object>>)t.get().get("universityInfo"),
               companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
         }
-
 
         if (doTransactionalReads) {
           try {
