@@ -386,7 +386,7 @@ public class TorcDb extends Db {
         if (l1_matches.size() < limit) {
           TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, "Person");
 
-          TorcHelper.subtract(l2_friends, l1_friends);
+          TorcHelper.subtract(l2_friends, l1_friends, start);
 
           graph.fillVertexProperties(l2_friends);
           for (TorcVertex v : l2_friends.asSet()) {
@@ -399,7 +399,7 @@ public class TorcDb extends Db {
         if (l1_matches.size() + l2_matches.size() < limit) {
           TraversalResult l3_friends = graph.traverse(l2_friends, "knows", Direction.OUT, "Person");
 
-          TorcHelper.subtract(l3_friends, l1_friends, l2_friends);
+          TorcHelper.subtract(l3_friends, l1_friends, l2_friends, start);
 
           graph.fillVertexProperties(l3_friends);
           for (TorcVertex v : l3_friends.asSet()) {
