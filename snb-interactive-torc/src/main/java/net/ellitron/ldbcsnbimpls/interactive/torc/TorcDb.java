@@ -882,16 +882,80 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery4Result> result = new ArrayList<>(limit);
+
+
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+
+        TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, "Person");
+
+        TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, "Post");
+
+        graph.fillVertexProperties(posts);
+
+        // Filter out posts that are more recent than endDate. Don't want to do
+        // extra work for them.
+        Set<TorcVertex> postSet = posts.asSet();
+        postSet.removeIf(p -> {
+          Long creationDate = Long.valueOf(p.getProperty("creationDate").get(0));
+          return creationDate > endDate;
+        });
+
+        TraversalResult tags = graph.traverse(postSet, "hasTag", Direction.OUT, "Tag");
+
+        // Separate out tags before the window and in the window.
+        Set<TorcVertex> tagsWithinWindow = new HashSet<>();
+        Set<TorcVertex> tagsBeforeWindow = new HashSet<>();
+        Map<TorcVertex, Long> tagCounts = new HashMap<>();
+        for (Map.Entry e : tags.asMap().entrySet()) {
+          TorcVertex p = (TorcVertex)e.getKey();
+          Long pCreationDate = Long.valueOf(p.getProperty("creationDate").get(0));
+          if (pCreationDate >= startDate && pCreationDate <= endDate)
+            for (HalfEdge he : (List<HalfEdge>)e.getValue()) {
+              tagsWithinWindow.add(he.v());
+              if (tagCounts.contains(he.v()))
+                tagCounts.put(he.v(), tagCounts.get(he.v()) + 1);
+              else
+                tagCounts.put(he.v(), 1);
+            }
+          else if (pCreationDate < startDate)
+            for (HalfEdge he : (List<HalfEdge>)e.getValue())
+              tagsBeforeWindow.add(he.v());
+        }
+
+        tagsWithinWindow.removeAll(tagsBeforeWindow);
+
+        List<TorcVertex> matchedTags = new ArrayList<>(tagsWithinWindow);
+
+        graph.fillVertexProperties(matchedTags);
+
+        // Sort tags by count
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex t1, TorcVertex t2) {
+                Long t1Count = tagCounts.get(t1);
+                Long t2Count = tagCounts.get(t2);
+
+                if (t2Count != t2Count) {
+                  // Tag count sort is descending
+                  return -1*(t1Count - t2Count);
+                } else {
+                  String t1Name = t1.getProperty("name").get(0);
+                  String t2Name = t2.getProperty("name").get(0);
+                  return t1Name.compareTo(t2Name);
+                }
+              }
+            } 
+
+        Collections.sort(matchedTags, c);
 
         g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
           .withSideEffect("result", result).V(torcPersonId)
@@ -941,7 +1005,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
