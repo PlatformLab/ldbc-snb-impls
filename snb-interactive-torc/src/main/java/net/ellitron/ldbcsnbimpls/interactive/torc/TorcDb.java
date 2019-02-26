@@ -693,71 +693,132 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person")
-          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-          .where(
-            out("isLocatedIn").hasLabel("Place").out("isPartOf").hasLabel("Place").is(without(countryXName, countryYName))
-          )
-          .as("friend")
-          .in("hasCreator").hasLabel("Comment", "Post")
-          .filter(t -> {
-                    long date = Long.valueOf(t.get().value("creationDate"));
-                    return date <= endDate && date >= startDate;
-                  })
-          .out("isLocatedIn").hasLabel("Place").values("name")
-          .where( is(within(countryXName, countryYName)) )
-          .group().by(select("friend"))
-          .flatMap(t -> {
-                Map m = t.get();
-                List removeList = new ArrayList<Object>();
-                for (Object k : m.keySet()) {
-                  List v = (List) m.get(k);
-                  if ( !v.contains(countryXName) || !v.contains(countryYName) )
-                    removeList.add(k);
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+
+        TraversalResult l1_freinds = graph.traverse(start, "knows", Direction.OUT, "Person");
+
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, "Person");
+
+        TorcHelper.subtract(l2_friends, l1_friends, start);
+
+        List<TorcVertex> friends = new ArrayList<>(l1_friends.asSet().size() + l2_friends.asSet().size());
+        friends.addAll(l1_friends.asSet());
+        friends.addAll(l2_friends.asSet());
+
+        TraversalResult friendLocation = graph.traverse(friends, "isLocatedIn", Direction.OUT, "Place");
+        graph.fillVertexProperties(friendLocation);
+
+        // Filter out all friends located in either countryX or countryY.
+        friends.removeIf(f -> {
+          String placeName = friendLocation.asMap().get(f).get(0).v().getProperty("name").get(0);
+          return placeName.equals(countryXName) || placeName.equals(countryYName);
+        });
+
+        TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, "Post");
+        TraversalResult comments = graph.traverse(friends, "hasCreator", Direction.IN, "Comment");
+        
+        Set<TorcVertex> messages = new HashSet<>(posts.asSet().size() + comments.asSet().size());
+        messages.addAll(posts.asSet());
+        messages.addAll(comments.asSet());
+
+        graph.fillVertexProperties(messages);
+
+        // Filter out all messages not in the given time window.
+        messages.removeIf(m -> {
+          Long creationDate = Long.valueOf(m.getProperty("creationDate").get(0));
+          return !(creationDate >= startDate && creationDate <= endDate);
+        });
+
+        TraversalResult messageLocation = graph.traverse(messages, "isLocatedIn", Direction.OUT, "Place");
+
+        // Filter out all messages not in countryX or countryY.
+        messages.removeIf(m -> {
+          String placeName = messageLocation.asMap().get(m).get(0).v().getProperty("name").get(0);
+          return !placeName.equals(countryXName) && !placeName.equals(countryYName);
+        });
+        
+        // Retain only messages created in the given time window.
+        TorcHelper.intersect(posts, messages);
+        TorcHelper.intersect(comments, messages);
+
+        // Now posts and comments map friends to messages created in either
+        // countryX or countryY and in the given time window.
+        // Now we can filter out for friends that have a message in both
+        // countries.
+        
+        TraversalResult friendMessages = TorcHelper.merge(posts, comments);
+       
+        Map<TorcVertex, Long> friendCountryXMsgCounts = new HashMap<>(); 
+        Map<TorcVertex, Long> friendCountryYMsgCounts = new HashMap<>(); 
+        List<TorcVertex> friendResults = new ArrayList<>();
+        for (Map.Entry entry : friendMessages.asMap().entrySet()) {
+          List<HalfEdge> eList = (List<HalfEdge>)entry.getValue();
+          long countryXCount = 0;
+          long countryYCount = 0;
+          for (HalfEdge e : eList) {
+            String placeName = messageLocation.asMap().get(e.v()).get(0).v().getProperty("name").get(0);
+
+            if (placeName.equals(countryXName))
+              countryXCount++;
+
+            if (placeName.equals(countryYName))
+              countryYCount++;
+          }
+
+          if (countryXCount > 0 && countryYCount > 0) {
+            friendCountryXMsgCounts.put((TorcVertex)entry.getKey(), countryXCounts);
+            friendCountryYMsgCounts.put((TorcVertex)entry.getKey(), countryYCounts);
+            friendResults.add((TorcVertex)entry.getKey());
+          }
+        }
+       
+        // Sort friends by post count, then ascending by person identifier.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Long v1PostCount = friendCountryXMsgCounts.get(v1) + friendCountryYMsgCounts.get(v1);
+                Long v2PostCount = friendCountryXMsgCounts.get(v2) + friendCountryYMsgCounts.get(v2);
+
+                if (v1PostCount != v2PostCount) {
+                  // Post count sort is descending
+                  return -1*(v1PostCount - v2PostCount);
+                } else {
+                  Long v1Id = v1.id().getLowerLong();
+                  Long v2Id = v2.id().getLowerLong();
+                  // IDs are ascending
+                  return v1Id - v2Id;
                 }
+              }
+            } 
 
-                for (Object k : removeList)
-                  m.remove(k);
+        Collections.sort(friendResults, c);
 
-                return m.entrySet().iterator();
-              })
-          .order()
-            .by(select(values).unfold().count(), decr)
-            .by(select(keys).id(), incr)
-          .limit(limit)
-          .project("personId",
-              "firstName",
-              "lastName",
-              "countryXCount",
-              "countryYCount",
-              "totalCount")
-            .by(select(keys).id())
-            .by(select(keys).values("firstName"))
-            .by(select(keys).values("lastName"))
-            .by(select(values).unfold().is(eq(countryXName)).count())
-            .by(select(values).unfold().is(eq(countryYName)).count())
-            .by(select(values).unfold().count())
-          .map(t -> new LdbcQuery3Result(
-              ((UInt128)((Traverser<Map>)t).get().get("personId")).getLowerLong(),
-              (String)((Traverser<Map>)t).get().get("firstName"), 
-              (String)((Traverser<Map>)t).get().get("lastName"),
-              (Long)((Traverser<Map>)t).get().get("countryXCount"),
-              (Long)((Traverser<Map>)t).get().get("countryYCount"),
-              (Long)((Traverser<Map>)t).get().get("totalCount")))
-          .store("result").iterate(); 
+        // Take top limit
+        friendResults.subList(0, Math.min(friendResults.size(), limit));
+
+        graph.fillVertexProperties(friendResults);
+
+        for (int i = 0; i < friendResults.size(); i++) {
+          TorcVertex f = friendResults.get(i);
+
+          result.add(new LdbcQuery3Result(
+              f.id().getLowerLong(), //((UInt128)((Traverser<Map>)t).get().get("personId")).getLowerLong(),
+              f.getProperty("firstName").get(0), //(String)((Traverser<Map>)t).get().get("firstName"), 
+              f.getProperty("lastName").get(0), //(String)((Traverser<Map>)t).get().get("lastName"),
+              friendCountryXCounts.get(f), //(Long)((Traverser<Map>)t).get().get("countryXCount"),
+              friendCountryYCounts.get(f), //(Long)((Traverser<Map>)t).get().get("countryYCount"),
+              friendCountryXCounts.get(f) + friendCountryYCounts.get(f))); //(Long)((Traverser<Map>)t).get().get("totalCount")))
+        }
 
         if (doTransactionalReads) {
           try {
