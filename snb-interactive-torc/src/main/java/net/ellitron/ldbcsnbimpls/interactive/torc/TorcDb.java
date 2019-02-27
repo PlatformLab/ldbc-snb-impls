@@ -446,7 +446,7 @@ public class TorcDb extends Db {
         matches.addAll(l2_matches);
         matches.addAll(l3_matches);
 
-        matches.subList(0, Math.min(matches.size(), limit));
+        matches = matches.subList(0, Math.min(matches.size(), limit));
 
         TraversalResult match_place = graph.traverse(matches, "isLocatedIn", Direction.OUT, false, "Place");
         TraversalResult match_universities = graph.traverse(matches, "studyAt", Direction.OUT, true, "Organisation");
@@ -591,58 +591,59 @@ public class TorcDb extends Db {
 
         List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
-//        TorcVertex start = new TorcVertex(graph, torcPersonId);
-//        TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, "Person");
-//
-//        TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, "Post");
-//        TraversalResult comments = graph.traverse(friends, "hasCreator", Direction.IN, "Comment");
-//
-//        graph.fillVertexProperties(posts, comments);
-//        
-//        List<TorcVertex> messages = new ArrayList<>();
-//        messages.addAll(posts.vSet);
-//        messages.addAll(comments.vSet);
-//
-//        // Sort the Posts and Comments by their creation date.
-//        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
-//              public int compare(TorcVertex v1, TorcVertex v2) {
-//                Long v1creationDate = Long.valueOf(v1.getProperty("creationDate").get(0));
-//                Long v2creationDate = Long.valueOf(v2.getProperty("creationDate").get(0));
-//                return v1creationDate - v2creationDate;
-//              }
-//            } 
-//
-//        // Messages are sorted in reverse chronological order.
-//        Collections.sort(messages, c.reverseOrder());
-//       
-//        // Filter all messages more recent than the given maximum date. 
-//        messages.removeIf(m -> {
-//          Long creationDate = Long.valueOf(m.getProperty("creationDate").get(0));
-//          return creationDate > maxDate;
-//        });
-//
-//        // Take top limit
-//        messages.subList(0, Math.min(messages.size(), limit));
-//      
-//        // Wish there was a good way to go back and find the authors from what
-//        // we have already read, but we don't have a great way to do that now,
-//        // so go and read the authors.
-//        TraversalResult authors = graph.traverse(messages, "hasCreator", Direction.OUT, "Person");
-//
-//        graph.fillVertexProperties(authors);
-//
-//        for (int i = 0; i < messages.size(); i++) {
-//          TorcVertex m = messages.get(i);
-//          TorcVertex f = authors.asMap.get(m).get(0).v();
-//
-//          result.add(new LdbcQuery2Result(
-//              f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
-//              f.getProperty("firstName").get(0), //(String)t.get().get("firstName"), 
-//              f.getProperty("lastName").get(0), //(String)t.get().get("lastName"),
-//              m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
-//              m.getProperty("content").get(0), //(String)t.get().get("content"),
-//              Long.valueOf(m.getProperty("creationDate").get(0)))); //Long.valueOf((String)t.get().get("creationDate"))))
-//        }
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+        TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+
+        TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
+
+        graph.fillProperties(messages);
+        
+        // Sort the Posts and Comments by their creation date.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Long v1creationDate = Long.valueOf(v1.getProperty("creationDate").get(0));
+                Long v2creationDate = Long.valueOf(v2.getProperty("creationDate").get(0));
+                if (v1creationDate > v2creationDate)
+                  return -1;
+                else if (v1creationDate < v2creationDate)
+                  return 1;
+                else
+                  return 0;
+              }
+            };
+
+        List<TorcVertex> msgList = new ArrayList<>(messages.vSet);
+        // Messages are sorted in reverse chronological order.
+        Collections.sort(msgList, c);
+       
+        // Filter all messages more recent than the given maximum date. 
+        msgList.removeIf(m -> {
+          Long creationDate = Long.valueOf(m.getProperty("creationDate").get(0));
+          return creationDate > maxDate;
+        });
+
+        // Take top limit
+        msgList = msgList.subList(0, Math.min(msgList.size(), limit));
+
+        // Wish there was a good way to go back and find the authors from what
+        // we have already read, but we don't have a great way to do that now,
+        // so go and read the authors.
+        TraversalResult authors = graph.traverse(msgList, "hasCreator", Direction.OUT, false, "Person");
+
+        graph.fillProperties(authors);
+
+        for (int i = 0; i < msgList.size(); i++) {
+          TorcVertex m = msgList.get(i);
+          TorcVertex f = authors.vMap.get(m).get(0);
+
+          result.add(new LdbcQuery2Result(
+              f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
+              f.getProperty("firstName").get(0), //(String)t.get().get("firstName"), 
+              f.getProperty("lastName").get(0), //(String)t.get().get("lastName"),
+              m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
+              m.getProperty("content").get(0), //(String)t.get().get("content"),
+              Long.valueOf(m.getProperty("creationDate").get(0)))); //Long.valueOf((String)t.get().get("creationDate"))))
+        }
 
         if (doTransactionalReads) {
           try {
@@ -739,7 +740,7 @@ public class TorcDb extends Db {
 //        friends.addAll(l2_friends.vSet);
 //
 //        TraversalResult friendLocation = graph.traverse(friends, "isLocatedIn", Direction.OUT, "Place");
-//        graph.fillVertexProperties(friendLocation);
+//        graph.fillProperties(friendLocation);
 //
 //        // Filter out all friends located in either countryX or countryY.
 //        friends.removeIf(f -> {
@@ -754,7 +755,7 @@ public class TorcDb extends Db {
 //        messages.addAll(posts.vSet);
 //        messages.addAll(comments.vSet);
 //
-//        graph.fillVertexProperties(messages);
+//        graph.fillProperties(messages);
 //
 //        // Filter out all messages not in the given time window.
 //        messages.removeIf(m -> {
@@ -826,9 +827,9 @@ public class TorcDb extends Db {
 //        Collections.sort(friendResults, c);
 //
 //        // Take top limit
-//        friendResults.subList(0, Math.min(friendResults.size(), limit));
+//        friendResults = friendResults.subList(0, Math.min(friendResults.size(), limit));
 //
-//        graph.fillVertexProperties(friendResults);
+//        graph.fillProperties(friendResults);
 //
 //        for (int i = 0; i < friendResults.size(); i++) {
 //          TorcVertex f = friendResults.get(i);
@@ -922,7 +923,7 @@ public class TorcDb extends Db {
 //
 //        TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, "Post");
 //
-//        graph.fillVertexProperties(posts);
+//        graph.fillProperties(posts);
 //
 //        // Filter out posts that are more recent than endDate. Don't want to do
 //        // extra work for them.
@@ -958,7 +959,7 @@ public class TorcDb extends Db {
 //
 //        List<TorcVertex> matchedTags = new ArrayList<>(tagsWithinWindow);
 //
-//        graph.fillVertexProperties(matchedTags);
+//        graph.fillProperties(matchedTags);
 //
 //        // Sort tags by count
 //        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
@@ -2064,7 +2065,7 @@ public class TorcDb extends Db {
                 return -1;
           });
 
-        friends.subList(0, Math.min(friends.size(), limit));
+        friends = friends.subList(0, Math.min(friends.size(), limit));
 //        System.out.println(String.format("Query12Handler: Sort: %dns", System.nanoTime() - startTime));
 
 //        client.nanoLogPrint("Get properties of friends");
