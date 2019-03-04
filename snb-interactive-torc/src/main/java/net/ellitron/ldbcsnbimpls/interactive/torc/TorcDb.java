@@ -607,8 +607,10 @@ public class TorcDb extends Db {
                   return -1;
                 else if (v1creationDate < v2creationDate)
                   return 1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return 1;
                 else
-                  return 0;
+                  return -1;
               }
             };
 
