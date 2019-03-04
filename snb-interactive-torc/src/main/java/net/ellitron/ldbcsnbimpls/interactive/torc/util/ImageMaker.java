@@ -359,36 +359,34 @@ public class ImageMaker {
             String line;
             while ((line = inFile.readLine()) != null) {
               UInt128 vertexId = null;
-              Map<String, List<String>> propMap = new HashMap<>();
+              Map<Object, Object> propMap = new HashMap<>();
               String[] fieldValues = line.split("\\|");
               for (int j = 0; j < fieldValues.length; j++) {
                 try {
-                  List<String> propValues = new ArrayList<>(8);
+                  // Parse this row in the file for entity properties and other
+                  // atttributes (ID, label). If the field is a property with a
+                  // known type, then covnert the value to the correct type.
+                  // Otherwise we default to adding it as a String type.
                   if (fieldNames[j].equals("id")) {
                     vertexId = new UInt128(idSpace, Long.decode(fieldValues[j]));
                   } else if (fieldNames[j].equals("birthday")) {
-                    propValues.add(String.valueOf(
-                        birthdayDateFormat.parse(fieldValues[j]).getTime()));
+                    Long date = 
+                      birthdayDateFormat.parse(fieldValues[j]).getTime();
+                    propMap.put(fieldNames[j], date);
                   } else if (fieldNames[j].equals("creationDate") || 
                       fieldNames[j].equals("joinDate")) {
-                    propValues.add(String.valueOf(
-                        creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                    Long date = 
+                      creationDateDateFormat.parse(fieldValues[j]).getTime();
+                    propMap.put(fieldNames[j], date);
                   } else if (fieldNames[j].equals("email") || 
                       fieldNames[j].equals("language")) {
-                    String[] elements = fieldValues[j].split(";");
-                    for (String elem : elements) {
-                      if (elem.length() != 0) {
-                        propValues.add(elem);
-                      }
-                    }
+                    List<String> vals = new ArrayList<>(8);
+                    for (String val : fieldValues[j].split(";"))
+                      if (val.length() != 0)
+                        vals.add(val);
+                    propMap.put(fieldNames[j], vals);
                   } else {
-                    propValues.add(fieldValues[j]);
-                  }
-
-                  if (propMap.containsKey(fieldNames[j])) {
-                    propMap.get(fieldNames[j]).addAll(propValues);
-                  } else {
-                    propMap.put(fieldNames[j], propValues);
+                    propMap.put(fieldNames[j], fieldValues[j]);
                   }
                 } catch (Exception ex) {
                   throw new RuntimeException(String.format("Encountered "
@@ -424,7 +422,7 @@ public class ImageMaker {
 
             UInt128 curBaseVertexId = null;
             List<UInt128> neighborIds = new ArrayList<>(32);
-            List<Map<String, List<String>>> propMaps = new ArrayList<>();
+            List<Map<Object, Object>> propMaps = new ArrayList<>();
             String line;
             while ((line = inFile.readLine()) != null) {
               String[] fieldValues = line.split("\\|");
@@ -453,22 +451,16 @@ public class ImageMaker {
               
               // Parse properties only if these edges have properties.
               if (fieldValues.length > 2) {
-                Map<String, List<String>> propMap = new HashMap<>();
+                Map<Object, Object> propMap = new HashMap<>();
                 for (int j = 2; j < fieldValues.length; j++) {
                   try {
-                    List<String> propValues = new ArrayList<>(8);
                     if (fieldNames[j].equals("creationDate") || 
                         fieldNames[j].equals("joinDate")) {
-                      propValues.add(String.valueOf(
-                          creationDateDateFormat.parse(fieldValues[j]).getTime()));
+                      Long date = 
+                        creationDateDateFormat.parse(fieldValues[j]).getTime();
+                      propMap.put(fieldNames[j], date);
                     } else {
-                      propValues.add(fieldValues[j]);
-                    }
-
-                    if (propMap.containsKey(fieldNames[j])) {
-                      propMap.get(fieldNames[j]).addAll(propValues);
-                    } else {
-                      propMap.put(fieldNames[j], propValues);
+                      propMap.put(fieldNames[j], fieldValues[j]);
                     }
                   } catch (Exception ex) {
                     throw new RuntimeException(String.format("Encountered "

@@ -378,7 +378,7 @@ public class TorcDb extends Db {
 
         graph.fillProperties(l1_friends);
         for (TorcVertex v : l1_friends.vSet) {
-          if (v.getProperty("firstName").get(0).equals(firstName)) {
+          if (((String)v.getProperty("firstName")).equals(firstName)) {
             l1_matches.add(v);
           }
         }
@@ -394,7 +394,7 @@ public class TorcDb extends Db {
 
           graph.fillProperties(l2_friends);
           for (TorcVertex v : l2_friends.vSet) {
-            if (v.getProperty("firstName").get(0).equals(firstName)) {
+            if (((String)v.getProperty("firstName")).equals(firstName)) {
               l2_matches.add(v);
             }
           }
@@ -408,7 +408,7 @@ public class TorcDb extends Db {
 
             graph.fillProperties(l3_friends);
             for (TorcVertex v : l3_friends.vSet) {
-              if (v.getProperty("firstName").get(0).equals(firstName)) {
+              if (((String)v.getProperty("firstName")).equals(firstName)) {
                 l3_matches.add(v);
               }
             }
@@ -419,8 +419,8 @@ public class TorcDb extends Db {
         // identifier for a given distance.
         Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
               public int compare(TorcVertex v1, TorcVertex v2) {
-                String v1LastName = v1.getProperty("lastName").get(0);
-                String v2LastName = v2.getProperty("lastName").get(0);
+                String v1LastName = ((String)v1.getProperty("lastName"));
+                String v2LastName = ((String)v2.getProperty("lastName"));
                
                 if (v1LastName.compareTo(v2LastName) != 0) {
                   return v1LastName.compareTo(v2LastName);
@@ -467,49 +467,49 @@ public class TorcDb extends Db {
             distance = 2;
 
           List<TorcVertex> universities = match_universities.vMap.get(f);
-          List<Map<String, List<String>>> uniProps = match_universities.pMap.get(f);
+          List<Map<Object, Object>> uniProps = match_universities.pMap.get(f);
           List<List<Object>> universityInfo = new ArrayList<>();
           if (universities != null) {
             for (int i = 0; i < universities.size(); i++) {
               TorcVertex university = universities.get(i);
-              Map<String, List<String>> props = uniProps.get(i);
+              Map<Object, Object> props = uniProps.get(i);
 
               List<Object> info = new ArrayList<>(3);
-              info.add(university.getProperty("name").get(0));
-              info.add(props.get("classYear").get(0));
-              info.add(university_place.vMap.get(university).get(0).getProperty("name").get(0));
+              info.add(university.getProperty("name"));
+              info.add(props.get("classYear"));
+              info.add(university_place.vMap.get(university).get(0).getProperty("name"));
               universityInfo.add(info);
             }
           }
 
           List<TorcVertex> companies = match_companies.vMap.get(f);
-          List<Map<String, List<String>>> comProps = match_companies.pMap.get(f);
+          List<Map<Object, Object>> comProps = match_companies.pMap.get(f);
           List<List<Object>> companyInfo = new ArrayList<>();
           if (companies != null) {
             for (int i = 0; i < companies.size(); i++) {
               TorcVertex company = companies.get(i);
-              Map<String, List<String>> props = comProps.get(i);
+              Map<Object, Object> props = comProps.get(i);
 
               List<Object> info = new ArrayList<>(3);
-              info.add(company.getProperty("name").get(0));
-              info.add(props.get("workFrom").get(0));
-              info.add(company_place.vMap.get(company).get(0).getProperty("name").get(0));
+              info.add(company.getProperty("name"));
+              info.add(props.get("workFrom"));
+              info.add(company_place.vMap.get(company).get(0).getProperty("name"));
               companyInfo.add(info);
             }
           }
 
           result.add(new LdbcQuery1Result(
               f.id().getLowerLong(), //((UInt128)t.get().get("friendId")).getLowerLong(),
-              f.getProperty("lastName").get(0), //(String)t.get().get("lastName"),
+              ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
               distance, //((Long)t.get().get("distance")).intValue() - 1,
-              Long.valueOf(f.getProperty("birthday").get(0)), //Long.valueOf((String)t.get().get("birthday")),
-              Long.valueOf(f.getProperty("creationDate").get(0)), //Long.valueOf((String)t.get().get("creationDate")),
-              f.getProperty("gender").get(0), //(String)t.get().get("gender"),
-              f.getProperty("browserUsed").get(0), //(String)t.get().get("browserUsed"),
-              f.getProperty("locationIP").get(0), //(String)t.get().get("locationIP"),
+              ((Long)f.getProperty("birthday")), //Long.valueOf((String)t.get().get("birthday")),
+              ((Long)f.getProperty("creationDate")), //Long.valueOf((String)t.get().get("creationDate")),
+              ((String)f.getProperty("gender")), //(String)t.get().get("gender"),
+              ((String)f.getProperty("browserUsed")), //(String)t.get().get("browserUsed"),
+              ((String)f.getProperty("locationIP")), //(String)t.get().get("locationIP"),
               f.getProperty("emails"), //(List<String>)t.get().get("emails"),
               f.getProperty("languages"), //(List<String>)t.get().get("languages"),
-              match_place.vMap.get(f).get(0).getProperty("name").get(0), //(String)t.get().get("placeName"),
+              ((String)match_place.vMap.get(f).get(0).getProperty("name")), //(String)t.get().get("placeName"),
               universityInfo, //(List<List<Object>>)t.get().get("universityInfo"),
               companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
         }
@@ -601,8 +601,8 @@ public class TorcDb extends Db {
         // Sort the Posts and Comments by their creation date.
         Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
               public int compare(TorcVertex v1, TorcVertex v2) {
-                Long v1creationDate = Long.valueOf(v1.getProperty("creationDate").get(0));
-                Long v2creationDate = Long.valueOf(v2.getProperty("creationDate").get(0));
+                Long v1creationDate = ((Long)v1.getProperty("creationDate"));
+                Long v2creationDate = ((Long)v2.getProperty("creationDate"));
                 if (v1creationDate > v2creationDate)
                   return -1;
                 else if (v1creationDate < v2creationDate)
@@ -615,10 +615,10 @@ public class TorcDb extends Db {
         List<TorcVertex> msgList = new ArrayList<>(messages.vSet);
         // Messages are sorted in reverse chronological order.
         Collections.sort(msgList, c);
-       
+
         // Filter all messages more recent than the given maximum date. 
         msgList.removeIf(m -> {
-          Long creationDate = Long.valueOf(m.getProperty("creationDate").get(0));
+          Long creationDate = ((Long)m.getProperty("creationDate"));
           return creationDate > maxDate;
         });
 
@@ -638,11 +638,11 @@ public class TorcDb extends Db {
 
           result.add(new LdbcQuery2Result(
               f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
-              f.getProperty("firstName").get(0), //(String)t.get().get("firstName"), 
-              f.getProperty("lastName").get(0), //(String)t.get().get("lastName"),
+              ((String)f.getProperty("firstName")), //(String)t.get().get("firstName"), 
+              ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
               m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
-              m.getProperty("content").get(0), //(String)t.get().get("content"),
-              Long.valueOf(m.getProperty("creationDate").get(0)))); //Long.valueOf((String)t.get().get("creationDate"))))
+              ((String)m.getProperty("content")), //(String)t.get().get("content"),
+              ((Long)m.getProperty("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
         }
 
         if (doTransactionalReads) {
@@ -2013,7 +2013,7 @@ public class TorcDb extends Db {
 //          client.nanoLogPrint("Get properties of tagClasses");
           graph.fillProperties(tag_hasType_tagClass);
           tag_hasType_tagClass.vMap.entrySet().removeIf( e -> {
-              if (((List<TorcVertex>)e.getValue()).get(0).getProperty("name").get(0).equals(tagClassName)) {
+              if (((String)((List<TorcVertex>)e.getValue()).get(0).getProperty("name")).equals(tagClassName)) {
                 filteredTagSet.add((TorcVertex)e.getKey());
                 return true;
               }
@@ -2080,12 +2080,12 @@ public class TorcDb extends Db {
           List<TorcVertex> tagVertices = person_assocTags_tags.vMap.get(f);
           List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
           for (TorcVertex v : tagVertices) {
-            tagNameStrings.add(v.getProperty("name").get(0));
+            tagNameStrings.add(((String)v.getProperty("name")));
           }
           result.add(new LdbcQuery12Result(
               f.id().getLowerLong(),
-              f.getProperty("firstName").get(0),
-              f.getProperty("lastName").get(0),
+              ((String)f.getProperty("firstName")),
+              ((String)f.getProperty("lastName")),
               tagNameStrings,
               person_hasCreator_comment.vMap.get(f).size()));
         }
