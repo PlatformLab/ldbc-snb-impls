@@ -507,8 +507,8 @@ public class TorcDb extends Db {
               ((String)f.getProperty("gender")), //(String)t.get().get("gender"),
               ((String)f.getProperty("browserUsed")), //(String)t.get().get("browserUsed"),
               ((String)f.getProperty("locationIP")), //(String)t.get().get("locationIP"),
-              f.getProperty("emails"), //(List<String>)t.get().get("emails"),
-              f.getProperty("languages"), //(List<String>)t.get().get("languages"),
+              ((List<String>)f.getProperty("email")), //(List<String>)t.get().get("emails"),
+              ((List<String>)f.getProperty("language")), //(List<String>)t.get().get("languages"),
               ((String)match_place.vMap.get(f).get(0).getProperty("name")), //(String)t.get().get("placeName"),
               universityInfo, //(List<List<Object>>)t.get().get("universityInfo"),
               companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
