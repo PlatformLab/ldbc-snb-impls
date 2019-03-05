@@ -649,12 +649,16 @@ public class TorcDb extends Db {
           TorcVertex m = msgList.get(i);
           TorcVertex f = authors.vMap.get(m).get(0);
 
+          String content = (String)m.getProperty("content");
+          if (content.equals(""))
+            content = (String)m.getProperty("imageFile");
+
           result.add(new LdbcQuery2Result(
               f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
               ((String)f.getProperty("firstName")), //(String)t.get().get("firstName"), 
               ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
               m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
-              ((String)m.getProperty("content")), //(String)t.get().get("content"),
+              content, //(String)t.get().get("content"),
               ((Long)m.getProperty("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
         }
 
