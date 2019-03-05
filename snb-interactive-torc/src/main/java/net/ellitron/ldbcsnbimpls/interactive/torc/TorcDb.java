@@ -429,7 +429,7 @@ public class TorcDb extends Db {
                   Long v2Id = v2.id().getLowerLong();
                   if (v1Id > v2Id)
                     return 1;
-                  else if (v2Id < v2Id)
+                  else if (v1Id < v2Id)
                     return -1;
                   else
                     return 0;
