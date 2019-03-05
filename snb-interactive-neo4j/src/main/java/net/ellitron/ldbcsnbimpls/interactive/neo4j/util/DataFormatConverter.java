@@ -464,6 +464,8 @@ public class DataFormatConverter {
               } else if (nodeProps.get(i - 1).equals("creationDate")) {
                 outFile.append(String.valueOf(
                     creationDateDateFormat.parse(colVals[i]).getTime()) + "|");
+              } else if (propDataTypes.get(nodeProps.get(i - 1)).equals("string")) {
+                outFile.append("\"" + colVals[i] + "\"" + "|");
               } else {
                 outFile.append(colVals[i] + "|");
               }
@@ -596,6 +598,8 @@ public class DataFormatConverter {
                     outFile.append(String.valueOf(
                         creationDateDateFormat.parse(colVals[i]).getTime())
                         + "|");
+                  } else if (propDataTypes.get(relProps.get(i - 2)).equals("string")) {
+                    outFile.append("\"" + colVals[i] + "\"" + "|");
                   } else {
                     outFile.append(colVals[i] + "|");
                   }
