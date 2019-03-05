@@ -460,11 +460,11 @@ public class TorcDb extends Db {
           TorcVertex f = matches.get(j);
           int distance;
           if (j < l1_matches.size())
-            distance = 0;
-          else if (j < l1_matches.size() + l2_matches.size())
             distance = 1;
-          else
+          else if (j < l1_matches.size() + l2_matches.size())
             distance = 2;
+          else
+            distance = 3;
 
           List<TorcVertex> universities = match_universities.vMap.get(f);
           List<Map<Object, Object>> uniProps = match_universities.pMap.get(f);
