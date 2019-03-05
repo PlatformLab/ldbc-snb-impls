@@ -604,28 +604,39 @@ public class TorcDb extends Db {
                 Long v1creationDate = ((Long)v1.getProperty("creationDate"));
                 Long v2creationDate = ((Long)v2.getProperty("creationDate"));
                 if (v1creationDate > v2creationDate)
-                  return -1;
+                  return 1;
                 else if (v1creationDate < v2creationDate)
-                  return 1;
-                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                  return 1;
-                else
                   return -1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return -1;
+                else
+                  return 1;
               }
             };
 
-        List<TorcVertex> msgList = new ArrayList<>(messages.vSet);
-        // Messages are sorted in reverse chronological order.
-        Collections.sort(msgList, c);
+        PriorityQueue<TorcVertex> pq = new PriorityQueue(limit, c);
+        for (TorcVertex m : messages.vSet) {
+          Long creationDate = (Long)m.getProperty("creationDate");
+         
+          if (creationDate > maxDate)
+            continue;
 
-        // Filter all messages more recent than the given maximum date. 
-        msgList.removeIf(m -> {
-          Long creationDate = ((Long)m.getProperty("creationDate"));
-          return creationDate > maxDate;
-        });
+          if (pq.size() < limit) {
+            pq.add(m);
+            continue;
+          }
 
-        // Take top limit
-        msgList = msgList.subList(0, Math.min(msgList.size(), limit));
+          if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+            pq.add(m);
+            pq.poll();
+          }
+        }
+
+        // Create a list from the priority queue. This list will contain the
+        // messages in reverse order.
+        List<TorcVertex> msgList = new ArrayList<>(pq.size());
+        while (pq.size() > 0)
+          msgList.add(pq.poll());
 
         // Wish there was a good way to go back and find the authors from what
         // we have already read, but we don't have a great way to do that now,
@@ -634,7 +645,7 @@ public class TorcDb extends Db {
 
         graph.fillProperties(authors);
 
-        for (int i = 0; i < msgList.size(); i++) {
+        for (int i = msgList.size()-1; i >= 0; i--) {
           TorcVertex m = msgList.get(i);
           TorcVertex f = authors.vMap.get(m).get(0);
 
