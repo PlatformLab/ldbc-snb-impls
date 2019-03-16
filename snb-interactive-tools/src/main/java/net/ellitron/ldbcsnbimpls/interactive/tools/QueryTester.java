@@ -58,10 +58,16 @@ import org.docopt.Docopt;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -495,6 +501,10 @@ public class QueryTester {
     List<Object> argList = new ArrayList<>();
     for (int i = 0; i < update.params.length; i++) {
       String fieldValue = colVals.get(3 + i);
+      if (i == 0)
+        cmdParamStr = fieldValue;
+      else
+        cmdParamStr += " " + fieldValue;
       switch (paramDataTypes.get(update.params[i])) {
         case "Date":
           argList.add(new Date(Long.decode(fieldValue)));
@@ -549,44 +559,20 @@ public class QueryTester {
           String timeUnits)
       throws DbException {
 
-    Long[] timings = new Long[repeatCount];
+    Long[] latencyNanos = new Long[repeatCount];
+    Long[] startTimeMillis = new Long[repeatCount];
+    Long[] endTimeMillis = new Long[repeatCount];
 
-    long startTime, endTime;
+    long startNanos;
     for (int i = 0; i < repeatCount; i++) {
-      startTime = System.nanoTime();
+      startTimeMillis[i] = System.currentTimeMillis();
+      startNanos = System.nanoTime();
       opHandler.executeOperation(op, connectionState, resultReporter);
-      endTime = System.nanoTime();
-      timings[i] = endTime - startTime;
+      latencyNanos[i] = System.nanoTime() - startNanos;
+      endTimeMillis[i] = System.currentTimeMillis();
     }
-
-    Arrays.sort(timings);
-
-    long sum = 0;
-    long min = Long.MAX_VALUE;
-    long max = 0;
-    for (int i = 0; i < timings.length; i++) {
-      sum += timings[i];
-
-      if (timings[i] < min) {
-        min = timings[i];
-      }
-
-      if (timings[i] > max) {
-        max = timings[i];
-      }
-    }
-
-    long mean = sum / repeatCount;
-
-    int p25 = (int) (0.25 * (float) repeatCount);
-    int p50 = (int) (0.50 * (float) repeatCount);
-    int p75 = (int) (0.75 * (float) repeatCount);
-    int p90 = (int) (0.90 * (float) repeatCount);
-    int p95 = (int) (0.95 * (float) repeatCount);
-    int p99 = (int) (0.99 * (float) repeatCount);
 
     long nanosPerTimeUnit;
-
     switch (timeUnits) {
       case "NANOSECONDS":
         nanosPerTimeUnit = 1;
@@ -603,6 +589,52 @@ public class QueryTester {
       default:
         throw new RuntimeException("Unrecognized time unit: " + timeUnits);
     }
+
+    try {
+      BufferedWriter outFile =
+        Files.newBufferedWriter(Paths.get(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".csv"), StandardCharsets.UTF_8);
+
+      outFile.append("startmillis,endmillis,query_name,query_params,repeat_nr,lat_us\n");
+      for (int i = 0; i < latencyNanos.length; i++) {
+        outFile.append(String.format("%d,%d,%s,%s,%d,%d\n",
+              startTimeMillis[i],
+              endTimeMillis[i],
+              cmdStr,
+              cmdParamStr,
+              i+1,
+              latencyNanos[i] / nanosPerTimeUnit));
+      }
+
+      outFile.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    Arrays.sort(latencyNanos);
+
+    long sum = 0;
+    long min = Long.MAX_VALUE;
+    long max = 0;
+    for (int i = 0; i < latencyNanos.length; i++) {
+      sum += latencyNanos[i];
+
+      if (latencyNanos[i] < min) {
+        min = latencyNanos[i];
+      }
+
+      if (latencyNanos[i] > max) {
+        max = latencyNanos[i];
+      }
+    }
+
+    long mean = sum / repeatCount;
+
+    int p25 = (int) (0.25 * (float) repeatCount);
+    int p50 = (int) (0.50 * (float) repeatCount);
+    int p75 = (int) (0.75 * (float) repeatCount);
+    int p90 = (int) (0.90 * (float) repeatCount);
+    int p95 = (int) (0.95 * (float) repeatCount);
+    int p99 = (int) (0.99 * (float) repeatCount);
 
     System.out.println("Query:");
     System.out.println(op.toString());
@@ -625,12 +657,12 @@ public class QueryTester {
         min / nanosPerTimeUnit,
         max / nanosPerTimeUnit,
         mean / nanosPerTimeUnit,
-        timings[p25] / nanosPerTimeUnit,
-        timings[p50] / nanosPerTimeUnit,
-        timings[p75] / nanosPerTimeUnit,
-        timings[p90] / nanosPerTimeUnit,
-        timings[p95] / nanosPerTimeUnit,
-        timings[p99] / nanosPerTimeUnit));
+        latencyNanos[p25] / nanosPerTimeUnit,
+        latencyNanos[p50] / nanosPerTimeUnit,
+        latencyNanos[p75] / nanosPerTimeUnit,
+        latencyNanos[p90] / nanosPerTimeUnit,
+        latencyNanos[p95] / nanosPerTimeUnit,
+        latencyNanos[p99] / nanosPerTimeUnit));
   }
 
   public static OperationHandler<? extends Operation, DbConnectionState>
@@ -639,6 +671,8 @@ public class QueryTester {
         .forName(className).getConstructor().newInstance();
   }
 
+  static String cmdStr = "";
+  static String cmdParamStr = "";
   public static void main(String[] args) throws Exception {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
@@ -683,6 +717,7 @@ public class QueryTester {
     ComplexAndShortOp csop = null;
     for (ComplexAndShortOp op : ComplexAndShortOp.values()) {
       if ((Boolean) opts.get(op.command)) {
+        cmdStr = op.command;
         csop = op;
       }
     }
@@ -698,6 +733,10 @@ public class QueryTester {
       List<Object> opCtorArgs = new ArrayList<>();
       for (int i = 0; i < csop.opCtorParamTypes.length; i++) {
         String argValue = (String) opts.get(csop.opCtorParamVals[i]);
+        if (i == 0)
+          cmdParamStr = argValue;
+        else
+          cmdParamStr += " " + argValue;
         switch (csop.opCtorParamTypes[i].getSimpleName()) {
           case "Date": {
             opCtorArgs.add(new Date(Long.decode(argValue)));
@@ -740,6 +779,7 @@ public class QueryTester {
     UpdateOp uop = null;
     for (UpdateOp op : UpdateOp.values()) {
       if ((Boolean) opts.get(op.command)) {
+        cmdStr = op.command;
         uop = op;
       }
     }
