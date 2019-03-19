@@ -67,6 +67,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -591,12 +592,11 @@ public class QueryTester {
     }
 
     try {
-      BufferedWriter outFile =
-        Files.newBufferedWriter(Paths.get(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + ".csv"), StandardCharsets.UTF_8);
+      BufferedWriter latencyFile =
+        Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
-      outFile.append("startmillis,endmillis,query_name,query_params,repeat_nr,lat_us\n");
       for (int i = 0; i < latencyNanos.length; i++) {
-        outFile.append(String.format("%d,%d,%s,%s,%d,%d\n",
+        latencyFile.append(String.format("%d,%d,%s,%s,%d,%d\n",
               startTimeMillis[i],
               endTimeMillis[i],
               cmdStr,
@@ -605,7 +605,7 @@ public class QueryTester {
               latencyNanos[i] / nanosPerTimeUnit));
       }
 
-      outFile.close();
+      latencyFile.close();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -663,6 +663,30 @@ public class QueryTester {
         latencyNanos[p90] / nanosPerTimeUnit,
         latencyNanos[p95] / nanosPerTimeUnit,
         latencyNanos[p99] / nanosPerTimeUnit));
+
+    try {
+      BufferedWriter statsFile =
+        Files.newBufferedWriter(Paths.get("latency_stats.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+      statsFile.append(String.format("%d,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+            startTimeMillis[0],
+            endTimeMillis[repeatCount-1],
+            cmdStr,
+            cmdParamStr,
+            repeatCount,
+            min / nanosPerTimeUnit,
+            max / nanosPerTimeUnit,
+            latencyNanos[p25] / nanosPerTimeUnit,
+            latencyNanos[p50] / nanosPerTimeUnit,
+            latencyNanos[p75] / nanosPerTimeUnit,
+            latencyNanos[p90] / nanosPerTimeUnit,
+            latencyNanos[p95] / nanosPerTimeUnit,
+            latencyNanos[p99] / nanosPerTimeUnit));
+
+      statsFile.close();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static OperationHandler<? extends Operation, DbConnectionState>
