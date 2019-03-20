@@ -1272,49 +1272,6 @@ public class TorcDb extends Db {
                 coTagCounts.get(t).intValue()));
         }
 
-//        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-//          .withSideEffect("result", result).V(torcPersonId).as("person")
-//          .out("knows").hasLabel("Person")
-//          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-//          .as("friend")
-//          .in("hasCreator").hasLabel("Post")
-//          .as("post")
-//          .out("hasTag").hasLabel("Tag")
-//          .values("name")
-//          .as("tag")
-//          .group()
-//            .by(select("post"))
-//          .as("postToTagMap")
-//          .flatMap(t -> {
-//                  Map m = t.get();
-//                  List removeList = new ArrayList<Object>();
-//                  for (Object k : m.keySet()) {
-//                    List v = (List) m.get(k);
-//                    if ( !v.contains(tagName) )
-//                      removeList.add(k);
-//                  }
-//
-//                  for (Object k : removeList)
-//                    m.remove(k);
-//
-//                  return m.entrySet().iterator();
-//                })
-//          .select(values).unfold()
-//          .where(is(neq(tagName)))
-//          .groupCount()
-//          .order(local)
-//            .by(select(values), decr)
-//            .by(select(keys), incr)
-//          .limit(local, limit)
-//          .unfold()
-//          .project("tagName", "postCount")
-//            .by(select(keys))
-//            .by(select(values))
-//          .map(t -> new LdbcQuery6Result(
-//              (String)(((Traverser<Map>)t).get().get("tagName")), 
-//              ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
-//          .store("result").iterate(); 
-
         if (doTransactionalReads) {
           try {
             graph.tx().commit();
@@ -1622,55 +1579,94 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person")
-          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-          .as("friend")
-          .in("hasCreator").hasLabel("Comment", "Post")
-          .as("commentOrPost")
-          .values("creationDate")
-          .map(t -> Long.valueOf((String)t.get()))
-          .as("creationDate")
-          .where(is(lt(maxDate)))
-          .order()
-            .by(decr)
-            .by(select("friend").id(), incr)
-          .limit(limit)
-          .project("personId", 
-              "personFirstName", 
-              "personLastName", 
-              "commentOrPostId",
-              "commentOrPostContent",
-              "commentOrPostCreationDate")
-              .by(select("friend").id())
-              .by(select("friend").values("firstName"))
-              .by(select("friend").values("lastName"))
-              .by(select("commentOrPost").id())
-              .by(select("commentOrPost")
-                  .choose(values("content").is(neq("")),
-                      values("content"),
-                      values("imageFile")))
-              .by(select("creationDate"))
-          .map(t -> new LdbcQuery9Result(
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("personFirstName"), 
-              (String)t.get().get("personLastName"),
-              ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
-              (String)t.get().get("commentOrPostContent"),
-              (Long)t.get().get("commentOrPostCreationDate")))
-          .store("result").iterate(); 
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+
+        TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
+
+        Set<TorcVertex> friends = new HashSet<>(l1_friends.vSet.size() + l2_friends.vSet.size());
+        friends.addAll(l1_friends.vSet);
+        friends.addAll(l2_friends.vSet);
+        friends.remove(start);
+
+        TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
+        
+        graph.fillProperties(messages.vSet);
+
+        // Sort the Posts and Comments by their creation date.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Long v1creationDate = ((Long)v1.getProperty("creationDate"));
+                Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+                if (v1creationDate > v2creationDate)
+                  return 1;
+                else if (v1creationDate < v2creationDate)
+                  return -1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return -1;
+                else
+                  return 1;
+              }
+            };
+
+        PriorityQueue<TorcVertex> pq = new PriorityQueue(limit, c);
+        for (TorcVertex m : messages.vSet) {
+          Long creationDate = (Long)m.getProperty("creationDate");
+         
+          if (creationDate >= maxDate)
+            continue;
+
+          if (pq.size() < limit) {
+            pq.add(m);
+            continue;
+          }
+
+          if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+            pq.add(m);
+            pq.poll();
+          }
+        }
+
+        // Create a list from the priority queue. This list will contain the
+        // messages in reverse order.
+        List<TorcVertex> msgList = new ArrayList<>(pq.size());
+        while (pq.size() > 0)
+          msgList.add(pq.poll());
+
+        // Wish there was a good way to go back and find the authors from what
+        // we have already read, but we don't have a great way to do that now,
+        // so go and read the authors.
+        TraversalResult authors = graph.traverse(msgList, "hasCreator", Direction.OUT, false, "Person");
+
+        graph.fillProperties(authors);
+
+        for (int i = msgList.size()-1; i >= 0; i--) {
+          TorcVertex m = msgList.get(i);
+          TorcVertex f = authors.vMap.get(m).get(0);
+
+          String content = (String)m.getProperty("content");
+          if (content.equals(""))
+            content = (String)m.getProperty("imageFile");
+
+          result.add(new LdbcQuery9Result(
+              f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
+              ((String)f.getProperty("firstName")), //(String)t.get().get("firstName"), 
+              ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
+              m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
+              content, //(String)t.get().get("content"),
+              ((Long)m.getProperty("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
+        }
 
         if (doTransactionalReads) {
           try {
@@ -1682,7 +1678,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
