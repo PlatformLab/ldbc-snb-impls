@@ -1189,59 +1189,131 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person")
-          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-          .as("friend")
-          .in("hasCreator").hasLabel("Post")
-          .as("post")
-          .out("hasTag").hasLabel("Tag")
-          .values("name")
-          .as("tag")
-          .group()
-            .by(select("post"))
-          .as("postToTagMap")
-          .flatMap(t -> {
-                  Map m = t.get();
-                  List removeList = new ArrayList<Object>();
-                  for (Object k : m.keySet()) {
-                    List v = (List) m.get(k);
-                    if ( !v.contains(tagName) )
-                      removeList.add(k);
-                  }
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
 
-                  for (Object k : removeList)
-                    m.remove(k);
+        TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
 
-                  return m.entrySet().iterator();
-                })
-          .select(values).unfold()
-          .where(is(neq(tagName)))
-          .groupCount()
-          .order(local)
-            .by(select(values), decr)
-            .by(select(keys), incr)
-          .limit(local, limit)
-          .unfold()
-          .project("tagName", "postCount")
-            .by(select(keys))
-            .by(select(values))
-          .map(t -> new LdbcQuery6Result(
-              (String)(((Traverser<Map>)t).get().get("tagName")), 
-              ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
-          .store("result").iterate(); 
+        Set<TorcVertex> friends = new HashSet<>(l1_friends.vSet.size() + l2_friends.vSet.size());
+        friends.addAll(l1_friends.vSet);
+        friends.addAll(l2_friends.vSet);
+        friends.remove(start);
+
+        TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post");
+        TraversalResult tags = graph.traverse(posts, "hasTag", Direction.OUT, false, "Tag");
+
+        graph.fillProperties(tags);
+
+        Map<TorcVertex, Long> coTagCounts = new HashMap<>();
+        for (TorcVertex p : tags.vMap.keySet()) {
+          boolean hasTag = false;
+          for (TorcVertex t : tags.vMap.get(p)) {
+            if (((String)t.getProperty("name")).equals(tagName)) {
+              hasTag = true;
+              break;
+            }
+          }
+
+          if (hasTag) {
+            for (TorcVertex t : tags.vMap.get(p)) {
+              if (!((String)t.getProperty("name")).equals(tagName)) {
+                if (coTagCounts.containsKey(t)) {
+                  coTagCounts.put(t, coTagCounts.get(t) + 1);
+                } else {
+                  coTagCounts.put(t, 1L);
+                }
+              }
+            } 
+          }
+        }
+
+        List<TorcVertex> coTags = new ArrayList<>(coTagCounts.keySet());
+
+        // Sort tags by count
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex t1, TorcVertex t2) {
+                Long t1Count = coTagCounts.get(t1);
+                Long t2Count = coTagCounts.get(t2);
+
+                if (t1Count != t2Count) {
+                  // Tag count sort is descending
+                  if (t1Count > t2Count)
+                    return -1;
+                  else
+                    return 1;
+                } else {
+                  String t1Name = (String)t1.getProperty("name");
+                  String t2Name = (String)t2.getProperty("name");
+                  return t1Name.compareTo(t2Name);
+                }
+              }
+            };
+
+        Collections.sort(coTags, c);
+
+        List<TorcVertex> topCoTags = coTags.subList(0, Math.min(coTags.size(), limit));
+
+        for (int i = 0; i < topCoTags.size(); i++) {
+          TorcVertex t = topCoTags.get(i);
+
+          result.add(new LdbcQuery6Result(
+                (String)t.getProperty("name"),
+                coTagCounts.get(t).intValue()));
+        }
+
+//        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
+//          .withSideEffect("result", result).V(torcPersonId).as("person")
+//          .out("knows").hasLabel("Person")
+//          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
+//          .as("friend")
+//          .in("hasCreator").hasLabel("Post")
+//          .as("post")
+//          .out("hasTag").hasLabel("Tag")
+//          .values("name")
+//          .as("tag")
+//          .group()
+//            .by(select("post"))
+//          .as("postToTagMap")
+//          .flatMap(t -> {
+//                  Map m = t.get();
+//                  List removeList = new ArrayList<Object>();
+//                  for (Object k : m.keySet()) {
+//                    List v = (List) m.get(k);
+//                    if ( !v.contains(tagName) )
+//                      removeList.add(k);
+//                  }
+//
+//                  for (Object k : removeList)
+//                    m.remove(k);
+//
+//                  return m.entrySet().iterator();
+//                })
+//          .select(values).unfold()
+//          .where(is(neq(tagName)))
+//          .groupCount()
+//          .order(local)
+//            .by(select(values), decr)
+//            .by(select(keys), incr)
+//          .limit(local, limit)
+//          .unfold()
+//          .project("tagName", "postCount")
+//            .by(select(keys))
+//            .by(select(values))
+//          .map(t -> new LdbcQuery6Result(
+//              (String)(((Traverser<Map>)t).get().get("tagName")), 
+//              ((Long)(((Traverser<Map>)t).get().get("postCount"))).intValue()))
+//          .store("result").iterate(); 
 
         if (doTransactionalReads) {
           try {
@@ -1253,7 +1325,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
