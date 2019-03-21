@@ -102,6 +102,10 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
+import org.openjdk.jol.info.ClassLayout;
+import org.openjdk.jol.info.GraphLayout;
+import org.openjdk.jol.vm.VM;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -765,8 +769,20 @@ public class TorcDb extends Db {
         });
 
         TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
-        
+       
+        TorcVertex aMsg = null; 
+        for (TorcVertex v : messages.vSet) {
+          aMsg = v;
+          break;
+        }
+
         graph.fillProperties(messages.vSet);
+
+        System.out.println(VM.current().details());
+//        System.out.println(GraphLayout.parseInstance(graph).toFootprint());
+        System.out.println(GraphLayout.parseInstance(aMsg.getProperties()).toFootprint());
+
+        System.exit(0);
 
         // Filter out all messages not in the given time window.
         messages.vSet.removeIf(m -> {
