@@ -770,19 +770,7 @@ public class TorcDb extends Db {
 
         TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
        
-        TorcVertex aMsg = null; 
-        for (TorcVertex v : messages.vSet) {
-          aMsg = v;
-          break;
-        }
-
         graph.fillProperties(messages.vSet);
-
-        System.out.println(VM.current().details());
-//        System.out.println(GraphLayout.parseInstance(graph).toFootprint());
-        System.out.println(GraphLayout.parseInstance(aMsg.getProperties()).toFootprint());
-
-        System.exit(0);
 
         // Filter out all messages not in the given time window.
         messages.vSet.removeIf(m -> {
