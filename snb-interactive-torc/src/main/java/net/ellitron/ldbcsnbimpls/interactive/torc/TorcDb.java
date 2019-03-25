@@ -770,7 +770,7 @@ public class TorcDb extends Db {
 
         TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
        
-        graph.fillProperties(messages.vSet);
+        graph.fillProperties(messages.vSet, "creationDate");
 
         // Filter out all messages not in the given time window.
         messages.vSet.removeIf(m -> {
@@ -779,6 +779,8 @@ public class TorcDb extends Db {
         });
 
         TraversalResult messageLocation = graph.traverse(messages.vSet, "isLocatedIn", Direction.OUT, false, "Place");
+
+        graph.fillProperties(messageLocation.vSet, "name");
 
         // Filter out all messages not in countryX or countryY.
         messages.vSet.removeIf(m -> {
