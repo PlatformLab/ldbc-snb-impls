@@ -1608,7 +1608,7 @@ public class TorcDb extends Db {
 
         TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
         
-        graph.fillProperties(messages.vSet);
+        graph.fillProperties(messages.vSet, "creationDate");
 
         // Sort the Posts and Comments by their creation date.
         Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
@@ -1656,6 +1656,7 @@ public class TorcDb extends Db {
         TraversalResult authors = graph.traverse(msgList, "hasCreator", Direction.OUT, false, "Person");
 
         graph.fillProperties(authors);
+        graph.fillProperties(msgList);
 
         for (int i = msgList.size()-1; i >= 0; i--) {
           TorcVertex m = msgList.get(i);
