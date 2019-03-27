@@ -1065,77 +1065,104 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery5Result> result = new ArrayList<>(limit);
-        List<Vertex> forums = new ArrayList<>();
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).withSideEffect("forums", forums)
-          .V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person")
-          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person"))
-          .as("friend")
-          .aggregate("friendAgg")
-          .inE("hasMember")
-          .as("memberEdge")
-          .values("joinDate")
-          .filter(t -> {
-                    long date = Long.valueOf((String)t.get());
-                    return date > minDate;
-                })
-          .select("memberEdge")
-          .outV().hasLabel("Forum")
-          .store("forums")
-          .barrier()
-          .group()
-            .by(select("friend"))
-          .as("friendForums")
-          .select("friendAgg")
-          .unfold()
-          .as("friend")
-          .in("hasCreator").hasLabel("Comment", "Post")
-          .as("post")
-          .in("containerOf").hasLabel("Forum")
-          .as("forum")
-          .filter(t -> {
-                    Map<Vertex, List<Vertex>> m = t.path("friendForums");
-                    Vertex v = t.path("friend");
-                    List<Vertex> friendForums = m.get(v);
-                    Vertex thisForum = t.get();
-                    if (friendForums == null)
-                      return false;
-                    else
-                      return friendForums.contains(thisForum);
-                })
-          .groupCount()
-          .map(t -> {
-                  Map<Object, Long> m = t.get();
-                  for (Vertex v : forums) {
-                    if (!m.containsKey((Object)v))
-                      m.put(v, 0L);
-                  }
-                  return t.get();
-              })
-          .order(local)
-            .by(select(values), decr)
-            .by(select(keys).id(), incr)
-          .limit(local, limit)
-          .unfold()
-          .project("forumTitle", "postCount")
-            .by(select(keys).values("title"))
-            .by(select(values))
-          .map(t -> new LdbcQuery5Result(
-              (String)(t.get().get("forumTitle")), 
-              ((Long)(t.get().get("postCount"))).intValue()))
-          .store("result").iterate(); 
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+        
+        TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
+
+        Set<TorcVertex> friends = new HashSet<>(l1_friends.vSet.size() + l2_friends.vSet.size());
+        friends.addAll(l1_friends.vSet);
+        friends.addAll(l2_friends.vSet);
+        friends.remove(start);
+
+        TraversalResult friendForums = graph.traverse(friends, "hasMember", Direction.IN, true, "Forum");
+
+        // Filter out all edges with joinDate <= minDate
+        TorcHelper.removeEdgeIf(friendForums, (v, p) -> { 
+          if ((Long)p.get("joinDate") < minDate)
+            return true;
+          else 
+            return false;
+        });
+
+        // Invert the friendForums mapping so we get a list of all the friends
+        // that joined a given forum after a certain date.
+        Map<TorcVertex, Set<TorcVertex>> forumFriends = new HashMap<>(friendForums.vSet.size());
+        for (TorcVertex friend : friendForums.vMap.keySet()) {
+          List<TorcVertex> forums = friendForums.vMap.get(friend);
+          for (TorcVertex forum : forums) {
+            if (forumFriends.containsKey(forum))
+              forumFriends.get(forum).add(friend);
+            else {
+              Set<TorcVertex> fSet = new HashSet<>();
+              fSet.add(friend);
+              forumFriends.put(forum, fSet);
+            }
+          }
+        }
+
+        TraversalResult forumPosts = graph.traverse(friendForums, "containerOf", Direction.OUT, false, "Post");
+        TraversalResult postAuthor = graph.traverse(forumPosts, "hasCreator", Direction.OUT, false, "Person");
+        TraversalResult forumAuthors = TorcHelper.fuse(forumPosts, postAuthor, false);
+
+        Map<TorcVertex, Integer> forumFriendPostCounts = new HashMap<>(forumAuthors.vMap.size());
+        for (TorcVertex forum : forumAuthors.vMap.keySet()) {
+          List<TorcVertex> authors = forumAuthors.vMap.get(forum);
+          authors.retainAll(forumFriends.get(forum));
+          if (authors.size() > 0)
+            forumFriendPostCounts.put(forum, authors.size());
+        }
+
+        List<TorcVertex> forums = new ArrayList<>(forumFriendPostCounts.keySet());
+
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Integer forum1FriendPostCount = forumFriendPostCounts.get(v1);
+                Integer forum2FriendPostCount = forumFriendPostCounts.get(v2);
+
+                if (forum1FriendPostCount != forum2FriendPostCount) {
+                  // Post count sort is descending
+                  if (forum1FriendPostCount > forum2FriendPostCount)
+                    return -1;
+                  else
+                    return 1;
+                } else {
+                  Long v1Id = v1.id().getLowerLong();
+                  Long v2Id = v2.id().getLowerLong();
+                  // IDs are ascending
+                  if (v1Id > v2Id)
+                    return 1;
+                  else
+                    return -1;
+                }
+              }
+            };
+
+        Collections.sort(forums, c);
+
+        // Take top limit
+        forums = forums.subList(0, Math.min(forums.size(), limit));
+
+        graph.fillProperties(forums);
+
+        for (int i = 0; i < forums.size(); i++) {
+          TorcVertex forum = forums.get(i);
+
+          result.add(new LdbcQuery5Result(
+              (String)forum.getProperty("forumTitle"), 
+              forumFriendPostCounts.get(forum)));
+        }
 
         if (doTransactionalReads) {
           try {
@@ -1147,7 +1174,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
