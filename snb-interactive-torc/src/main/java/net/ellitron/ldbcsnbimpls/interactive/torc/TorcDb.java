@@ -1375,64 +1375,176 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .in("hasCreator").hasLabel("Comment", "Post").as("message")
-          .inE("likes").as("like")
-          .outV().hasLabel("Person").as("liker")
-          .order()
-              .by(select("like").values("creationDate"), decr)
-              .by(select("message").id(), incr)
-          .dedup()
-              .by(select("liker"))
-          .limit(limit)
-          .project("personId", 
-              "personFirstName", 
-              "personLastName", 
-              "likeCreationDate", 
-              "commentOrPostId",
-              "commentOrPostContent",
-              "commentOrPostCreationDate",
-              "isNew") 
-              .by(select("liker").id())
-              .by(select("liker").values("firstName"))
-              .by(select("liker").values("lastName"))
-              .by(select("like").values("creationDate")
-                  .map(t -> Long.valueOf((String)t.get())))
-              .by(select("message").id())
-              .by(select("message")
-                  .choose(values("content").is(neq("")),
-                      values("content"),
-                      values("imageFile")))
-              .by(select("message").values("creationDate")
-                  .map(t -> Long.valueOf((String)t.get())))
-              .by(choose(
-                  where(select("person").out("knows").hasLabel("Person").as("liker")),
-                  constant(false),
-                  constant(true)))
-          .map(t -> new LdbcQuery7Result(
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("personFirstName"), 
-              (String)t.get().get("personLastName"),
-              (Long)t.get().get("likeCreationDate"),
-              ((UInt128)t.get().get("commentOrPostId")).getLowerLong(), 
-              (String)t.get().get("commentOrPostContent"),
-              (int)(((Long)t.get().get("likeCreationDate") 
-                  - (Long)t.get().get("commentOrPostCreationDate")) 
-                  / (1000l * 60l)),
-              (Boolean)t.get().get("isNew")))
-          .store("result").iterate(); 
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+
+        TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");        
+        TraversalResult messages = graph.traverse(start, "hasCreator", Direction.IN, false, "Post", "Comment");
+        TraversalResult likes = graph.traverse(messages, "likes", Direction.IN, true, "Person");
+
+        Map<TorcVertex, Long> personMostRecentLikeDate = new HashMap<>();
+        Map<TorcVertex, TorcVertex> personMostRecentLikeMsg = new HashMap<>();
+        Long minLikeDate = Long.MAX_VALUE;
+        int numMinLikeDates = 0;
+        for (TorcVertex msg : likes.vMap.keySet()) {
+          List<TorcVertex> likers = likes.vMap.get(msg);
+          List<Map<Object, Object>> likeProps = likes.pMap.get(msg);
+
+          for (int i = 0; i < likers.size(); i++) {
+            TorcVertex liker = likers.get(i);
+            Long likeDate = (Long)likeProps.get(i).get("creationDate");
+            if (personMostRecentLikeDate.containsKey(liker)) {
+              // We already have a most recent like date registered for this
+              // person. Check if the new like date is more recent and, if so,
+              // update the map. Also check if this changes the least recent
+              // like date contained in the map.
+              Long currLikeDate = personMostRecentLikeDate.get(liker);
+              if (currLikeDate < likeDate) {
+                personMostRecentLikeDate.put(liker, likeDate);
+                personMostRecentLikeMsg.put(liker, msg);
+                if (currLikeDate == minLikeDate) {
+                  if (numMinLikeDates == 1) { 
+                    Long newMinLikeDate = Long.MAX_VALUE;
+                    for (Long date : personMostRecentLikeDate.values()) {
+                      if (date < newMinLikeDate) {
+                        newMinLikeDate = date;
+                        numMinLikeDates = 1;
+                      } else if (date == newMinLikeDate) {
+                        numMinLikeDates++;
+                      }
+                    }
+                    minLikeDate = newMinLikeDate;
+                  } else {
+                    numMinLikeDates--;
+                  }
+                }
+              } else if (currLikeDate == likeDate) {
+                // In this case when a person has liked more than one message at
+                // the same time, we are to choose the message that has the
+                // lower identifier.
+                TorcVertex currMsg = personMostRecentLikeMsg.get(liker);
+                if (msg.id().getLowerLong() < currMsg.id().getLowerLong())
+                  personMostRecentLikeMsg.put(liker, msg);
+              }
+            } else if (personMostRecentLikeDate.size() < limit) {
+              // If haven't collected enough people yet, and we have someone we
+              // haven't seen before here, then automatically insert them into
+              // the map.
+              personMostRecentLikeDate.put(liker, likeDate);
+              personMostRecentLikeMsg.put(liker, msg);
+              if (likeDate < minLikeDate) {
+                minLikeDate = likeDate;
+                numMinLikeDates = 1;
+              } else if (likeDate == minLikeDate) {
+                numMinLikeDates++;
+              }
+            } else {
+              // The map is full of "limit" entries and we haven't seen this
+              // person before. If the likeDate is less recent than our current
+              // minimum, then we can reject this entry outright. If the
+              // likeDate is equal to our current minimum, then we just keep it,
+              // and we'll sort out the minimums by vertex ID in the end to
+              // figure out which ones make it into the final result. Otherwise,
+              // if the likeDate is more recent than the minimum, then we add
+              // it, and check if the number above the minimum has hit our
+              // limit... in this case we can cut off the minimums entirely.
+              if (likeDate < minLikeDate) {
+                continue;
+              } else if (likeDate == minLikeDate) {
+                personMostRecentLikeDate.put(liker, likeDate);
+                personMostRecentLikeMsg.put(liker, msg);
+                numMinLikeDates++;
+              } else {
+                personMostRecentLikeDate.put(liker, likeDate);
+                personMostRecentLikeMsg.put(liker, msg);
+
+                if (personMostRecentLikeDate.size() - numMinLikeDates >= limit) {
+                  Map<TorcVertex, Long> newPersonMostRecentLikeDate = new HashMap<>();
+                  Map<TorcVertex, TorcVertex> newPersonMostRecentLikeMsg = new HashMap<>();
+
+                  Long newMinLikeDate = Long.MAX_VALUE;
+                  for (TorcVertex v : personMostRecentLikeDate.keySet()) {
+                    Long date = personMostRecentLikeDate.get(v);
+                    if (date != minLikeDate) {
+                      newPersonMostRecentLikeDate.put(v, date);
+                      newPersonMostRecentLikeMsg.put(v, personMostRecentLikeMsg.get(v));
+
+                      if (date < newMinLikeDate) {
+                        newMinLikeDate = date;
+                        numMinLikeDates = 1;
+                      } else if (date == newMinLikeDate) {
+                        numMinLikeDates++;
+                      }
+                    }
+                  }
+
+                  personMostRecentLikeDate = newPersonMostRecentLikeDate;
+                  personMostRecentLikeMsg = newPersonMostRecentLikeMsg;
+                  minLikeDate = newMinLikeDate;
+                }
+              }
+            }
+          }
+        }
+
+        List<TorcVertex> likersList = new ArrayList<>(personMostRecentLikeDate.keySet());
+
+        // Sort the likers by their creation date (descending in creationDate
+        // and ascending in id).
+        final Map<TorcVertex, Long> likeDates = personMostRecentLikeDate;
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Long v1likeDate = likeDates.get(v1);
+                Long v2likeDate = likeDates.get(v2);
+                if (v1likeDate > v2likeDate)
+                  return -1;
+                else if (v1likeDate < v2likeDate)
+                  return 1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return 1;
+                else
+                  return -1;
+              }
+            };
+
+        Collections.sort(likersList, c);
+        
+        List<TorcVertex> topLikers = likersList.subList(0, Math.min(likersList.size(), limit));
+
+        graph.fillProperties(topLikers);
+
+        for (int i = 0; i < topLikers.size(); i++) {
+          TorcVertex liker = topLikers.get(i);
+          Long likeDate = personMostRecentLikeDate.get(liker);
+          TorcVertex msg = personMostRecentLikeMsg.get(liker);
+
+          String content = (String)msg.getProperty("content");
+          if (content.equals(""))
+            content = (String)msg.getProperty("imageFile");
+
+          Long latencyMinutes = 
+            (likeDate - (Long)msg.getProperty("creationDate")) / (1000l * 60l);
+
+          result.add(new LdbcQuery7Result(
+              liker.id().getLowerLong(), 
+              (String)liker.getProperty("firstName"),
+              (String)liker.getProperty("lastName"),
+              likeDate,
+              msg.id().getLowerLong(),
+              content,
+              latencyMinutes.intValue(),
+              friends.vSet.contains(liker)));
+        }
 
         if (doTransactionalReads) {
           try {
@@ -1444,7 +1556,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
