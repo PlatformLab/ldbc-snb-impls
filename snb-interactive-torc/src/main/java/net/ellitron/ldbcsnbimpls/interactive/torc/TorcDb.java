@@ -2106,47 +2106,60 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPersonId).as("person")
-          .out("knows").hasLabel("Person")
-          .union(identity(), out("knows").hasLabel("Person")).dedup().where(neq("person")).as("friend")
-          .outE("workAt").has("workFrom", lt(String.valueOf(workFromYear)))
-          .as("workAt")
-          .inV().hasLabel("Organisation").as("company")
-          .out("isLocatedIn").hasLabel("Place").has("name", countryName)
-          .order()
-              .by(select("workAt").values("workFrom"), incr)
-              .by(select("friend").id())
-              .by(select("company").values("name"), decr)
-          .limit(limit)
-          .project("personId", 
-              "personFirstName", 
-              "personLastName", 
-              "organizationName", 
-              "organizationWorkFromYear")
-              .by(select("friend").id())
-              .by(select("friend").values("firstName"))
-              .by(select("friend").values("lastName"))
-              .by(select("company").values("name"))
-              .by(select("workAt").values("workFrom"))
-          .map(t -> new LdbcQuery11Result(
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+        TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
+
+        Set<TorcVertex> friends = new HashSet<>(l1_friends.vSet.size() + l2_friends.vSet.size());
+        friends.addAll(l1_friends.vSet);
+        friends.addAll(l2_friends.vSet);
+        friends.remove(start);
+       
+        TraversalResult company = graph.traverse(friends, "workAt", Direction.OUT, true, "Organisation");
+
+        // Filter out all edges with joinDate <= minDate
+        TorcHelper.removeEdgeIf(company, (v, p) -> { 
+          if (Long.valueOf((String)p.get("workFrom")) >= workFromYear)
+            return true;
+          else 
+            return false;
+        });
+
+        TraversalResult country = graph.traverse(company, "isLocatedIn", Direction.OUT, false, "Place");
+
+        graph.fillProperties(country, "name");
+
+        company.vSet.removeIf(c -> {
+          return ((String)country.vMap.get(c).get(0).getProperty("name")).equals(countryName);
+        });
+        
+        graph.fillProperties(fList);
+
+        for (int i = 0; i < fList.size(); i++) {
+          TorcVertex f = fList.get(i);
+
+          result.add(new LdbcQuery11Result(
+                f.id().getLowerLong(),
+                f.getProperty("firstName"),
+                f.getProperty("lastName"),
+                
               ((UInt128)t.get().get("personId")).getLowerLong(),
               (String)t.get().get("personFirstName"), 
               (String)t.get().get("personLastName"),
               (String)t.get().get("organizationName"),
-              Integer.valueOf((String)t.get().get("organizationWorkFromYear"))))
-          .store("result").iterate(); 
+              Integer.valueOf((String)t.get().get("organizationWorkFromYear"))));
+        }
 
         if (doTransactionalReads) {
           try {
@@ -2158,7 +2171,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
