@@ -1920,119 +1920,127 @@ public class TorcDb extends Db {
       final UInt128 torcPersonId = 
           new UInt128(TorcEntity.PERSON.idSpace, personId);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
-
-        List<Map<UInt128, Long>> postCountMap = new ArrayList<>();
-        List<Map<UInt128, Long>> commonPostCountMap = new ArrayList<>();
-        List<UInt128> friendIds = new ArrayList<>();
-
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("postCountMap", postCountMap)
-          .withSideEffect("commonPostCountMap", commonPostCountMap)
-          .withSideEffect("friendIds", friendIds)
-          .withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .V(torcPersonId).as("person")
-          .aggregate("done")
-          .out("hasInterest").hasLabel("Tag")
-          .aggregate("personInterests")
-          .select("person").out("knows").hasLabel("Person")
-          .aggregate("done")
-          .out("knows").hasLabel("Person").where(without("done")).dedup()
-          .filter(t -> {
-              calendar.setTimeInMillis(
-                  Long.valueOf(t.get().value("birthday")));
-              int bmonth = calendar.get(Calendar.MONTH); // zero based 
-              int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
-              if ((bmonth == month && bday >= 21) || 
-                (bmonth == ((month + 1) % 12) && bday < 22)) {
-                return true;
-              }
-              return false;
-          }).as("friend2")
-          .sideEffect(id().store("friendIds"))
-          .in("hasCreator").hasLabel("Post").as("posts")
-          .union(
-              groupCount().by(select("friend2").id()).store("postCountMap"),
-              out("hasTag").hasLabel("Tag").where(within("personInterests")).select("posts").dedup().groupCount().by(select("friend2").id()).store("commonPostCountMap")
-              )
-          .iterate();
-
-        Map<UInt128, Long> totalMap = postCountMap.get(0);
-        Map<UInt128, Long> commonMap = commonPostCountMap.get(0);
-        Map<UInt128, Long> scoreMap = new HashMap<>();
-
-        for (Map.Entry<UInt128, Long> entry : totalMap.entrySet()) {
-          UInt128 id = entry.getKey();
-          Long totalPosts = entry.getValue();
-
-          Long commonPosts = 0l;
-          if (commonMap.containsKey(id)) {
-            commonPosts = commonMap.get(id);
-          }
-
-          Long commonInterestScore = 2*commonPosts - totalPosts;
-
-          scoreMap.put(id, commonInterestScore);
-        }
-
-        for (UInt128 friendId : friendIds) {
-          if (!scoreMap.containsKey(friendId)) {
-            scoreMap.put(friendId, 0l);
-          }
-        }
-
-        List<Map.Entry<UInt128, Long>> scoreList =
-            new LinkedList<>(scoreMap.entrySet());
-
-        Collections.sort(scoreList, 
-            new Comparator<Map.Entry<UInt128, Long>>() {
-              public int compare( Map.Entry<UInt128, Long> o1, 
-                  Map.Entry<UInt128, Long> o2 ) {
-                if ((o1.getValue()).compareTo(o2.getValue()) != 0) {
-                  return -1*(o1.getValue()).compareTo(o2.getValue());
-                } else {
-                  return (o1.getKey()).compareTo(o2.getKey());
-                }
-              }
-            } 
-        );
-
-        List<UInt128> topFriends = new ArrayList<>();
-
-        for (int i = 0; i < limit; i++) {
-          topFriends.add(scoreList.get(i).getKey());
-        }
+          graph.disableTx();
 
         List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result)
-          .V(topFriends.toArray())
-          .project("personId", 
-              "personFirstName", 
-              "personLastName", 
-              "personGender",
-              "personCityName")
-              .by(id())
-              .by(values("firstName"))
-              .by(values("lastName"))
-              .by(values("gender"))
-              .by(out("isLocatedIn").hasLabel("Place").values("name"))
-          .map(t -> new LdbcQuery10Result(
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("personFirstName"), 
-              (String)t.get().get("personLastName"),
-              scoreMap.get(t.get().get("personId")).intValue(),
-              (String)t.get().get("personGender"), 
-              (String)t.get().get("personCityName")))
-          .store("result").iterate(); 
+        TorcVertex start = new TorcVertex(graph, torcPersonId);
+        TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
+
+        l2_friends.vSet.removeAll(l1_friends.vSet);
+        l2_friends.vSet.remove(start);
+
+        graph.fillProperties(l2_friends.vSet, "birthday"); 
+
+        // Filter by birthday
+        l2_friends.vSet.removeIf(f -> {
+          calendar.setTimeInMillis((Long)f.getProperty("birthday"));
+          int bmonth = calendar.get(Calendar.MONTH); // zero based 
+          int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
+          if ((bmonth == month && bday >= 21) || 
+              (bmonth == ((month + 1) % 12) && bday < 22)) {
+            return false;
+          }
+          return true;
+        });
+
+        TraversalResult posts = graph.traverse(l2_friends.vSet, "hasCreator", Direction.IN, false, "Post");
+        TraversalResult tags = graph.traverse(posts, "hasTag", Direction.OUT, false, "Tag");
+
+        TraversalResult interests = graph.traverse(start, "hasInterest", Direction.OUT, false, "Tag");
+
+        // For each l2 friend calculate the similarity score.
+        Map<TorcVertex, Long> similarityScore = new HashMap<>();
+        for (TorcVertex f : l2_friends.vSet) {
+          if (posts.vMap.containsKey(f)) {
+            long common = 0;
+            long uncommon = 0;
+            for (TorcVertex p : posts.vMap.get(f)) {
+              if (tags.vMap.containsKey(p)) {
+                for (TorcVertex t : tags.vMap.get(p)) {
+                  if (interests.vSet.contains(t)) {
+                    common++;
+                    break;
+                  }
+                }
+              }
+            }
+            uncommon = posts.vMap.get(f).size() - common;
+            similarityScore.put(f, new Long(common - uncommon));
+          } else {
+            similarityScore.put(f, new Long(0L));
+          }
+        }
+
+        // Sort the friends by their similarity score
+        // Here the comparator defines an ascending order because the priority
+        // queue's head is the first element in sorted order, which we would
+        // like to be the least element.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                Long v1similarityScore = similarityScore.get(v1);
+                Long v2similarityScore = similarityScore.get(v2);
+                if (v1similarityScore > v2similarityScore)
+                  return 1;
+                else if (v1similarityScore < v2similarityScore)
+                  return -1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return -1;
+                else
+                  return 1;
+              }
+            };
+
+        PriorityQueue<TorcVertex> pq = new PriorityQueue(limit, c);
+        for (TorcVertex f : l2_friends.vSet) {
+          Long score = (Long)similarityScore.get(f);
+         
+          if (pq.size() < limit) {
+            pq.add(f);
+            continue;
+          }
+
+          if (score > similarityScore.get(pq.peek())) {
+            pq.add(f);
+            pq.poll();
+          } else if (score.equals(similarityScore.get(pq.peek())) && 
+              f.id().getLowerLong() < pq.peek().id().getLowerLong()) {
+            pq.add(f);
+            pq.poll();
+          }
+        }
+
+        // Create a list from the priority queue. This list will contain the
+        // results in reverse order.
+        List<TorcVertex> fList = new ArrayList<>(pq.size());
+        while (pq.size() > 0)
+          fList.add(pq.poll());
+
+        graph.fillProperties(fList);
+
+        TraversalResult locations = graph.traverse(fList, "isLocatedIn", Direction.OUT, false, "Place");
+
+        graph.fillProperties(locations);
+
+        for (int i = fList.size()-1; i >= 0; i--) {
+          TorcVertex f = fList.get(i);
+
+          result.add(new LdbcQuery10Result(
+                f.id().getLowerLong(),
+                (String)f.getProperty("firstName"),
+                (String)f.getProperty("lastName"),
+                similarityScore.get(f).intValue(),
+                (String)f.getProperty("gender"),
+                (String)locations.vMap.get(f).get(0).getProperty("name")));
+        }
 
         if (doTransactionalReads) {
           try {
@@ -2044,7 +2052,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
