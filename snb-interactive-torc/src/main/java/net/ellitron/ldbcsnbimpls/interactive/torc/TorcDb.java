@@ -2108,6 +2108,18 @@ public class TorcDb extends Db {
 
       TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
+      class ResultTuple {
+        public int year;
+        public TorcVertex v;
+        public String name;
+
+        public ResultTuple(int year, TorcVertex v, String name) {
+          this.year = year;
+          this.v = v;
+          this.name = name;
+        }
+      };
+
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
@@ -2128,9 +2140,8 @@ public class TorcDb extends Db {
        
         TraversalResult company = graph.traverse(friends, "workAt", Direction.OUT, true, "Organisation");
 
-        // Filter out all edges with joinDate <= minDate
         TorcHelper.removeEdgeIf(company, (v, p) -> { 
-          if (Long.valueOf((String)p.get("workFrom")) >= workFromYear)
+          if (Integer.valueOf((String)p.get("workFrom")).compareTo(workFromYear) >= 0)
             return true;
           else 
             return false;
@@ -2138,27 +2149,85 @@ public class TorcDb extends Db {
 
         TraversalResult country = graph.traverse(company, "isLocatedIn", Direction.OUT, false, "Place");
 
-        graph.fillProperties(country, "name");
+        graph.fillProperties(country.vSet, "name");
 
         company.vSet.removeIf(c -> {
-          return ((String)country.vMap.get(c).get(0).getProperty("name")).equals(countryName);
+          return !((String)country.vMap.get(c).get(0).getProperty("name")).equals(countryName);
         });
-        
-        graph.fillProperties(fList);
 
-        for (int i = 0; i < fList.size(); i++) {
-          TorcVertex f = fList.get(i);
+        graph.fillProperties(company.vSet, "name");
+
+        Comparator<ResultTuple> comparator = new Comparator<ResultTuple>() {
+              public int compare(ResultTuple a, ResultTuple b) {
+                if (a.year > b.year)
+                  return -1;
+                else if (a.year < b.year)
+                  return 1;
+                else if (a.v.id().getLowerLong() > b.v.id().getLowerLong())
+                  return -1;
+                else if (a.v.id().getLowerLong() < b.v.id().getLowerLong())
+                  return 1;
+                else
+                  return a.name.compareTo(b.name);
+              }
+            };
+
+        PriorityQueue<ResultTuple> pq = new PriorityQueue(limit, comparator);
+        for (TorcVertex f : company.vMap.keySet()) {
+          List<TorcVertex> cList = company.vMap.get(f);
+          List<Map<Object, Object>> pList = company.pMap.get(f);
+
+          for (int i = 0; i < cList.size(); i++) {
+            TorcVertex c = cList.get(i);
+            Map<Object, Object> p = pList.get(i);
+
+            if (!company.vSet.contains(c))
+              continue;
+            
+            int year = Integer.valueOf((String)p.get("workFrom"));
+            String name = (String)c.getProperty("name");
+
+            if (pq.size() < limit) {
+              pq.add(new ResultTuple(year, f, name));
+              continue;
+            }
+
+            if (year < pq.peek().year) {
+              pq.add(new ResultTuple(year, f, name));
+              pq.poll();
+            } else if (year == pq.peek().year) {
+              if (f.id().getLowerLong() < pq.peek().v.id().getLowerLong()) {
+                pq.add(new ResultTuple(year, f, name));
+                pq.poll();
+              } else if (f.id().getLowerLong() == pq.peek().v.id().getLowerLong()) {
+                if (name.compareTo(pq.peek().name) > 0) {
+                  pq.add(new ResultTuple(year, f, name));
+                  pq.poll();
+                }
+              }
+            }
+          }
+        }
+
+        List<ResultTuple> rList = new ArrayList<>(pq.size());
+        Set<TorcVertex> fSet = new HashSet<>(pq.size());
+        while (pq.size() > 0) {
+          ResultTuple rt = pq.poll();
+          rList.add(rt);
+          fSet.add(rt.v);
+        }
+        
+        graph.fillProperties(fSet);
+
+        for (int i = rList.size()-1; i >= 0; i--) {
+          ResultTuple rt = rList.get(i);
 
           result.add(new LdbcQuery11Result(
-                f.id().getLowerLong(),
-                f.getProperty("firstName"),
-                f.getProperty("lastName"),
-                
-              ((UInt128)t.get().get("personId")).getLowerLong(),
-              (String)t.get().get("personFirstName"), 
-              (String)t.get().get("personLastName"),
-              (String)t.get().get("organizationName"),
-              Integer.valueOf((String)t.get().get("organizationWorkFromYear"))));
+                rt.v.id().getLowerLong(),
+                (String)rt.v.getProperty("firstName"),
+                (String)rt.v.getProperty("lastName"),
+                rt.name,
+                rt.year));
         }
 
         if (doTransactionalReads) {
