@@ -1526,6 +1526,13 @@ public class TorcDb extends Db {
 
         graph.fillProperties(topLikers);
 
+        List<TorcVertex> msgList = new ArrayList<>(topLikers.size());
+
+        for (TorcVertex tLiker : topLikers) 
+          msgList.add(personMostRecentLikeMsg.get(tLiker));
+
+        graph.fillProperties(msgList);
+
         for (int i = 0; i < topLikers.size(); i++) {
           TorcVertex liker = topLikers.get(i);
           Long likeDate = personMostRecentLikeDate.get(liker);
@@ -1546,7 +1553,7 @@ public class TorcDb extends Db {
               msg.id().getLowerLong(),
               content,
               latencyMinutes.intValue(),
-              friends.vSet.contains(liker)));
+              !friends.vSet.contains(liker)));
         }
 
         if (doTransactionalReads) {
