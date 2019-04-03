@@ -2475,28 +2475,41 @@ public class TorcDb extends Db {
       final UInt128 torcPerson2Id = 
           new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
-        Long pathLength = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .V(torcPerson1Id)
-          .choose(where(out("knows").hasLabel("Person")),
-              repeat(out("knows").hasLabel("Person").simplePath())
-                  .until(hasId(torcPerson2Id)
-                      .or()
-                      .path().count(local).is(gt(5)))
-              .limit(1)
-              .choose(id().is(eq(torcPerson2Id)), 
-                  union(path().count(local), constant(-1l)).sum(),
-                  constant(-1l)),
-              constant(-1l))
-          .next();
+        Set<TorcVertex> start = new HashSet<>();
+        start.add(new TorcVertex(graph, torcPerson1Id));
+
+        TorcVertex end = new TorcVertex(graph, torcPerson2Id);
+
+        TraversalResult friends = new TraversalResult(null, null, start);
+        Set<TorcVertex> seenSet = new HashSet<>();
+        int n = 1;
+        do {
+          friends = graph.traverse(friends, "knows", Direction.OUT, false, "Person");
+          TorcHelper.subtract(friends, seenSet);
+          
+          // No path to destination vertex.
+          if (friends.vSet.size() == 0) {
+            n = -1;
+            break;
+          }
+
+          if (friends.vSet.contains(end))
+            break;
+
+          seenSet.addAll(friends.vSet);
+
+          n++;
+        } while (true);
+        
 
         if (doTransactionalReads) {
           try {
@@ -2508,11 +2521,10 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
-        resultReporter.report(1, new LdbcQuery13Result(pathLength.intValue()), 
-            operation);
+        resultReporter.report(1, new LdbcQuery13Result(n), operation);
         break;
       }
     }
