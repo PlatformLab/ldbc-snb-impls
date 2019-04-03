@@ -2319,66 +2319,106 @@ public class TorcDb extends Db {
         List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
         TorcVertex start = new TorcVertex(graph, torcPersonId);
-        TraversalResult start_knows_person = graph.traverse(start, "knows", Direction.OUT, false, "Person");
-        TraversalResult person_hasCreator_comment = graph.traverse(start_knows_person, "hasCreator", Direction.IN, false, "Comment");
-        TraversalResult comment_replyOf_post = graph.traverse(person_hasCreator_comment, "replyOf", Direction.OUT, false, "Post");
-        TraversalResult post_hasTag_tag = graph.traverse(comment_replyOf_post, "hasTag", Direction.OUT, false, "Tag");
-        TraversalResult tag_hasType_tagClass = graph.traverse(post_hasTag_tag, "hasType", Direction.OUT, false, "TagClass");
+        TraversalResult startFriends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
+        TraversalResult friendComments = graph.traverse(startFriends, "hasCreator", Direction.IN, false, "Comment");
+        TraversalResult commentPost = graph.traverse(friendComments, "replyOf", Direction.OUT, false, "Post");
+        TraversalResult postTags = graph.traverse(commentPost, "hasTag", Direction.OUT, false, "Tag");
+        TraversalResult tagClasses = graph.traverse(postTags, "hasType", Direction.OUT, false, "TagClass");
 
-        Set<TorcVertex> filteredTagSet = new HashSet<>(tag_hasType_tagClass.vMap.size());
-        while (!tag_hasType_tagClass.vMap.isEmpty()) {
-          graph.fillProperties(tag_hasType_tagClass);
-          tag_hasType_tagClass.vMap.entrySet().removeIf( e -> {
-              if (((String)((List<TorcVertex>)e.getValue()).get(0).getProperty("name")).equals(tagClassName)) {
-                filteredTagSet.add((TorcVertex)e.getKey());
+        // Find all the tags that are of the given type. Here we will comb
+        // through the tagClasses and see which tags have the right type. The
+        // rest may just be of a subType, so we traverse up the hasType tree for
+        // the remaining tags.
+        Set<TorcVertex> matchingTags = new HashSet<>(tagClasses.vMap.size());
+        while (!tagClasses.vMap.isEmpty()) {
+          graph.fillProperties(tagClasses.vSet, "name");
+
+          tagClasses.vMap.entrySet().removeIf( e -> {
+              TorcVertex tag = (TorcVertex)e.getKey();
+              TorcVertex tagClass = ((List<TorcVertex>)e.getValue()).get(0);
+              
+              if (((String)tagClass.getProperty("name")).equals(tagClassName)) {
+                matchingTags.add(tag);
                 return true;
               }
 
               return false;
             });
 
-          if (!tag_hasType_tagClass.vMap.isEmpty()) {
-            TraversalResult tagClass_hasType_tagClass = graph.traverse(tag_hasType_tagClass, "hasType", Direction.OUT, false, "TagClass");
-            tag_hasType_tagClass = TorcHelper.fuse(tag_hasType_tagClass, tagClass_hasType_tagClass, false);
-          } else {
+          if (tagClasses.vMap.isEmpty())
             break;
+
+          TraversalResult superTagClasses = graph.traverse(tagClasses, "hasType", Direction.OUT, false, "TagClass");
+          tagClasses = TorcHelper.fuse(tagClasses, superTagClasses, false);
+        }
+
+        // We only care about the tags of the given type.
+        TorcHelper.intersect(postTags, matchingTags);
+
+        // Create map of comment to the set of all matching tags that were on
+        // the post that the comment was in reply to.
+        TraversalResult commentTags = TorcHelper.fuse(commentPost, postTags, false);
+
+        // Filter for the comments that have non-zero matching tags.
+        TorcHelper.intersect(friendComments, commentTags.vMap.keySet());
+
+        // Create map of friend to the set of all matching tags that were on
+        // posts that the friend commented on.
+        TraversalResult friendTags = TorcHelper.fuse(friendComments, commentTags, true);
+
+        // Sort in the reverse order from the query result order so that the
+        // priority queue's "top" element is the least element.
+        Comparator<TorcVertex> c = new Comparator<TorcVertex>() {
+              public int compare(TorcVertex v1, TorcVertex v2) {
+                int v1CommentCount = friendComments.vMap.get(v1).size();
+                int v2CommentCount = friendComments.vMap.get(v2).size();
+
+                if (v1CommentCount != v2CommentCount)
+                  return v1CommentCount - v2CommentCount;
+                else
+                  return -1 * v1.id().compareTo(v2.id());
+              }
+            };
+
+        PriorityQueue<TorcVertex> pq = new PriorityQueue(limit, c);
+        for (TorcVertex f : friendComments.vMap.keySet()) {
+          int commentCount = friendComments.vMap.get(f).size();
+
+          if (pq.size() < limit) {
+            pq.add(f);
+            continue;
+          }
+
+          if (commentCount > friendComments.vMap.get(pq.peek()).size()) {
+            pq.add(f);
+            pq.poll();
           }
         }
 
-        TorcHelper.intersect(post_hasTag_tag, filteredTagSet); 
-        TraversalResult comment_assocTags_tags = TorcHelper.fuse(comment_replyOf_post, post_hasTag_tag, false);
-        TorcHelper.intersect(person_hasCreator_comment, comment_assocTags_tags.vMap.keySet());
-        TraversalResult person_assocTags_tags = TorcHelper.fuse(person_hasCreator_comment, comment_assocTags_tags, true);
-        List<TorcVertex> friends = TorcHelper.keylist(person_hasCreator_comment);
-        friends.sort((a, b) -> {
-            int a_comments = person_hasCreator_comment.vMap.get(a).size();
-            int b_comments = person_hasCreator_comment.vMap.get(b).size();
-            if (b_comments != a_comments)
-              return b_comments - a_comments;
-            else
-              if (a.id().compareTo(b.id()) > 0)
-                return 1;
-              else
-                return -1;
-          });
+        // Create a list from the priority queue. This list will contain the
+        // friends in reverse order.
+        List<TorcVertex> topFriends = new ArrayList<>(pq.size());
+        while (pq.size() > 0)
+          topFriends.add(pq.poll());
 
-        friends = friends.subList(0, Math.min(friends.size(), limit));
-        graph.fillProperties(friends);
-        graph.fillProperties(person_assocTags_tags);
+        // Fill in the properties for our results.
+        graph.fillProperties(topFriends);
+        graph.fillProperties(friendTags.vSet, "name");
 
-        for (int i = 0; i < friends.size(); i++) {
-          TorcVertex f = friends.get(i);
-          List<TorcVertex> tagVertices = person_assocTags_tags.vMap.get(f);
-          List<String> tagNameStrings = new ArrayList<>(tagVertices.size());
-          for (TorcVertex v : tagVertices) {
-            tagNameStrings.add(((String)v.getProperty("name")));
-          }
+        for (int i = topFriends.size()-1; i >= 0; i--) {
+          TorcVertex f = topFriends.get(i);
+          List<TorcVertex> tags = friendTags.vMap.get(f);
+
+          List<String> tagNames = new ArrayList<>(tags.size());
+          for (TorcVertex v : tags)
+            tagNames.add(((String)v.getProperty("name")));
+
           result.add(new LdbcQuery12Result(
               f.id().getLowerLong(),
               ((String)f.getProperty("firstName")),
               ((String)f.getProperty("lastName")),
-              tagNameStrings,
-              person_hasCreator_comment.vMap.get(f).size()));
+              tagNames,
+              friendComments.vMap.get(f).size()));
         }
 
         if (doTransactionalReads) {
