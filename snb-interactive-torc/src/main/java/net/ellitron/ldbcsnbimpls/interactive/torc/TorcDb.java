@@ -2509,7 +2509,6 @@ public class TorcDb extends Db {
 
           n++;
         } while (true);
-        
 
         if (doTransactionalReads) {
           try {
@@ -2567,6 +2566,39 @@ public class TorcDb extends Db {
         return;
       }
 
+      // Define a linked-list datatype for paths of vertices.
+      class VertexPath {
+        public TorcVertex v;
+        public VertexPath p;
+
+        public VertexPath(TorcVertex v, VertexPath p) {
+          this.v = v;
+          this.p = p;
+        }
+      };
+
+      // Define a vertex pair map key.
+      class VertexPair {
+        public TorcVertex v1;
+        public TorcVertex v2;
+
+        public VertexPair(TorcVertex v1, TorcVertex v2) {
+          this.v1 = v1;
+          this.v2 = v2;
+        }
+
+        @Override
+        public int hashCode() {
+          System.out.println(String.format("Using VertexPair hashCode: %d", (v1.hashCode() + v2.hashCode())));
+          return v1.hashCode() + v2.hashCode();
+        }
+
+        @Override
+        public String toString() {
+          return String.format("%d", hashCode());
+        }
+      };
+
       // Parameters of this query
       final long person1Id = operation.person1Id();
       final long person2Id = operation.person2Id();
@@ -2576,94 +2608,117 @@ public class TorcDb extends Db {
       final UInt128 torcPerson2Id = 
           new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 
-      Graph graph = ((TorcDbConnectionState) dbConnectionState).getClient();
+      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnectionState).getClient();
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
         GraphTraversalSource g = graph.traversal();
 
         if (!(doTransactionalReads || useRAMCloudTransactionAPIForReads))
-          ((TorcGraph)graph).disableTx();
+          graph.disableTx();
 
         List<LdbcQuery14Result> result = new ArrayList<>();
 
-        // First get the length of the shortest path
-        Long minPathLen = g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .V(torcPerson1Id)
-          .repeat(outE("knows").inV().hasLabel("Person").simplePath())
-            .until(hasId(torcPerson2Id))
-          .limit(1)
-          .path()
-          .count(local)
-          .next();
+        TorcVertex start = new TorcVertex(graph, torcPerson1Id);
+        Set<TorcVertex> startSet = new HashSet<>();
+        startSet.add(new TorcVertex(graph, torcPerson1Id));
 
-        g.withStrategies(TorcGraphProviderOptimizationStrategy.instance())
-          .withSideEffect("result", result).V(torcPerson1Id)
-          .repeat(outE("knows").as("e").inV().hasLabel("Person").simplePath())
-            .until(hasId(torcPerson2Id).or().path().count(local).is(eq(minPathLen)))
-          .where(id().is(eq(torcPerson2Id)))
-          .select(all, "e")
-          .sideEffect(aggregate("paths"))
-          .unfold()
-          .dedup()
-          .as("edge")
-          .map(
-            union(
-              match(
-                as("i").outV().as("outV"),
-                as("i").inV().as("inV"),
-                as("outV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").hasLabel("Person").as("inV")
-              ).select("outV", "cP", "inV").map(t -> 1.0f),
-              match(
-                as("i").outV().as("outV"),
-                as("i").inV().as("inV"),
-                as("outV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").hasLabel("Person").as("inV")
-              ).select("outV", "cC", "inV").map(t -> 0.5f),
-              match(
-                as("i").outV().as("outV"),
-                as("i").inV().as("inV"),
-                as("inV").in("hasCreator").hasLabel("Comment").as("cP").out("replyOf").hasLabel("Post").out("hasCreator").hasLabel("Person").as("outV")
-              ).select("inV", "cP", "outV").map(t -> 1.0f),
-              match(
-                as("i").outV().as("outV"),
-                as("i").inV().as("inV"),
-                as("inV").in("hasCreator").hasLabel("Comment").as("cC").out("replyOf").hasLabel("Comment").out("hasCreator").hasLabel("Person").as("outV")
-              ).select("inV", "cC", "outV").map(t -> 0.5f)
-            ).sum()
-          )
-          .as("score")
-          .group()
-            .by(select("edge"))
-          .as("scoreMap")
-          .select("paths")
-          .unfold()
-          .as("path")
-          .unfold()
-          .group()
-            .by(select("path").map(t -> {
-                                      List<TorcEdge> eList = (List)t.get();
-                                      List<Number> personIdsList = new ArrayList<>(eList.size()+1);
-                                      for (int i = 0; i < eList.size(); i++) {
-                                        personIdsList.add(eList.get(i).getV1Id().getLowerLong());
-                                      }
-                                      personIdsList.add(eList.get(eList.size()-1).getV2Id().getLowerLong());
-                                      return personIdsList;
-                                    }))
-            .by(map(t -> {
-                      Map<TorcEdge, List<Number>> m = t.path("scoreMap");
-                      return m.get(t.get()).get(0).doubleValue();
-                }).sum())
-          .unfold()
-          .order(local)
-            .by(select(values))
-          .project("personIdsInPath", 
-              "pathWeight")
-              .by(select(keys))
-              .by(select(values))
-          .map(t -> new LdbcQuery14Result(
-              (Iterable<Number>)t.get().get("personIdsInPath"), 
-              ((Double)t.get().get("pathWeight"))))
-          .store("result").iterate(); 
+        TorcVertex end = new TorcVertex(graph, torcPerson2Id);
+
+        // Handle start == end here
+
+        TraversalResult friends = new TraversalResult(null, null, startSet);
+        Set<TorcVertex> seenSet = new HashSet<>();
+
+        // Keep around each of the traversal results during the serach.
+        List<TraversalResult> trList = new ArrayList<>();
+        int hops = 0;
+        while (!friends.vSet.contains(end)) {
+          seenSet.addAll(friends.vSet);
+
+          friends = graph.traverse(friends, "knows", Direction.OUT, false, "Person");
+          TorcHelper.subtract(friends, seenSet);
+
+          // No path to destination vertex.
+          if (friends.vSet.size() == 0) {
+            hops = -1;
+            break;
+          }
+
+          trList.add(friends);
+          
+          hops++;
+        }
+
+        System.out.println(String.format("hops: %d", hops));
+        System.out.println(String.format("trList.size(): %d", trList.size()));
+
+        if (hops != -1) {
+          // Filter for paths that lead to the end vertex.
+          for (int i = trList.size()-1; i >= 0; i--) {
+            if (i == trList.size()-1)
+              TorcHelper.intersect(trList.get(i), end);
+            else
+              TorcHelper.intersect(trList.get(i), trList.get(i+1).vMap.keySet());
+          }
+
+          // Create cache of calculated paths so we don't unnecessarily
+          // recalculate them.
+          Map<TorcVertex, List<VertexPath>> pathCache = new HashMap<>();
+          for (int i = trList.size()-1; i >= 0; i--) {
+            for (TorcVertex b : trList.get(i).vMap.keySet()) {
+              List<VertexPath> paths = new ArrayList<>();
+              for (TorcVertex n : trList.get(i).vMap.get(b)) {
+                if (!pathCache.containsKey(n)) {
+                  List<VertexPath> p = new ArrayList<>();
+                  p.add(new VertexPath(n, null));
+                  pathCache.put(n, p);
+                }
+
+                for (VertexPath path : pathCache.get(n)) {
+                  paths.add(new VertexPath(b, path));
+                }
+              }
+
+              pathCache.put(b, paths);
+            }
+          }
+
+          List<VertexPath> paths = pathCache.get(start);
+
+          // Calculate the path weights.
+          Map<VertexPair, Double> pathWeights = new HashMap<>();
+          for (int i = 0; i < paths.size(); i++) {
+            VertexPath path = paths.get(i);
+            double pathWeight = 0.0;
+            while (path != null) {
+              if (path.p != null) {
+                VertexPair vpair = new VertexPair(path.v, path.p.v);
+                pathWeights.put(vpair, 1.0);
+              }
+
+              path = path.p;
+            }
+          }
+
+          System.out.println("Finished filling pathWeights.");
+          System.out.println(String.format("Pathweights: %s", pathWeights.toString()));
+
+          for (int i = 0; i < paths.size(); i++) {
+            VertexPath path = paths.get(i);
+            List<Long> ids = new ArrayList<>();
+            double pathWeight = 0.0;
+            while (path != null) {
+              if (path.p != null)
+                pathWeight += pathWeights.get(new VertexPair(path.v, path.p.v));
+
+              ids.add(path.v.id().getLowerLong());
+              path = path.p;
+            }
+
+            result.add(new LdbcQuery14Result(ids, pathWeight));
+          }
+        }
 
         if (doTransactionalReads) {
           try {
@@ -2675,7 +2730,7 @@ public class TorcDb extends Db {
         } else if (useRAMCloudTransactionAPIForReads) {
           graph.tx().rollback();
         } else {
-          ((TorcGraph)graph).enableTx();
+          graph.enableTx();
         }
 
         resultReporter.report(result.size(), result, operation);
