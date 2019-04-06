@@ -2575,6 +2575,27 @@ public class TorcDb extends Db {
           this.v = v;
           this.p = p;
         }
+
+        @Override
+        public int hashCode() {
+          if (p != null)
+            return v.hashCode() ^ p.hashCode();
+          else
+            return v.hashCode();
+        }
+
+        @Override
+        public boolean equals(final Object object) {
+          if (object instanceof VertexPath) {
+            VertexPath other = (VertexPath)object;
+            if (p != null)
+              return this.v.id().equals(other.v.id()) && this.p.equals(other.p);
+            else
+              return this.v.id().equals(other.v.id());
+          }
+
+          return false;
+        }
       };
 
       // Define a vertex pair map key.
@@ -2589,13 +2610,23 @@ public class TorcDb extends Db {
 
         @Override
         public int hashCode() {
-          System.out.println(String.format("Using VertexPair hashCode: %d", (v1.hashCode() + v2.hashCode())));
-          return v1.hashCode() + v2.hashCode();
+          return v1.hashCode() ^ v2.hashCode();
+        }
+
+        @Override
+        public boolean equals(final Object object) {
+          if (object instanceof VertexPair) {
+            VertexPair other = (VertexPair)object;
+            return this.v1.id().equals(other.v1.id()) &&
+                    this.v2.id().equals(other.v2.id());
+          }
+
+          return false;
         }
 
         @Override
         public String toString() {
-          return String.format("%d", hashCode());
+          return String.format("(%X,%X)", v1.id().getLowerLong(), v2.id().getLowerLong());
         }
       };
 
@@ -2620,10 +2651,10 @@ public class TorcDb extends Db {
         List<LdbcQuery14Result> result = new ArrayList<>();
 
         TorcVertex start = new TorcVertex(graph, torcPerson1Id);
+        TorcVertex end = new TorcVertex(graph, torcPerson2Id);
+
         Set<TorcVertex> startSet = new HashSet<>();
         startSet.add(new TorcVertex(graph, torcPerson1Id));
-
-        TorcVertex end = new TorcVertex(graph, torcPerson2Id);
 
         // Handle start == end here
 
@@ -2649,9 +2680,6 @@ public class TorcDb extends Db {
           
           hops++;
         }
-
-        System.out.println(String.format("hops: %d", hops));
-        System.out.println(String.format("trList.size(): %d", trList.size()));
 
         if (hops != -1) {
           // Filter for paths that lead to the end vertex.
@@ -2687,36 +2715,126 @@ public class TorcDb extends Db {
           List<VertexPath> paths = pathCache.get(start);
 
           // Calculate the path weights.
-          Map<VertexPair, Double> pathWeights = new HashMap<>();
+          Map<VertexPair, Double> pairWeights = new HashMap<>();
+          Map<VertexPath, Double> pathWeights = new HashMap<>();
+          Map<TorcVertex, TraversalResult[]> traversalResultCache = new HashMap<>();
           for (int i = 0; i < paths.size(); i++) {
             VertexPath path = paths.get(i);
             double pathWeight = 0.0;
             while (path != null) {
               if (path.p != null) {
                 VertexPair vpair = new VertexPair(path.v, path.p.v);
-                pathWeights.put(vpair, 1.0);
+                
+                if (!pairWeights.containsKey(vpair)) {
+                  double pairWeight = 0.0;
+                 
+                  TraversalResult v1p;
+                  TraversalResult v1c;
+                  TraversalResult v1crp;
+                  TraversalResult v1crc;
+                  if (traversalResultCache.containsKey(vpair.v1)) {
+                    TraversalResult results[] = traversalResultCache.get(vpair.v1);
+                    v1p = results[0];
+                    v1c = results[1];
+                    v1crp = results[2];
+                    v1crc = results[3];
+                  } else {
+                    v1p = graph.traverse(vpair.v1, "hasCreator", Direction.IN, false, "Post");
+                    v1c = graph.traverse(vpair.v1, "hasCreator", Direction.IN, false, "Comment");
+                    v1crp = graph.traverse(v1c, "replyOf", Direction.OUT, false, "Post");
+                    v1crc = graph.traverse(v1c, "replyOf", Direction.OUT, false, "Comment");
+                    TraversalResult results[] = new TraversalResult[4];
+                    results[0] = v1p;
+                    results[1] = v1c;
+                    results[2] = v1crp;
+                    results[3] = v1crc;
+                    traversalResultCache.put(vpair.v1, results);
+                  }
+
+                  TraversalResult v2p;
+                  TraversalResult v2c;
+                  TraversalResult v2crp;
+                  TraversalResult v2crc;
+                  if (traversalResultCache.containsKey(vpair.v2)) {
+                    TraversalResult results[] = traversalResultCache.get(vpair.v2);
+                    v2p = results[0];
+                    v2c = results[1];
+                    v2crp = results[2];
+                    v2crc = results[3];
+                  } else {
+                    v2p = graph.traverse(vpair.v2, "hasCreator", Direction.IN, false, "Post");
+                    v2c = graph.traverse(vpair.v2, "hasCreator", Direction.IN, false, "Comment");
+                    v2crp = graph.traverse(v2c, "replyOf", Direction.OUT, false, "Post");
+                    v2crc = graph.traverse(v2c, "replyOf", Direction.OUT, false, "Comment");
+                    TraversalResult results[] = new TraversalResult[4];
+                    results[0] = v2p;
+                    results[1] = v2c;
+                    results[2] = v2crp;
+                    results[3] = v2crc;
+                    traversalResultCache.put(vpair.v2, results);
+                  }
+
+                  // First calculate weights of v1's comments on v2's junk.
+                  for (TorcVertex c : v1crp.vMap.keySet()) {
+                    TorcVertex rp = v1crp.vMap.get(c).get(0);
+                    if (v2p.vSet.contains(rp))
+                      pairWeight += 1.0;
+                  }
+
+                  for (TorcVertex c : v1crc.vMap.keySet()) {
+                    TorcVertex rc = v1crc.vMap.get(c).get(0);
+                    if (v2c.vSet.contains(rc))
+                      pairWeight += 0.5;
+                  }
+
+                  // Now do v2's comments on v1's junk.
+                  for (TorcVertex c : v2crp.vMap.keySet()) {
+                    TorcVertex rp = v2crp.vMap.get(c).get(0);
+                    if (v1p.vSet.contains(rp))
+                      pairWeight += 1.0;
+                  }
+
+                  for (TorcVertex c : v2crc.vMap.keySet()) {
+                    TorcVertex rc = v2crc.vMap.get(c).get(0);
+                    if (v1c.vSet.contains(rc))
+                      pairWeight += 0.5;
+                  }
+
+                  pairWeights.put(vpair, pairWeight);
+                }
+
+                pathWeight += pairWeights.get(vpair);
               }
 
               path = path.p;
             }
+
+            pathWeights.put(paths.get(i), pathWeight);
           }
 
-          System.out.println("Finished filling pathWeights.");
-          System.out.println(String.format("Pathweights: %s", pathWeights.toString()));
+          Comparator<VertexPath> c = new Comparator<VertexPath>() {
+                public int compare(VertexPath p1, VertexPath p2) {
+                  Double p1Weight = pathWeights.get(p1);
+                  Double p2Weight = pathWeights.get(p2);
+          
+                  if (p2Weight > p1Weight)
+                    return 1;
+                  else
+                    return -1;
+                }
+              };
+
+          Collections.sort(paths, c);
 
           for (int i = 0; i < paths.size(); i++) {
             VertexPath path = paths.get(i);
             List<Long> ids = new ArrayList<>();
-            double pathWeight = 0.0;
             while (path != null) {
-              if (path.p != null)
-                pathWeight += pathWeights.get(new VertexPair(path.v, path.p.v));
-
               ids.add(path.v.id().getLowerLong());
               path = path.p;
             }
 
-            result.add(new LdbcQuery14Result(ids, pathWeight));
+            result.add(new LdbcQuery14Result(ids, pathWeights.get(paths.get(i))));
           }
         }
 
