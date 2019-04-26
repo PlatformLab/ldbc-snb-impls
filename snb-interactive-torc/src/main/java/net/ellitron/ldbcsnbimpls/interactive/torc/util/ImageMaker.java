@@ -385,6 +385,9 @@ public class ImageMaker {
                       if (val.length() != 0)
                         vals.add(val);
                     propMap.put(fieldNames[j], vals);
+                  } else if (fieldNames[j].equals("length")) {
+                    Integer length = Integer.valueOf(fieldValues[j]);
+                    propMap.put(fieldNames[j], length);
                   } else {
                     propMap.put(fieldNames[j], fieldValues[j]);
                   }
@@ -459,6 +462,10 @@ public class ImageMaker {
                       Long date = 
                         creationDateDateFormat.parse(fieldValues[j]).getTime();
                       propMap.put(fieldNames[j], date);
+                    } else if (fieldNames[j].equals("classYear") ||
+                               fieldNames[j].equals("workFrom")) {
+                      Integer year = Integer.valueOf(fieldValues[j]);
+                      propMap.put(fieldNames[j], year);
                     } else {
                       propMap.put(fieldNames[j], fieldValues[j]);
                     }
