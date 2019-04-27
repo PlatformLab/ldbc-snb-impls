@@ -2151,7 +2151,7 @@ public class TorcDb extends Db {
         TraversalResult company = graph.traverse(friends, "workAt", Direction.OUT, true, "Organisation");
 
         TorcHelper.removeEdgeIf(company, (v, p) -> { 
-          if (Integer.valueOf((String)p.get("workFrom")).compareTo(workFromYear) >= 0)
+          if (((Integer)p.get("workFrom")).compareTo(workFromYear) >= 0)
             return true;
           else 
             return false;
@@ -2194,7 +2194,7 @@ public class TorcDb extends Db {
             if (!company.vSet.contains(c))
               continue;
             
-            int year = Integer.valueOf((String)p.get("workFrom"));
+            int year = ((Integer)p.get("workFrom")).intValue();
             String name = (String)c.getProperty("name");
 
             if (pq.size() < limit) {
@@ -2883,8 +2883,8 @@ public class TorcDb extends Db {
 
         Vertex person = client.vertices(
             new UInt128(TorcEntity.PERSON.idSpace, person_id)).next();
-        Iterator<VertexProperty<String>> props = person.properties();
-        Map<String, String> propertyMap = new HashMap<>();
+        Iterator<VertexProperty<Object>> props = person.properties();
+        Map<String, Object> propertyMap = new HashMap<>();
         props.forEachRemaining((prop) -> {
           propertyMap.put(prop.key(), prop.value());
         });
@@ -2897,14 +2897,14 @@ public class TorcDb extends Db {
 
         LdbcShortQuery1PersonProfileResult res =
             new LdbcShortQuery1PersonProfileResult(
-                propertyMap.get("firstName"),
-                propertyMap.get("lastName"),
-                Long.parseLong(propertyMap.get("birthday")),
-                propertyMap.get("locationIP"),
-                propertyMap.get("browserUsed"),
+                (String)propertyMap.get("firstName"),
+                (String)propertyMap.get("lastName"),
+                (Long)propertyMap.get("birthday"),
+                (String)propertyMap.get("locationIP"),
+                (String)propertyMap.get("browserUsed"),
                 placeId,
-                propertyMap.get("gender"),
-                Long.parseLong(propertyMap.get("creationDate")));
+                (String)propertyMap.get("gender"),
+                (Long)propertyMap.get("creationDate"));
 
         if (doTransactionalReads) {
           try {
@@ -2961,10 +2961,8 @@ public class TorcDb extends Db {
           Vertex v1 = (Vertex) a;
           Vertex v2 = (Vertex) b;
 
-          long v1Date =
-              Long.decode(v1.<String>property("creationDate").value());
-          long v2Date =
-              Long.decode(v2.<String>property("creationDate").value());
+          long v1Date = v1.<Long>property("creationDate").value().longValue();
+          long v2Date = v2.<Long>property("creationDate").value().longValue();
 
           if (v1Date > v2Date) {
             return -1;
@@ -2987,21 +2985,21 @@ public class TorcDb extends Db {
             i++) {
           Vertex message = messageList.get(i);
 
-          Map<String, String> propMap = new HashMap<>();
-          message.<String>properties().forEachRemaining((vp) -> {
+          Map<String, Object> propMap = new HashMap<>();
+          message.<Object>properties().forEachRemaining((vp) -> {
             propMap.put(vp.key(), vp.value());
           });
 
           long messageId = ((UInt128) message.id()).getLowerLong();
 
           String messageContent;
-          if (propMap.get("content").length() != 0) {
-            messageContent = propMap.get("content");
+          if (((String)propMap.get("content")).length() != 0) {
+            messageContent = (String)propMap.get("content");
           } else {
-            messageContent = propMap.get("imageFile");
+            messageContent = (String)propMap.get("imageFile");
           }
 
-          long messageCreationDate = Long.decode(propMap.get("creationDate"));
+          long messageCreationDate = ((Long)propMap.get("creationDate")).longValue();
 
           long originalPostId;
           long originalPostAuthorId;
@@ -3107,8 +3105,7 @@ public class TorcDb extends Db {
             new String[] {TorcEntity.PERSON.label});
 
         edges.forEachRemaining((e) -> {
-          long creationDate = Long.decode(e.<String>property("creationDate")
-              .value());
+          long creationDate = e.<Long>property("creationDate").value().longValue();
 
           Vertex friend = e.inVertex();
 
@@ -3190,7 +3187,7 @@ public class TorcDb extends Db {
             .next();
 
         long creationDate =
-            Long.decode(message.<String>property("creationDate").value());
+            message.<Long>property("creationDate").value().longValue();
         String content = message.<String>property("content").value();
         if (content.length() == 0) {
           content = message.<String>property("imageFile").value();
@@ -3408,7 +3405,7 @@ public class TorcDb extends Db {
           long replyId = ((UInt128) reply.id()).getLowerLong();
           String replyContent = reply.<String>property("content").value();
           long replyCreationDate =
-              Long.decode(reply.<String>property("creationDate").value());
+              reply.<Long>property("creationDate").value().longValue();
 
           Vertex replyAuthor =
               ((TorcVertex) reply).edges(Direction.OUT, 
@@ -3524,9 +3521,9 @@ public class TorcDb extends Db {
       personKeyValues.add("gender");
       personKeyValues.add(operation.gender());
       personKeyValues.add("birthday");
-      personKeyValues.add(String.valueOf(operation.birthday().getTime()));
+      personKeyValues.add(new Long(operation.birthday().getTime()));
       personKeyValues.add("creationDate");
-      personKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+      personKeyValues.add(new Long(operation.creationDate().getTime()));
       personKeyValues.add("locationIP");
       personKeyValues.add(operation.locationIp());
       personKeyValues.add("browserUsed");
@@ -3567,7 +3564,7 @@ public class TorcDb extends Db {
         for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
           studiedAtKeyValues.clear();
           studiedAtKeyValues.add("classYear");
-          studiedAtKeyValues.add(String.valueOf(org.year()));
+          studiedAtKeyValues.add(new Integer(org.year()));
           Vertex orgV = client.vertices(
               new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId()))
@@ -3580,7 +3577,7 @@ public class TorcDb extends Db {
         for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
           workedAtKeyValues.clear();
           workedAtKeyValues.add("workFrom");
-          workedAtKeyValues.add(String.valueOf(org.year()));
+          workedAtKeyValues.add(new Integer(org.year()));
           Vertex orgV = client.vertices(
               new UInt128(TorcEntity.ORGANISATION.idSpace,
                   org.organizationId())).next();
@@ -3637,7 +3634,7 @@ public class TorcDb extends Db {
         Vertex post = results.next();
         List<Object> keyValues = new ArrayList<>(2);
         keyValues.add("creationDate");
-        keyValues.add(String.valueOf(operation.creationDate().getTime()));
+        keyValues.add(new Long(operation.creationDate().getTime()));
         person.addEdge("likes", post, keyValues.toArray());
 
         try {
@@ -3690,7 +3687,7 @@ public class TorcDb extends Db {
         Vertex comment = results.next();
         List<Object> keyValues = new ArrayList<>(2);
         keyValues.add("creationDate");
-        keyValues.add(String.valueOf(operation.creationDate().getTime()));
+        keyValues.add(new Long(operation.creationDate().getTime()));
         person.addEdge("likes", comment, keyValues.toArray());
 
         try {
@@ -3739,7 +3736,7 @@ public class TorcDb extends Db {
       forumKeyValues.add("title");
       forumKeyValues.add(operation.forumTitle());
       forumKeyValues.add("creationDate");
-      forumKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+      forumKeyValues.add(new Long(operation.creationDate().getTime()));
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -3815,7 +3812,7 @@ public class TorcDb extends Db {
 
         List<Object> edgeKeyValues = new ArrayList<>(2);
         edgeKeyValues.add("joinDate");
-        edgeKeyValues.add(String.valueOf(operation.joinDate().getTime()));
+        edgeKeyValues.add(new Long(operation.joinDate().getTime()));
 
         forum.addEdge("hasMember", member, edgeKeyValues.toArray());
 
@@ -3865,7 +3862,7 @@ public class TorcDb extends Db {
       postKeyValues.add("imageFile");
       postKeyValues.add(operation.imageFile());
       postKeyValues.add("creationDate");
-      postKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+      postKeyValues.add(new Long(operation.creationDate().getTime()));
       postKeyValues.add("locationIP");
       postKeyValues.add(operation.locationIp());
       postKeyValues.add("browserUsed");
@@ -3875,7 +3872,7 @@ public class TorcDb extends Db {
       postKeyValues.add("content");
       postKeyValues.add(operation.content());
       postKeyValues.add("length");
-      postKeyValues.add(String.valueOf(operation.length()));
+      postKeyValues.add(new Integer(operation.length()));
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -3951,7 +3948,7 @@ public class TorcDb extends Db {
       commentKeyValues.add(T.label);
       commentKeyValues.add(TorcEntity.COMMENT.label);
       commentKeyValues.add("creationDate");
-      commentKeyValues.add(String.valueOf(operation.creationDate().getTime()));
+      commentKeyValues.add(new Long(operation.creationDate().getTime()));
       commentKeyValues.add("locationIP");
       commentKeyValues.add(operation.locationIp());
       commentKeyValues.add("browserUsed");
@@ -3959,7 +3956,7 @@ public class TorcDb extends Db {
       commentKeyValues.add("content");
       commentKeyValues.add(operation.content());
       commentKeyValues.add("length");
-      commentKeyValues.add(String.valueOf(operation.length()));
+      commentKeyValues.add(new Integer(operation.length()));
 
       boolean txSucceeded = false;
       int txFailCount = 0;
@@ -4039,8 +4036,7 @@ public class TorcDb extends Db {
 
       List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
       knowsEdgeKeyValues.add("creationDate");
-      knowsEdgeKeyValues.add(
-          String.valueOf(operation.creationDate().getTime()));
+      knowsEdgeKeyValues.add(new Long(operation.creationDate().getTime()));
 
       List<UInt128> ids = new ArrayList<>(2);
       ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.person1Id()));
