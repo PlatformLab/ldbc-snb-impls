@@ -1,30 +1,36 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>net.ellitron.ldbcsnbimpls</groupId>
-  <artifactId>ldbc-snb-impls</artifactId>
-  <packaging>pom</packaging>
+  <parent>
+    <groupId>net.ellitron.ldbcsnbimpls</groupId>
+    <artifactId>ldbc-snb-impls</artifactId>
+    <version>0.1.0</version>
+  </parent>
+  <artifactId>snb-interactive-torcdb2</artifactId>
+  <packaging>jar</packaging>
   <version>0.1.0</version>
-  <name>LDBC SNB Workload Implementations</name>
+  <name>LDBC SNB Interactive Workload TorcDB2 Implementation</name>
   <url>https://github.com/ellitron/ldbc-snb-impls</url>
   <description>
-    A collection of workload implementations for the LDBC SNB benchmark driver
-    (see https://github.com/ldbc/ldbc_driver).
+    An implementation of the LDBC SNB interactive workload for TorcDB2.
   </description>
-  <modules>
-    <module>snb-interactive-core</module>
-    <module>snb-interactive-tools</module>
-    <module>snb-interactive-neo4j</module>
-    <module>snb-interactive-nop</module>
-    <module>snb-interactive-titan</module>
-    <module>snb-interactive-torc</module>
-    <module>snb-interactive-torcdb2</module>
-  </modules>
   <dependencies>
     <dependency>
-      <groupId>com.ldbc.driver</groupId>
-      <artifactId>jeeves</artifactId>
-      <version>0.3.2</version>
+      <groupId>net.ellitron.ldbcsnbimpls</groupId>
+      <artifactId>snb-core</artifactId>
+      <version>0.1.0</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>net.ellitron.ldbcsnbimpls</groupId>
+      <artifactId>snb-interactive-torc</artifactId>
+      <version>0.1.0</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>net.ellitron.torcdb2</groupId>
+      <artifactId>torcdb2</artifactId>
+      <version>0.1.0</version>
     </dependency>
   </dependencies>
   <build>
