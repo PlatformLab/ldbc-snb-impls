@@ -3262,10 +3262,6 @@ public class TorcDb2 extends Db {
 
       Graph graph = cState.getGraph();
 
-      // ID and label for the vertex.
-      UInt128 id = new UInt128(TorcEntity.PERSON.idSpace, op.personId());
-      String label = TorcEntity.PERSON.label;
-
       // Build key value properties map
       Map<Object, Object> props = new HashMap<>();
       props.put("firstName", op.personFirstName());
@@ -3278,7 +3274,8 @@ public class TorcDb2 extends Db {
       props.put("language", op.languages());
       props.put("email", op.emails());
 
-      Vertex person = new Vertex(id, label, props);
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label, props);
 
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.cityId()), 
           TorcEntity.PLACE.label, null);
@@ -3311,16 +3308,16 @@ public class TorcDb2 extends Db {
 
         graph.addVertex(person);
 
-        graph.addEdge(person, place, "isLocatedIn", null);
+        graph.addEdge(person, "isLocatedIn", place, null);
 
         for (Vertex tag : tags)
-          graph.addEdge(person, tag, "hasInterest", null);
+          graph.addEdge(person, "hasInterest", tag, null);
 
         for (int i = 0; i < universities.size(); i++)
-          graph.addEdge(person, universities.get(i), "studyAt", studyAtProps.get(i));
+          graph.addEdge(person, "studyAt", universities.get(i), studyAtProps.get(i));
 
         for (int i = 0; i < companies.size(); i++)
-          graph.addEdge(person, companies.get(i), "workAt", workAtProps.get(i));
+          graph.addEdge(person, "workAt", companies.get(i), workAtProps.get(i));
 
         if (graph.commitTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
@@ -3332,451 +3329,345 @@ public class TorcDb2 extends Db {
     }
   }
 
-//  /**
-//   * Add a Like to a Post of the social network.[1]
-//   */
-//  public static class LdbcUpdate2AddPostLikeHandler implements
-//      OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate2AddPostLike op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      UInt128 personId =
-//          new UInt128(TorcEntity.PERSON.idSpace, op.personId());
-//      UInt128 postId =
-//          new UInt128(TorcEntity.POST.idSpace, op.postId());
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Iterator<Vertex> results = client.vertices(personId, postId);
-//        Vertex person = results.next();
-//        Vertex post = results.next();
-//        List<Object> keyValues = new ArrayList<>(2);
-//        keyValues.add("creationDate");
-//        keyValues.add(new Long(op.creationDate().getTime()));
-//        person.addEdge("likes", post, keyValues.toArray());
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a Like to a Comment of the social network.[1]
-//   */
-//  public static class LdbcUpdate3AddCommentLikeHandler implements
-//      OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate3AddCommentLike op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      UInt128 personId =
-//          new UInt128(TorcEntity.PERSON.idSpace, op.personId());
-//      UInt128 commentId =
-//          new UInt128(TorcEntity.COMMENT.idSpace, op.commentId());
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Iterator<Vertex> results = client.vertices(personId, commentId);
-//        Vertex person = results.next();
-//        Vertex comment = results.next();
-//        List<Object> keyValues = new ArrayList<>(2);
-//        keyValues.add("creationDate");
-//        keyValues.add(new Long(op.creationDate().getTime()));
-//        person.addEdge("likes", comment, keyValues.toArray());
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a Forum to the social network.[1]
-//   */
-//  public static class LdbcUpdate4AddForumHandler implements
-//      OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate4AddForum op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      List<Object> forumKeyValues = new ArrayList<>(8);
-//      forumKeyValues.add(T.id);
-//      forumKeyValues.add(
-//          new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
-//      forumKeyValues.add(T.label);
-//      forumKeyValues.add(TorcEntity.FORUM.label);
-//      forumKeyValues.add("title");
-//      forumKeyValues.add(op.forumTitle());
-//      forumKeyValues.add("creationDate");
-//      forumKeyValues.add(new Long(op.creationDate().getTime()));
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Vertex forum = client.addVertex(forumKeyValues.toArray());
-//
-//        List<UInt128> ids = new ArrayList<>(op.tagIds().size() + 1);
-//        op.tagIds().forEach((id) -> {
-//          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
-//        });
-//        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            op.moderatorPersonId()));
-//
-//        client.vertices(ids.toArray()).forEachRemaining((v) -> {
-//          if (v.label().equals(TorcEntity.TAG.label)) {
-//            forum.addEdge("hasTag", v);
-//          } else if (v.label().equals(TorcEntity.PERSON.label)) {
-//            forum.addEdge("hasModerator", v);
-//          } else {
-//            throw new RuntimeException(String.format(
-//                "ERROR: LdbcUpdate4AddForum query read a vertex with an "
-//                + "unexpected label: %s", v.label()));
-//          }
-//        });
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a Forum membership to the social network.[1]
-//   */
-//  public static class LdbcUpdate5AddForumMembershipHandler implements
-//      OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate5AddForumMembership op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      List<UInt128> ids = new ArrayList<>(2);
-//      ids.add(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.personId()));
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Iterator<Vertex> vItr = client.vertices(ids.toArray());
-//        Vertex forum = vItr.next();
-//        Vertex member = vItr.next();
-//
-//        List<Object> edgeKeyValues = new ArrayList<>(2);
-//        edgeKeyValues.add("joinDate");
-//        edgeKeyValues.add(new Long(op.joinDate().getTime()));
-//
-//        forum.addEdge("hasMember", member, edgeKeyValues.toArray());
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a Post to the social network.[1]
-//   */
-//  public static class LdbcUpdate6AddPostHandler implements
-//      OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate6AddPost op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      List<Object> postKeyValues = new ArrayList<>(18);
-//      postKeyValues.add(T.id);
-//      postKeyValues.add(
-//          new UInt128(TorcEntity.POST.idSpace, op.postId()));
-//      postKeyValues.add(T.label);
-//      postKeyValues.add(TorcEntity.POST.label);
-//      postKeyValues.add("imageFile");
-//      postKeyValues.add(op.imageFile());
-//      postKeyValues.add("creationDate");
-//      postKeyValues.add(new Long(op.creationDate().getTime()));
-//      postKeyValues.add("locationIP");
-//      postKeyValues.add(op.locationIp());
-//      postKeyValues.add("browserUsed");
-//      postKeyValues.add(op.browserUsed());
-//      postKeyValues.add("language");
-//      postKeyValues.add(op.language());
-//      postKeyValues.add("content");
-//      postKeyValues.add(op.content());
-//      postKeyValues.add("length");
-//      postKeyValues.add(new Integer(op.length()));
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Vertex post = client.addVertex(postKeyValues.toArray());
-//
-//        List<UInt128> ids = new ArrayList<>(2);
-//        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            op.authorPersonId()));
-//        ids.add(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
-//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()));
-//        op.tagIds().forEach((id) -> {
-//          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
-//        });
-//
-//        client.vertices(ids.toArray()).forEachRemaining((v) -> {
-//          if (v.label().equals(TorcEntity.PERSON.label)) {
-//            post.addEdge("hasCreator", v);
-//          } else if (v.label().equals(TorcEntity.FORUM.label)) {
-//            v.addEdge("containerOf", post);
-//          } else if (v.label().equals(TorcEntity.PLACE.label)) {
-//            post.addEdge("isLocatedIn", v);
-//          } else if (v.label().equals(TorcEntity.TAG.label)) {
-//            post.addEdge("hasTag", v);
-//          } else {
-//            throw new RuntimeException(String.format(
-//                "ERROR: LdbcUpdate6AddPostHandler query read a vertex with an "
-//                + "unexpected label: %s", v.label()));
-//          }
-//        });
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a Comment replying to a Post/Comment to the social network.[1]
-//   */
-//  public static class LdbcUpdate7AddCommentHandler implements
-//      OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate7AddComment op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      List<Object> commentKeyValues = new ArrayList<>(14);
-//      commentKeyValues.add(T.id);
-//      commentKeyValues.add(
-//          new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()));
-//      commentKeyValues.add(T.label);
-//      commentKeyValues.add(TorcEntity.COMMENT.label);
-//      commentKeyValues.add("creationDate");
-//      commentKeyValues.add(new Long(op.creationDate().getTime()));
-//      commentKeyValues.add("locationIP");
-//      commentKeyValues.add(op.locationIp());
-//      commentKeyValues.add("browserUsed");
-//      commentKeyValues.add(op.browserUsed());
-//      commentKeyValues.add("content");
-//      commentKeyValues.add(op.content());
-//      commentKeyValues.add("length");
-//      commentKeyValues.add(new Integer(op.length()));
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Vertex comment = client.addVertex(commentKeyValues.toArray());
-//
-//        List<UInt128> ids = new ArrayList<>(2);
-//        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            op.authorPersonId()));
-//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()));
-//        op.tagIds().forEach((id) -> {
-//          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
-//        });
-//        if (op.replyToCommentId() != -1) {
-//          ids.add(new UInt128(TorcEntity.COMMENT.idSpace,
-//              op.replyToCommentId()));
-//        }
-//        if (op.replyToPostId() != -1) {
-//          ids.add(
-//              new UInt128(TorcEntity.POST.idSpace, op.replyToPostId()));
-//        }
-//
-//        client.vertices(ids.toArray()).forEachRemaining((v) -> {
-//          if (v.label().equals(TorcEntity.PERSON.label)) {
-//            comment.addEdge("hasCreator", v);
-//          } else if (v.label().equals(TorcEntity.PLACE.label)) {
-//            comment.addEdge("isLocatedIn", v);
-//          } else if (v.label().equals(TorcEntity.COMMENT.label)) {
-//            comment.addEdge("replyOf", v);
-//          } else if (v.label().equals(TorcEntity.POST.label)) {
-//            comment.addEdge("replyOf", v);
-//          } else if (v.label().equals(TorcEntity.TAG.label)) {
-//            comment.addEdge("hasTag", v);
-//          } else {
-//            throw new RuntimeException(String.format(
-//                "ERROR: LdbcUpdate7AddCommentHandler query read a vertex with "
-//                + "an unexpected label: %s, id: %s", v.label(), v.id()));
-//          }
-//        });
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
-//
-//  /**
-//   * Add a friendship relation to the social network.[1]
-//   */
-//  public static class LdbcUpdate8AddFriendshipHandler implements
-//      OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate8AddFriendship op,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, op);
-//      }
-//
-//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//      List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
-//      knowsEdgeKeyValues.add("creationDate");
-//      knowsEdgeKeyValues.add(new Long(op.creationDate().getTime()));
-//
-//      List<UInt128> ids = new ArrayList<>(2);
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.person1Id()));
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.person2Id()));
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        Iterator<Vertex> vItr = client.vertices(ids.toArray());
-//
-//        Vertex person1 = vItr.next();
-//        Vertex person2 = vItr.next();
-//
-//        person1.addEdge("knows", person2, knowsEdgeKeyValues.toArray());
-//        person2.addEdge("knows", person1, knowsEdgeKeyValues.toArray());
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, op);
-//    }
-//  }
+  /**
+   * Add a Like to a Post of the social network.[1]
+   */
+  public static class LdbcUpdate2AddPostLikeHandler implements
+      OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate2AddPostLike op, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label, null);
+      Vertex post = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.postId()),
+          TorcEntity.POST.label, null);
+
+      Map<Object, Object> eprops = new HashMap<>();
+      eprops.put("creationDate", new Long(op.creationDate().getTime()));
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addEdge(person, "likes", post, eprops);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a Like to a Comment of the social network.[1]
+   */
+  public static class LdbcUpdate3AddCommentLikeHandler implements
+      OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate3AddCommentLike op,
+        DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label, null);
+      Vertex comment = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()),
+          TorcEntity.COMMENT.label, null);
+
+      Map<Object, Object> eprops = new HashMap<>();
+      eprops.put("creationDate", new Long(op.creationDate().getTime()));
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addEdge(person, "likes", comment, eprops);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a Forum to the social network.[1]
+   */
+  public static class LdbcUpdate4AddForumHandler implements
+      OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate4AddForum op,
+        DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      // Build key value properties map
+      Map<Object, Object> props = new HashMap<>();
+      props.put("title", op.forumTitle());
+      props.put("creationDate", new Long(op.creationDate().getTime()));
+      
+      Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
+          TorcEntity.FORUM.label, props);
+
+      List<Vertex> tags = new ArrayList<>(op.tagIds().size());
+      op.tagIds().forEach((tagid) -> tags.add(
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+
+      Vertex moderator = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.moderatorPersonId()), 
+          TorcEntity.PERSON.label, null);
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addVertex(forum);
+
+        for (Vertex tag : tags)
+          graph.addEdge(forum, "hasTag", tag, null);
+
+        graph.addEdge(forum, "hasModerator", moderator, null);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a Forum membership to the social network.[1]
+   */
+  public static class LdbcUpdate5AddForumMembershipHandler implements
+      OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate5AddForumMembership op, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label, null);
+      Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
+          TorcEntity.FORUM.label, null);
+
+      Map<Object, Object> eprops = new HashMap<>();
+      eprops.put("joinDate", new Long(op.joinDate().getTime()));
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addEdge(forum, "hasMember", person, eprops);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a Post to the social network.[1]
+   */
+  public static class LdbcUpdate6AddPostHandler implements
+      OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate6AddPost op, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      // Build key value properties map
+      Map<Object, Object> props = new HashMap<>();
+      props.put("imageFile", op.imageFile());
+      props.put("creationDate", new Long(op.creationDate().getTime()));
+      props.put("locationIP", op.locationIp());
+      props.put("browserUsed", op.browserUsed());
+      props.put("language", op.language());
+      props.put("content", op.content());
+      props.put("length", new Integer(op.length()));
+
+      Vertex post = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.postId()),
+          TorcEntity.POST.label, props);
+      Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()), 
+          TorcEntity.PERSON.label, null);
+      Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
+          TorcEntity.FORUM.label, props);
+      Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
+          TorcEntity.PLACE.label, null);
+
+      List<Vertex> tags = new ArrayList<>(op.tagIds().size());
+      op.tagIds().forEach((tagid) -> tags.add(
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addVertex(post);
+        graph.addEdge(post, "hasCreator", author, null);
+        graph.addEdge(forum, "containerOf", post, null);
+        graph.addEdge(post, "isLocatedIn", place, null);
+
+        for (Vertex tag : tags)
+          graph.addEdge(post, "hasTag", tag, null);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a Comment replying to a Post/Comment to the social network.[1]
+   */
+  public static class LdbcUpdate7AddCommentHandler implements
+      OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate7AddComment op, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      // Build key value properties map
+      Map<Object, Object> props = new HashMap<>();
+      props.put("creationDate", new Long(op.creationDate().getTime()));
+      props.put("locationIP", op.locationIp());
+      props.put("browserUsed", op.browserUsed());
+      props.put("content", op.content());
+      props.put("length", new Integer(op.length()));
+
+      Vertex comment = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()),
+          TorcEntity.COMMENT.label, props);
+      Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()), 
+          TorcEntity.PERSON.label, null);
+      Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
+          TorcEntity.PLACE.label, null);
+
+      Vertex message = null;
+      if (op.replyToCommentId() != -1)
+        message = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.replyToCommentId()),
+            TorcEntity.COMMENT.label, null);
+      else if (op.replyToPostId() != -1)
+        message = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.replyToPostId()),
+            TorcEntity.POST.label, null);
+
+      List<Vertex> tags = new ArrayList<>(op.tagIds().size());
+      op.tagIds().forEach((tagid) -> tags.add(
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addVertex(comment);
+        graph.addEdge(comment, "hasCreator", author, null);
+        graph.addEdge(comment, "isLocatedIn", place, null);
+        graph.addEdge(comment, "replyOf", message, null);
+
+        for (Vertex tag : tags)
+          graph.addEdge(comment, "hasTag", tag, null);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Add a friendship relation to the social network.[1]
+   */
+  public static class LdbcUpdate8AddFriendshipHandler implements
+      OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
+
+    @Override
+    public void executeOperation(LdbcUpdate8AddFriendship op, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
+      }
+
+      Graph graph = cState.getGraph();
+
+      // Build key value properties map
+      Map<Object, Object> props = new HashMap<>();
+      props.put("creationDate", new Long(op.creationDate().getTime()));
+
+      Vertex person1 = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.person1Id()), 
+          TorcEntity.PERSON.label, null);
+      Vertex person2 = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.person2Id()), 
+          TorcEntity.PERSON.label, null);
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addEdge(person1, "knows", person2, props);
+        graph.addEdge(person2, "knows", person1, props);
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
 }
