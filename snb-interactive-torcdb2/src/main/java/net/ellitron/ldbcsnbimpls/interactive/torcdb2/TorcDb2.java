@@ -118,8 +118,8 @@ public class TorcDb2 extends Db {
 //    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
 //        LdbcShortQuery7MessageRepliesHandler.class);
 //
-//    registerOperationHandler(LdbcUpdate1AddPerson.class,
-//        LdbcUpdate1AddPersonHandler.class);
+    registerOperationHandler(LdbcUpdate1AddPerson.class,
+        LdbcUpdate1AddPersonHandler.class);
 //    registerOperationHandler(LdbcUpdate2AddPostLike.class,
 //        LdbcUpdate2AddPostLikeHandler.class);
 //    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
@@ -400,7 +400,7 @@ public class TorcDb2 extends Db {
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
 //      TorcGraph graph = 
-//        (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//        (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -550,7 +550,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -731,7 +731,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -872,7 +872,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1029,7 +1029,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1179,7 +1179,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1419,7 +1419,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1560,7 +1560,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1722,7 +1722,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -1905,7 +1905,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      class ResultTuple {
 //        public int year;
@@ -2093,7 +2093,7 @@ public class TorcDb2 extends Db {
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
 //
 //      TorcGraph graph = 
-//        (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//        (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -2258,7 +2258,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPerson2Id = 
 //          new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -2419,7 +2419,7 @@ public class TorcDb2 extends Db {
 //      final UInt128 torcPerson2Id = 
 //          new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 //
-//      TorcGraph graph = (TorcGraph)((TorcDbConnectionState) dbConnState).getClient();
+//      TorcGraph graph = (TorcGraph)((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -2656,7 +2656,7 @@ public class TorcDb2 extends Db {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
 //        long person_id = operation.personId();
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex person = client.vertices(
 //            new UInt128(TorcEntity.PERSON.idSpace, person_id)).next();
@@ -2718,7 +2718,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 //
@@ -2863,7 +2863,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 //
@@ -2948,7 +2948,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
 //            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
@@ -2996,7 +2996,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
 //            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
@@ -3053,7 +3053,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex vertex = client.vertices(
 //            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
@@ -3132,7 +3132,7 @@ public class TorcDb2 extends Db {
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
 //            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
@@ -3233,131 +3233,105 @@ public class TorcDb2 extends Db {
 //      }
 //    }
 //  }
-//
-//  /**
-//   * ------------------------------------------------------------------------
-//   * Update Queries
-//   * ------------------------------------------------------------------------
-//   */
-//  /**
-//   * Add a Person to the social network. [1]
-//   */
-//  public static class LdbcUpdate1AddPersonHandler implements
-//      OperationHandler<LdbcUpdate1AddPerson, DbConnectionState> {
-//
-//    private final Calendar calendar;
-//
-//    public LdbcUpdate1AddPersonHandler() {
-//      this.calendar = new GregorianCalendar();
-//    }
-//
-//    @Override
-//    public void executeOperation(LdbcUpdate1AddPerson operation,
-//        DbConnectionState dbConnState,
-//        ResultReporter reporter) throws DbException {
-//      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
-//      }
-//
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
-//
-//      // Build key value properties array
-//      List<Object> personKeyValues =
-//          new ArrayList<>(18 + 2 * operation.languages().size()
-//              + 2 * operation.emails().size());
-//      personKeyValues.add(T.id);
-//      personKeyValues.add(
-//          new UInt128(TorcEntity.PERSON.idSpace, operation.personId()));
-//      personKeyValues.add(T.label);
-//      personKeyValues.add(TorcEntity.PERSON.label);
-//      personKeyValues.add("firstName");
-//      personKeyValues.add(operation.personFirstName());
-//      personKeyValues.add("lastName");
-//      personKeyValues.add(operation.personLastName());
-//      personKeyValues.add("gender");
-//      personKeyValues.add(operation.gender());
-//      personKeyValues.add("birthday");
-//      personKeyValues.add(new Long(operation.birthday().getTime()));
-//      personKeyValues.add("creationDate");
-//      personKeyValues.add(new Long(operation.creationDate().getTime()));
-//      personKeyValues.add("locationIP");
-//      personKeyValues.add(operation.locationIp());
-//      personKeyValues.add("browserUsed");
-//      personKeyValues.add(operation.browserUsed());
-//
-//      for (String language : operation.languages()) {
-//        personKeyValues.add("language");
-//        personKeyValues.add(language);
-//      }
-//
-//      for (String email : operation.emails()) {
-//        personKeyValues.add("email");
-//        personKeyValues.add(email);
-//      }
-//
-//      boolean txSucceeded = false;
-//      int txFailCount = 0;
-//      do {
-//        // Add person
-//        Vertex person = client.addVertex(personKeyValues.toArray());
-//
-//        // Add edge to place
-//        Vertex place = client.vertices(
-//            new UInt128(TorcEntity.PLACE.idSpace, operation.cityId())).next();
-//        person.addEdge("isLocatedIn", place);
-//
-//        // Add edges to tags
-//        List<UInt128> tagIds = new ArrayList<>(operation.tagIds().size());
-//        operation.tagIds().forEach((id) ->
-//            tagIds.add(new UInt128(TorcEntity.TAG.idSpace, id)));
-//        Iterator<Vertex> tagVItr = client.vertices(tagIds.toArray());
-//        tagVItr.forEachRemaining((tag) -> {
-//          person.addEdge("hasInterest", tag);
-//        });
-//
-//        // Add edges to universities
-//        List<Object> studiedAtKeyValues = new ArrayList<>(2);
-//        for (LdbcUpdate1AddPerson.Organization org : operation.studyAt()) {
-//          studiedAtKeyValues.clear();
-//          studiedAtKeyValues.add("classYear");
-//          studiedAtKeyValues.add(new Integer(org.year()));
-//          Vertex orgV = client.vertices(
-//              new UInt128(TorcEntity.ORGANISATION.idSpace,
-//                  org.organizationId()))
-//              .next();
-//          person.addEdge("studyAt", orgV, studiedAtKeyValues.toArray());
-//        }
-//
-//        // Add edges to companies
-//        List<Object> workedAtKeyValues = new ArrayList<>(2);
-//        for (LdbcUpdate1AddPerson.Organization org : operation.workAt()) {
-//          workedAtKeyValues.clear();
-//          workedAtKeyValues.add("workFrom");
-//          workedAtKeyValues.add(new Integer(org.year()));
-//          Vertex orgV = client.vertices(
-//              new UInt128(TorcEntity.ORGANISATION.idSpace,
-//                  org.organizationId())).next();
-//          person.addEdge("workAt", orgV, workedAtKeyValues.toArray());
-//        }
-//
-//        try {
-//          client.tx().commit();
-//          txSucceeded = true;
-//        } catch (Exception e) {
-//          txFailCount++;
-//        }
-//
-//        if (txFailCount >= MAX_TX_ATTEMPTS) {
-//          throw new RuntimeException(String.format(
-//              "ERROR: Transaction failed %d times, aborting...",
-//              txFailCount));
-//        }
-//      } while (!txSucceeded);
-//
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
-//    }
-//  }
-//
+
+  /**
+   * ------------------------------------------------------------------------
+   * Update Queries
+   * ------------------------------------------------------------------------
+   */
+
+  /**
+   * Add a Person to the social network. [1]
+   */
+  public static class LdbcUpdate1AddPersonHandler implements
+      OperationHandler<LdbcUpdate1AddPerson, DbConnectionState> {
+
+    private final Calendar calendar;
+
+    public LdbcUpdate1AddPersonHandler() {
+      this.calendar = new GregorianCalendar();
+    }
+
+    @Override
+    public void executeOperation(LdbcUpdate1AddPerson operation, DbConnectionState dbConnState,
+        ResultReporter reporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+      if (cState.fakeUpdates()) {
+        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+      }
+
+      Graph graph = cState.getGraph();
+
+      // ID and label for the vertex.
+      UInt128 id = new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
+      String label = TorcEntity.PERSON.label;
+
+      // Build key value properties map
+      Map<Object, Object> props = new HashMap<>();
+      props.put("firstName", operation.personFirstName());
+      props.put("lastName", operation.personLastName());
+      props.put("gender", operation.gender());
+      props.put("birthday", new Long(operation.birthday().getTime()));
+      props.put("creationDate", new Long(operation.creationDate().getTime()));
+      props.put("locationIP", operation.locationIp());
+      props.put("browserUsed", operation.browserUsed());
+      props.put("language", operation.languages());
+      props.put("email", operation.emails());
+
+      Vertex person = new Vertex(id, label, props);
+
+      Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, operation.cityId()), 
+          TorcEntity.PLACE.label, null);
+
+      List<Vertex> tags = new ArrayList<>(operation.tagIds().size());
+      operation.tagIds().forEach((tagid) -> tags.add(
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+
+      List<Vertex> universities = new ArrayList<>(operation.studyAt().size());
+      List<Map<Object, Object>> studyAtProps = new ArrayList<>(operation.studyAt().size());
+      operation.studyAt().forEach((org) -> {
+          universities.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
+          Map<Object, Object> sprops = new HashMap<>();
+          sprops.put("classYear", new Integer(org.year()));
+          studyAtProps.add(sprops);
+      });
+
+      List<Vertex> companies = new ArrayList<>(operation.workAt().size());
+      List<Map<Object, Object>> workAtProps = new ArrayList<>(operation.workAt().size());
+      operation.workAt().forEach((org) -> {
+          companies.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
+          Map<Object, Object> wprops = new HashMap<>();
+          wprops.put("workFrom", new Integer(org.year()));
+          workAtProps.add(wprops);
+      });
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.addVertex(person);
+
+        graph.addEdge(person, place, "isLocatedIn", null);
+
+        for (Vertex tag : tags)
+          graph.addEdge(person, tag, "hasInterest", null);
+
+        for (int i = 0; i < universities.size(); i++)
+          graph.addEdge(person, universities.get(i), "studyAt", studyAtProps.get(i));
+
+        for (int i = 0; i < companies.size(); i++)
+          graph.addEdge(person, companies.get(i), "workAt", workAtProps.get(i));
+
+        if (graph.commitTx()) {
+          reporter.report(0, LdbcNoResult.INSTANCE, operation);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
 //  /**
 //   * Add a Like to a Post of the social network.[1]
 //   */
@@ -3372,7 +3346,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      UInt128 personId =
 //          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
@@ -3422,7 +3396,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      UInt128 personId =
 //          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
@@ -3472,7 +3446,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<Object> forumKeyValues = new ArrayList<>(8);
 //      forumKeyValues.add(T.id);
@@ -3541,7 +3515,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<UInt128> ids = new ArrayList<>(2);
 //      ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
@@ -3592,7 +3566,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<Object> postKeyValues = new ArrayList<>(18);
 //      postKeyValues.add(T.id);
@@ -3677,7 +3651,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<Object> commentKeyValues = new ArrayList<>(14);
 //      commentKeyValues.add(T.id);
@@ -3767,7 +3741,7 @@ public class TorcDb2 extends Db {
 //        reporter.report(0, LdbcNoResult.INSTANCE, operation);
 //      }
 //
-//      Graph client = ((TorcDbConnectionState) dbConnState).getClient();
+//      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
 //      knowsEdgeKeyValues.add("creationDate");
