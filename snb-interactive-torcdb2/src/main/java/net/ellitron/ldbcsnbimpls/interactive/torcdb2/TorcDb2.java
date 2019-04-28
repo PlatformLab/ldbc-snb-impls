@@ -164,14 +164,14 @@ public class TorcDb2 extends Db {
       implements OperationHandler<LdbcQuery1, DbConnectionState> {
 
     @Override
-    public void executeOperation(final LdbcQuery1 operation, DbConnectionState dbConnState,
+    public void executeOperation(final LdbcQuery1 op, DbConnectionState dbConnState,
         ResultReporter resultReporter) throws DbException {
       TorcDb2ConnectionState cState = (TorcDb2ConnectionState)dbConnState;
 
       if (cState.fakeComplexReads()) {
-        List<LdbcQuery1Result> result = new ArrayList<>(operation.limit());
+        List<LdbcQuery1Result> result = new ArrayList<>(op.limit());
 
-        for (int i = 0; i < operation.limit(); i++) {
+        for (int i = 0; i < op.limit(); i++) {
           List<Long> personIDs = cState.personIDFeed();
           int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
           Long pid = personIDs.get(n1);
@@ -191,14 +191,14 @@ public class TorcDb2 extends Db {
               null));
         }
 
-        resultReporter.report(result.size(), result, operation);
+        resultReporter.report(result.size(), result, op);
         return;
       }
 
       // Parameters of this query
-      final long personId = operation.personId();
-      final String firstName = operation.firstName();
-      final int limit = operation.limit();
+      final long personId = op.personId();
+      final String firstName = op.firstName();
+      final int limit = op.limit();
 
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
@@ -352,7 +352,7 @@ public class TorcDb2 extends Db {
             companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
       }
 
-      resultReporter.report(result.size(), result, operation);
+      resultReporter.report(result.size(), result, op);
     }
   }
 
@@ -367,13 +367,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery2, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery2 operation,
+//    public void executeOperation(final LdbcQuery2 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery2Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery2Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
 //          Long pid = personIDs.get(n1);
@@ -387,14 +387,14 @@ public class TorcDb2 extends Db {
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final long maxDate = operation.maxDate().getTime();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final long maxDate = op.maxDate().getTime();
+//      final int limit = op.limit();
 //      
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -495,7 +495,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -515,13 +515,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery3, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery3 operation,
+//    public void executeOperation(final LdbcQuery3 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery3Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery3Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          Long pid = personIDs.get(n1);
 //          result.add(new LdbcQuery3Result(
@@ -533,17 +533,17 @@ public class TorcDb2 extends Db {
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final String countryXName = operation.countryXName();
-//      final String countryYName = operation.countryYName();
-//      final long startDate = operation.startDate().getTime();
-//      final long durationDays = operation.durationDays();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final String countryXName = op.countryXName();
+//      final String countryYName = op.countryYName();
+//      final long startDate = op.startDate().getTime();
+//      final long durationDays = op.durationDays();
+//      final int limit = op.limit();
 //
 //      final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
 //
@@ -685,7 +685,7 @@ public class TorcDb2 extends Db {
 //          ((TorcGraph)graph).enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -704,27 +704,27 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery4, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery4 operation,
+//    public void executeOperation(final LdbcQuery4 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery4Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery4Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          result.add(new LdbcQuery4Result(
 //              null,
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final long startDate = operation.startDate().getTime();
-//      final long durationDays = operation.durationDays();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final long startDate = op.startDate().getTime();
+//      final long durationDays = op.durationDays();
+//      final int limit = op.limit();
 //
 //      final long endDate = startDate + (durationDays * 24L * 60L * 60L * 1000L);
 //
@@ -829,7 +829,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -848,26 +848,26 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery5, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery5 operation,
+//    public void executeOperation(final LdbcQuery5 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery5Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery5Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          result.add(new LdbcQuery5Result(
 //              null,
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final long minDate = operation.minDate().getTime();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final long minDate = op.minDate().getTime();
+//      final int limit = op.limit();
 //
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -987,7 +987,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1005,26 +1005,26 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery6, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery6 operation,
+//    public void executeOperation(final LdbcQuery6 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery6Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery6Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          result.add(new LdbcQuery6Result(
 //              null,
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final String tagName = operation.tagName();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final String tagName = op.tagName();
+//      final int limit = op.limit();
 //
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -1125,7 +1125,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1146,13 +1146,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery7, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery7 operation,
+//    public void executeOperation(final LdbcQuery7 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery7Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery7Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
 //          Long pid = personIDs.get(n1);
@@ -1168,13 +1168,13 @@ public class TorcDb2 extends Db {
 //              false));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final int limit = op.limit();
 //      
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -1370,7 +1370,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1388,13 +1388,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery8, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery8 operation,
+//    public void executeOperation(final LdbcQuery8 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery8Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery8Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
 //          Long pid = personIDs.get(n1);
@@ -1408,13 +1408,13 @@ public class TorcDb2 extends Db {
 //              null));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final int limit = op.limit();
 //      
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -1510,7 +1510,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1528,13 +1528,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery9, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery9 operation,
+//    public void executeOperation(final LdbcQuery9 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery9Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery9Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          int n2 = ThreadLocalRandom.current().nextInt(0, messageIDs.size());
 //          Long pid = personIDs.get(n1);
@@ -1548,14 +1548,14 @@ public class TorcDb2 extends Db {
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final long maxDate = operation.maxDate().getTime();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final long maxDate = op.maxDate().getTime();
+//      final int limit = op.limit();
 //      
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -1663,7 +1663,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1690,13 +1690,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery10, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery10 operation,
+//    public void executeOperation(final LdbcQuery10 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery10Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery10Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          Long pid = personIDs.get(n1);
 //          result.add(new LdbcQuery10Result(
@@ -1708,14 +1708,14 @@ public class TorcDb2 extends Db {
 //              null));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final int month = operation.month() - 1; // make month zero based
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final int month = op.month() - 1; // make month zero based
+//      final int limit = op.limit();
 //
 //      Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
 //
@@ -1857,7 +1857,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -1875,13 +1875,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery11, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery11 operation,
+//    public void executeOperation(final LdbcQuery11 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery11Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery11Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          Long pid = personIDs.get(n1);
 //          result.add(new LdbcQuery11Result(
@@ -1892,15 +1892,15 @@ public class TorcDb2 extends Db {
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final String countryName = operation.countryName();
-//      final int workFromYear = operation.workFromYear();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final String countryName = op.countryName();
+//      final int workFromYear = op.workFromYear();
+//      final int limit = op.limit();
 //
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -2042,7 +2042,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -2063,13 +2063,13 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery12, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery12 operation,
+//    public void executeOperation(final LdbcQuery12 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        List<LdbcQuery12Result> result = new ArrayList<>(operation.limit());
+//        List<LdbcQuery12Result> result = new ArrayList<>(op.limit());
 //
-//        for (int i = 0; i < operation.limit(); i++) {
+//        for (int i = 0; i < op.limit(); i++) {
 //          int n1 = ThreadLocalRandom.current().nextInt(0, personIDs.size());
 //          Long pid = personIDs.get(n1);
 //          result.add(new LdbcQuery12Result(
@@ -2080,14 +2080,14 @@ public class TorcDb2 extends Db {
 //              0));
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
 //      // Parameters of this query
-//      final long personId = operation.personId();
-//      final String tagClassName = operation.tagClassName();
-//      final int limit = operation.limit();
+//      final long personId = op.personId();
+//      final String tagClassName = op.tagClassName();
+//      final int limit = op.limit();
 //
 //      final UInt128 torcPersonId = 
 //          new UInt128(TorcEntity.PERSON.idSpace, personId);
@@ -2220,7 +2220,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -2236,20 +2236,20 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery13, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery13 operation,
+//    public void executeOperation(final LdbcQuery13 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
-//        resultReporter.report(1, new LdbcQuery13Result(0), operation);
+//        resultReporter.report(1, new LdbcQuery13Result(0), op);
 //        return;
 //      }
 //      
 //      // Parameters of this query
-//      final long person1Id = operation.person1Id();
-//      final long person2Id = operation.person2Id();
+//      final long person1Id = op.person1Id();
+//      final long person2Id = op.person2Id();
 //
 //      if (person1Id == person2Id) {
-//        resultReporter.report(1, new LdbcQuery13Result(0), operation);
+//        resultReporter.report(1, new LdbcQuery13Result(0), op);
 //        return;        
 //      }
 //
@@ -2306,7 +2306,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(1, new LdbcQuery13Result(n), operation);
+//        resultReporter.report(1, new LdbcQuery13Result(n), op);
 //        break;
 //      }
 //    }
@@ -2328,21 +2328,21 @@ public class TorcDb2 extends Db {
 //      implements OperationHandler<LdbcQuery14, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcQuery14 operation,
+//    public void executeOperation(final LdbcQuery14 op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      if (fakeComplexReads) {
 //        List<LdbcQuery14Result> result = new ArrayList<>(1);
 //        
 //        List<Long> personIDsInPath = new ArrayList<>(2);
-//        personIDsInPath.add(operation.person1Id());
-//        personIDsInPath.add(operation.person2Id());
+//        personIDsInPath.add(op.person1Id());
+//        personIDsInPath.add(op.person2Id());
 //
 //        result.add(new LdbcQuery14Result(
 //            personIDsInPath,
 //            42.0));
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        return;
 //      }
 //
@@ -2411,8 +2411,8 @@ public class TorcDb2 extends Db {
 //      };
 //
 //      // Parameters of this query
-//      final long person1Id = operation.person1Id();
-//      final long person2Id = operation.person2Id();
+//      final long person1Id = op.person1Id();
+//      final long person2Id = op.person2Id();
 //
 //      final UInt128 torcPerson1Id = 
 //          new UInt128(TorcEntity.PERSON.idSpace, person1Id);
@@ -2631,7 +2631,7 @@ public class TorcDb2 extends Db {
 //          graph.enableTx();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -2650,12 +2650,12 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery1PersonProfile operation,
+//    public void executeOperation(final LdbcShortQuery1PersonProfile op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
 //      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        long person_id = operation.personId();
+//        long person_id = op.personId();
 //        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex person = client.vertices(
@@ -2694,7 +2694,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(0, res, operation);
+//        resultReporter.report(0, res, op);
 //        break;
 //      }
 //    }
@@ -2713,7 +2713,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery2PersonPosts operation,
+//    public void executeOperation(final LdbcShortQuery2PersonPosts op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -2723,7 +2723,7 @@ public class TorcDb2 extends Db {
 //        List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 //
 //        Vertex person = client.vertices(
-//            new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
+//            new UInt128(TorcEntity.PERSON.idSpace, op.personId()))
 //            .next();
 //        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.IN, 
 //            new String[] {"hasCreator"}, 
@@ -2755,7 +2755,7 @@ public class TorcDb2 extends Db {
 //          }
 //        });
 //
-//        for (int i = 0; i < Integer.min(operation.limit(), messageList.size());
+//        for (int i = 0; i < Integer.min(op.limit(), messageList.size());
 //            i++) {
 //          Vertex message = messageList.get(i);
 //
@@ -2843,7 +2843,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -2858,7 +2858,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery3PersonFriends operation,
+//    public void executeOperation(final LdbcShortQuery3PersonFriends op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -2868,7 +2868,7 @@ public class TorcDb2 extends Db {
 //        List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
 //
 //        Vertex person = client.vertices(
-//            new UInt128(TorcEntity.PERSON.idSpace, operation.personId()))
+//            new UInt128(TorcEntity.PERSON.idSpace, op.personId()))
 //            .next();
 //
 //        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.OUT, 
@@ -2928,7 +2928,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //
@@ -2943,7 +2943,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery4MessageContent operation,
+//    public void executeOperation(final LdbcShortQuery4MessageContent op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -2951,7 +2951,7 @@ public class TorcDb2 extends Db {
 //        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
+//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
 //            .next();
 //
 //        long creationDate =
@@ -2977,7 +2977,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(1, result, operation);
+//        resultReporter.report(1, result, op);
 //        break;
 //      }
 //
@@ -2991,7 +2991,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery5MessageCreator operation,
+//    public void executeOperation(final LdbcShortQuery5MessageCreator op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -2999,7 +2999,7 @@ public class TorcDb2 extends Db {
 //        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
+//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
 //            .next();
 //
 //        Vertex creator =
@@ -3031,7 +3031,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(1, result, operation);
+//        resultReporter.report(1, result, op);
 //        break;
 //      }
 //
@@ -3048,7 +3048,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery6MessageForum operation,
+//    public void executeOperation(final LdbcShortQuery6MessageForum op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -3056,7 +3056,7 @@ public class TorcDb2 extends Db {
 //        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex vertex = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
+//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
 //            .next();
 //
 //        LdbcShortQuery6MessageForumResult result;
@@ -3109,7 +3109,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(1, result, operation);
+//        resultReporter.report(1, result, op);
 //        break;
 //      }
 //
@@ -3127,7 +3127,7 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcShortQuery7MessageReplies, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(final LdbcShortQuery7MessageReplies operation,
+//    public void executeOperation(final LdbcShortQuery7MessageReplies op,
 //        DbConnectionState dbConnState,
 //        ResultReporter resultReporter) throws DbException {
 //      int txAttempts = 0;
@@ -3135,7 +3135,7 @@ public class TorcDb2 extends Db {
 //        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //        Vertex message = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, operation.messageId()))
+//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
 //            .next();
 //        Vertex messageAuthor =
 //            ((TorcVertex) message).edges(Direction.OUT, 
@@ -3228,7 +3228,7 @@ public class TorcDb2 extends Db {
 //          client.tx().rollback();
 //        }
 //
-//        resultReporter.report(result.size(), result, operation);
+//        resultReporter.report(result.size(), result, op);
 //        break;
 //      }
 //    }
@@ -3253,52 +3253,52 @@ public class TorcDb2 extends Db {
     }
 
     @Override
-    public void executeOperation(LdbcUpdate1AddPerson operation, DbConnectionState dbConnState,
+    public void executeOperation(LdbcUpdate1AddPerson op, DbConnectionState dbConnState,
         ResultReporter reporter) throws DbException {
       TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
       if (cState.fakeUpdates()) {
-        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+        reporter.report(0, LdbcNoResult.INSTANCE, op);
       }
 
       Graph graph = cState.getGraph();
 
       // ID and label for the vertex.
-      UInt128 id = new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
+      UInt128 id = new UInt128(TorcEntity.PERSON.idSpace, op.personId());
       String label = TorcEntity.PERSON.label;
 
       // Build key value properties map
       Map<Object, Object> props = new HashMap<>();
-      props.put("firstName", operation.personFirstName());
-      props.put("lastName", operation.personLastName());
-      props.put("gender", operation.gender());
-      props.put("birthday", new Long(operation.birthday().getTime()));
-      props.put("creationDate", new Long(operation.creationDate().getTime()));
-      props.put("locationIP", operation.locationIp());
-      props.put("browserUsed", operation.browserUsed());
-      props.put("language", operation.languages());
-      props.put("email", operation.emails());
+      props.put("firstName", op.personFirstName());
+      props.put("lastName", op.personLastName());
+      props.put("gender", op.gender());
+      props.put("birthday", new Long(op.birthday().getTime()));
+      props.put("creationDate", new Long(op.creationDate().getTime()));
+      props.put("locationIP", op.locationIp());
+      props.put("browserUsed", op.browserUsed());
+      props.put("language", op.languages());
+      props.put("email", op.emails());
 
       Vertex person = new Vertex(id, label, props);
 
-      Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, operation.cityId()), 
+      Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.cityId()), 
           TorcEntity.PLACE.label, null);
 
-      List<Vertex> tags = new ArrayList<>(operation.tagIds().size());
-      operation.tagIds().forEach((tagid) -> tags.add(
+      List<Vertex> tags = new ArrayList<>(op.tagIds().size());
+      op.tagIds().forEach((tagid) -> tags.add(
             new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
 
-      List<Vertex> universities = new ArrayList<>(operation.studyAt().size());
-      List<Map<Object, Object>> studyAtProps = new ArrayList<>(operation.studyAt().size());
-      operation.studyAt().forEach((org) -> {
+      List<Vertex> universities = new ArrayList<>(op.studyAt().size());
+      List<Map<Object, Object>> studyAtProps = new ArrayList<>(op.studyAt().size());
+      op.studyAt().forEach((org) -> {
           universities.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
           Map<Object, Object> sprops = new HashMap<>();
           sprops.put("classYear", new Integer(org.year()));
           studyAtProps.add(sprops);
       });
 
-      List<Vertex> companies = new ArrayList<>(operation.workAt().size());
-      List<Map<Object, Object>> workAtProps = new ArrayList<>(operation.workAt().size());
-      operation.workAt().forEach((org) -> {
+      List<Vertex> companies = new ArrayList<>(op.workAt().size());
+      List<Map<Object, Object>> workAtProps = new ArrayList<>(op.workAt().size());
+      op.workAt().forEach((org) -> {
           companies.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
           Map<Object, Object> wprops = new HashMap<>();
           wprops.put("workFrom", new Integer(org.year()));
@@ -3323,7 +3323,7 @@ public class TorcDb2 extends Db {
           graph.addEdge(person, companies.get(i), "workAt", workAtProps.get(i));
 
         if (graph.commitTx()) {
-          reporter.report(0, LdbcNoResult.INSTANCE, operation);
+          reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
 
@@ -3339,19 +3339,19 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate2AddPostLike, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate2AddPostLike operation,
+//    public void executeOperation(LdbcUpdate2AddPostLike op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      UInt128 personId =
-//          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
+//          new UInt128(TorcEntity.PERSON.idSpace, op.personId());
 //      UInt128 postId =
-//          new UInt128(TorcEntity.POST.idSpace, operation.postId());
+//          new UInt128(TorcEntity.POST.idSpace, op.postId());
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3361,7 +3361,7 @@ public class TorcDb2 extends Db {
 //        Vertex post = results.next();
 //        List<Object> keyValues = new ArrayList<>(2);
 //        keyValues.add("creationDate");
-//        keyValues.add(new Long(operation.creationDate().getTime()));
+//        keyValues.add(new Long(op.creationDate().getTime()));
 //        person.addEdge("likes", post, keyValues.toArray());
 //
 //        try {
@@ -3378,7 +3378,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3389,19 +3389,19 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate3AddCommentLike, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate3AddCommentLike operation,
+//    public void executeOperation(LdbcUpdate3AddCommentLike op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      UInt128 personId =
-//          new UInt128(TorcEntity.PERSON.idSpace, operation.personId());
+//          new UInt128(TorcEntity.PERSON.idSpace, op.personId());
 //      UInt128 commentId =
-//          new UInt128(TorcEntity.COMMENT.idSpace, operation.commentId());
+//          new UInt128(TorcEntity.COMMENT.idSpace, op.commentId());
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3411,7 +3411,7 @@ public class TorcDb2 extends Db {
 //        Vertex comment = results.next();
 //        List<Object> keyValues = new ArrayList<>(2);
 //        keyValues.add("creationDate");
-//        keyValues.add(new Long(operation.creationDate().getTime()));
+//        keyValues.add(new Long(op.creationDate().getTime()));
 //        person.addEdge("likes", comment, keyValues.toArray());
 //
 //        try {
@@ -3428,7 +3428,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3439,11 +3439,11 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate4AddForum, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate4AddForum operation,
+//    public void executeOperation(LdbcUpdate4AddForum op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
@@ -3451,25 +3451,25 @@ public class TorcDb2 extends Db {
 //      List<Object> forumKeyValues = new ArrayList<>(8);
 //      forumKeyValues.add(T.id);
 //      forumKeyValues.add(
-//          new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
+//          new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
 //      forumKeyValues.add(T.label);
 //      forumKeyValues.add(TorcEntity.FORUM.label);
 //      forumKeyValues.add("title");
-//      forumKeyValues.add(operation.forumTitle());
+//      forumKeyValues.add(op.forumTitle());
 //      forumKeyValues.add("creationDate");
-//      forumKeyValues.add(new Long(operation.creationDate().getTime()));
+//      forumKeyValues.add(new Long(op.creationDate().getTime()));
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
 //      do {
 //        Vertex forum = client.addVertex(forumKeyValues.toArray());
 //
-//        List<UInt128> ids = new ArrayList<>(operation.tagIds().size() + 1);
-//        operation.tagIds().forEach((id) -> {
+//        List<UInt128> ids = new ArrayList<>(op.tagIds().size() + 1);
+//        op.tagIds().forEach((id) -> {
 //          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
 //        });
 //        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            operation.moderatorPersonId()));
+//            op.moderatorPersonId()));
 //
 //        client.vertices(ids.toArray()).forEachRemaining((v) -> {
 //          if (v.label().equals(TorcEntity.TAG.label)) {
@@ -3497,7 +3497,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3508,18 +3508,18 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate5AddForumMembership, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate5AddForumMembership operation,
+//    public void executeOperation(LdbcUpdate5AddForumMembership op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<UInt128> ids = new ArrayList<>(2);
-//      ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.personId()));
+//      ids.add(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
+//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.personId()));
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3530,7 +3530,7 @@ public class TorcDb2 extends Db {
 //
 //        List<Object> edgeKeyValues = new ArrayList<>(2);
 //        edgeKeyValues.add("joinDate");
-//        edgeKeyValues.add(new Long(operation.joinDate().getTime()));
+//        edgeKeyValues.add(new Long(op.joinDate().getTime()));
 //
 //        forum.addEdge("hasMember", member, edgeKeyValues.toArray());
 //
@@ -3548,7 +3548,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3559,11 +3559,11 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate6AddPost, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate6AddPost operation,
+//    public void executeOperation(LdbcUpdate6AddPost op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
@@ -3571,23 +3571,23 @@ public class TorcDb2 extends Db {
 //      List<Object> postKeyValues = new ArrayList<>(18);
 //      postKeyValues.add(T.id);
 //      postKeyValues.add(
-//          new UInt128(TorcEntity.POST.idSpace, operation.postId()));
+//          new UInt128(TorcEntity.POST.idSpace, op.postId()));
 //      postKeyValues.add(T.label);
 //      postKeyValues.add(TorcEntity.POST.label);
 //      postKeyValues.add("imageFile");
-//      postKeyValues.add(operation.imageFile());
+//      postKeyValues.add(op.imageFile());
 //      postKeyValues.add("creationDate");
-//      postKeyValues.add(new Long(operation.creationDate().getTime()));
+//      postKeyValues.add(new Long(op.creationDate().getTime()));
 //      postKeyValues.add("locationIP");
-//      postKeyValues.add(operation.locationIp());
+//      postKeyValues.add(op.locationIp());
 //      postKeyValues.add("browserUsed");
-//      postKeyValues.add(operation.browserUsed());
+//      postKeyValues.add(op.browserUsed());
 //      postKeyValues.add("language");
-//      postKeyValues.add(operation.language());
+//      postKeyValues.add(op.language());
 //      postKeyValues.add("content");
-//      postKeyValues.add(operation.content());
+//      postKeyValues.add(op.content());
 //      postKeyValues.add("length");
-//      postKeyValues.add(new Integer(operation.length()));
+//      postKeyValues.add(new Integer(op.length()));
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3596,10 +3596,10 @@ public class TorcDb2 extends Db {
 //
 //        List<UInt128> ids = new ArrayList<>(2);
 //        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            operation.authorPersonId()));
-//        ids.add(new UInt128(TorcEntity.FORUM.idSpace, operation.forumId()));
-//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, operation.countryId()));
-//        operation.tagIds().forEach((id) -> {
+//            op.authorPersonId()));
+//        ids.add(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()));
+//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()));
+//        op.tagIds().forEach((id) -> {
 //          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
 //        });
 //
@@ -3633,7 +3633,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3644,11 +3644,11 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate7AddComment, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate7AddComment operation,
+//    public void executeOperation(LdbcUpdate7AddComment op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
@@ -3656,19 +3656,19 @@ public class TorcDb2 extends Db {
 //      List<Object> commentKeyValues = new ArrayList<>(14);
 //      commentKeyValues.add(T.id);
 //      commentKeyValues.add(
-//          new UInt128(TorcEntity.COMMENT.idSpace, operation.commentId()));
+//          new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()));
 //      commentKeyValues.add(T.label);
 //      commentKeyValues.add(TorcEntity.COMMENT.label);
 //      commentKeyValues.add("creationDate");
-//      commentKeyValues.add(new Long(operation.creationDate().getTime()));
+//      commentKeyValues.add(new Long(op.creationDate().getTime()));
 //      commentKeyValues.add("locationIP");
-//      commentKeyValues.add(operation.locationIp());
+//      commentKeyValues.add(op.locationIp());
 //      commentKeyValues.add("browserUsed");
-//      commentKeyValues.add(operation.browserUsed());
+//      commentKeyValues.add(op.browserUsed());
 //      commentKeyValues.add("content");
-//      commentKeyValues.add(operation.content());
+//      commentKeyValues.add(op.content());
 //      commentKeyValues.add("length");
-//      commentKeyValues.add(new Integer(operation.length()));
+//      commentKeyValues.add(new Integer(op.length()));
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3677,18 +3677,18 @@ public class TorcDb2 extends Db {
 //
 //        List<UInt128> ids = new ArrayList<>(2);
 //        ids.add(new UInt128(TorcEntity.PERSON.idSpace,
-//            operation.authorPersonId()));
-//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, operation.countryId()));
-//        operation.tagIds().forEach((id) -> {
+//            op.authorPersonId()));
+//        ids.add(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()));
+//        op.tagIds().forEach((id) -> {
 //          ids.add(new UInt128(TorcEntity.TAG.idSpace, id));
 //        });
-//        if (operation.replyToCommentId() != -1) {
+//        if (op.replyToCommentId() != -1) {
 //          ids.add(new UInt128(TorcEntity.COMMENT.idSpace,
-//              operation.replyToCommentId()));
+//              op.replyToCommentId()));
 //        }
-//        if (operation.replyToPostId() != -1) {
+//        if (op.replyToPostId() != -1) {
 //          ids.add(
-//              new UInt128(TorcEntity.POST.idSpace, operation.replyToPostId()));
+//              new UInt128(TorcEntity.POST.idSpace, op.replyToPostId()));
 //        }
 //
 //        client.vertices(ids.toArray()).forEachRemaining((v) -> {
@@ -3723,7 +3723,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 //
@@ -3734,22 +3734,22 @@ public class TorcDb2 extends Db {
 //      OperationHandler<LdbcUpdate8AddFriendship, DbConnectionState> {
 //
 //    @Override
-//    public void executeOperation(LdbcUpdate8AddFriendship operation,
+//    public void executeOperation(LdbcUpdate8AddFriendship op,
 //        DbConnectionState dbConnState,
 //        ResultReporter reporter) throws DbException {
 //      if (fakeUpdates) {
-//        reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//        reporter.report(0, LdbcNoResult.INSTANCE, op);
 //      }
 //
 //      Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
 //
 //      List<Object> knowsEdgeKeyValues = new ArrayList<>(2);
 //      knowsEdgeKeyValues.add("creationDate");
-//      knowsEdgeKeyValues.add(new Long(operation.creationDate().getTime()));
+//      knowsEdgeKeyValues.add(new Long(op.creationDate().getTime()));
 //
 //      List<UInt128> ids = new ArrayList<>(2);
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.person1Id()));
-//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, operation.person2Id()));
+//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.person1Id()));
+//      ids.add(new UInt128(TorcEntity.PERSON.idSpace, op.person2Id()));
 //
 //      boolean txSucceeded = false;
 //      int txFailCount = 0;
@@ -3776,7 +3776,7 @@ public class TorcDb2 extends Db {
 //        }
 //      } while (!txSucceeded);
 //
-//      reporter.report(0, LdbcNoResult.INSTANCE, operation);
+//      reporter.report(0, LdbcNoResult.INSTANCE, op);
 //    }
 //  }
 }
