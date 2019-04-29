@@ -103,8 +103,8 @@ public class TorcDb2 extends Db {
 //    registerOperationHandler(LdbcQuery14.class,
 //        LdbcQuery14Handler.class);
 //
-//    registerOperationHandler(LdbcShortQuery1PersonProfile.class,
-//        LdbcShortQuery1PersonProfileHandler.class);
+    registerOperationHandler(LdbcShortQuery1PersonProfile.class,
+        LdbcShortQuery1PersonProfileHandler.class);
 //    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
 //        LdbcShortQuery2PersonPostsHandler.class);
 //    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
@@ -120,20 +120,20 @@ public class TorcDb2 extends Db {
 //
     registerOperationHandler(LdbcUpdate1AddPerson.class,
         LdbcUpdate1AddPersonHandler.class);
-//    registerOperationHandler(LdbcUpdate2AddPostLike.class,
-//        LdbcUpdate2AddPostLikeHandler.class);
-//    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
-//        LdbcUpdate3AddCommentLikeHandler.class);
-//    registerOperationHandler(LdbcUpdate4AddForum.class,
-//        LdbcUpdate4AddForumHandler.class);
-//    registerOperationHandler(LdbcUpdate5AddForumMembership.class,
-//        LdbcUpdate5AddForumMembershipHandler.class);
-//    registerOperationHandler(LdbcUpdate6AddPost.class,
-//        LdbcUpdate6AddPostHandler.class);
-//    registerOperationHandler(LdbcUpdate7AddComment.class,
-//        LdbcUpdate7AddCommentHandler.class);
-//    registerOperationHandler(LdbcUpdate8AddFriendship.class,
-//        LdbcUpdate8AddFriendshipHandler.class);
+    registerOperationHandler(LdbcUpdate2AddPostLike.class,
+        LdbcUpdate2AddPostLikeHandler.class);
+    registerOperationHandler(LdbcUpdate3AddCommentLike.class,
+        LdbcUpdate3AddCommentLikeHandler.class);
+    registerOperationHandler(LdbcUpdate4AddForum.class,
+        LdbcUpdate4AddForumHandler.class);
+    registerOperationHandler(LdbcUpdate5AddForumMembership.class,
+        LdbcUpdate5AddForumMembershipHandler.class);
+    registerOperationHandler(LdbcUpdate6AddPost.class,
+        LdbcUpdate6AddPostHandler.class);
+    registerOperationHandler(LdbcUpdate7AddComment.class,
+        LdbcUpdate7AddCommentHandler.class);
+    registerOperationHandler(LdbcUpdate8AddFriendship.class,
+        LdbcUpdate8AddFriendshipHandler.class);
   }
 
   @Override
@@ -211,7 +211,7 @@ public class TorcDb2 extends Db {
       List<Vertex> l2_matches = new ArrayList<>();
       List<Vertex> l3_matches = new ArrayList<>();
 
-      Vertex start = new Vertex(torcPersonId);
+      Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
 
       graph.fillProperties(l1_friends);
@@ -2637,70 +2637,59 @@ public class TorcDb2 extends Db {
 //    }
 //  }
 //
-//  /**
-//   * ------------------------------------------------------------------------
-//   * Short Queries
-//   * ------------------------------------------------------------------------
-//   */
-//  /**
-//   * Given a start Person, retrieve their first name, last name, birthday, IP
-//   * address, browser, and city of residence.[1]
-//   */
-//  public static class LdbcShortQuery1PersonProfileHandler implements
-//      OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery1PersonProfile op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        long person_id = op.personId();
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        Vertex person = client.vertices(
-//            new UInt128(TorcEntity.PERSON.idSpace, person_id)).next();
-//        Iterator<VertexProperty<Object>> props = person.properties();
-//        Map<String, Object> propertyMap = new HashMap<>();
-//        props.forEachRemaining((prop) -> {
-//          propertyMap.put(prop.key(), prop.value());
-//        });
-//
-//        Vertex place =
-//            ((TorcVertex) person).edges(Direction.OUT, 
-//              new String[] {"isLocatedIn"}, 
-//              new String[] {TorcEntity.PLACE.label}).next().inVertex();
-//        long placeId = ((UInt128) place.id()).getLowerLong();
-//
-//        LdbcShortQuery1PersonProfileResult res =
-//            new LdbcShortQuery1PersonProfileResult(
-//                (String)propertyMap.get("firstName"),
-//                (String)propertyMap.get("lastName"),
-//                (Long)propertyMap.get("birthday"),
-//                (String)propertyMap.get("locationIP"),
-//                (String)propertyMap.get("browserUsed"),
-//                placeId,
-//                (String)propertyMap.get("gender"),
-//                (Long)propertyMap.get("creationDate"));
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(0, res, op);
-//        break;
-//      }
-//    }
-//
-//  }
-//
+  /**
+   * ------------------------------------------------------------------------
+   * Short Queries
+   * ------------------------------------------------------------------------
+   */
+  /**
+   * Given a start Person, retrieve their first name, last name, birthday, IP
+   * address, browser, and city of residence.[1]
+   */
+  public static class LdbcShortQuery1PersonProfileHandler implements
+      OperationHandler<LdbcShortQuery1PersonProfile, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery1PersonProfile op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label);
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.fillProperties(person);
+
+        TraversalResult place = graph.traverse(person, "isLocatedIn", Direction.OUT, false, 
+            "Place");
+
+        LdbcShortQuery1PersonProfileResult result =
+            new LdbcShortQuery1PersonProfileResult(
+                (String)person.getProperty("firstName"),
+                (String)person.getProperty("lastName"),
+                (Long)person.getProperty("birthday"),
+                (String)person.getProperty("locationIP"),
+                (String)person.getProperty("browserUsed"),
+                place.vMap.get(person).get(0).id().getLowerLong(),
+                (String)person.getProperty("gender"),
+                (Long)person.getProperty("creationDate"));
+
+        if (graph.commitTx()) {
+          resultReporter.report(1, result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
 //  /**
 //   * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
 //   * created by that user. For each message, return that message, the original
@@ -3287,7 +3276,8 @@ public class TorcDb2 extends Db {
       List<Vertex> universities = new ArrayList<>(op.studyAt().size());
       List<Map<Object, Object>> studyAtProps = new ArrayList<>(op.studyAt().size());
       op.studyAt().forEach((org) -> {
-          universities.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
+          universities.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, 
+                  org.organizationId()), TorcEntity.ORGANISATION.label));
           Map<Object, Object> sprops = new HashMap<>();
           sprops.put("classYear", new Integer(org.year()));
           studyAtProps.add(sprops);
@@ -3296,7 +3286,8 @@ public class TorcDb2 extends Db {
       List<Vertex> companies = new ArrayList<>(op.workAt().size());
       List<Map<Object, Object>> workAtProps = new ArrayList<>(op.workAt().size());
       op.workAt().forEach((org) -> {
-          companies.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, org.organizationId())));
+          companies.add(new Vertex(new UInt128(TorcEntity.ORGANISATION.idSpace, 
+                  org.organizationId()), TorcEntity.ORGANISATION.label));
           Map<Object, Object> wprops = new HashMap<>();
           wprops.put("workFrom", new Integer(org.year()));
           workAtProps.add(wprops);
@@ -3346,9 +3337,9 @@ public class TorcDb2 extends Db {
       Graph graph = cState.getGraph();
 
       Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
       Vertex post = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.postId()),
-          TorcEntity.POST.label, null);
+          TorcEntity.POST.label);
 
       Map<Object, Object> eprops = new HashMap<>();
       eprops.put("creationDate", new Long(op.creationDate().getTime()));
@@ -3387,9 +3378,9 @@ public class TorcDb2 extends Db {
       Graph graph = cState.getGraph();
 
       Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
       Vertex comment = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()),
-          TorcEntity.COMMENT.label, null);
+          TorcEntity.COMMENT.label);
 
       Map<Object, Object> eprops = new HashMap<>();
       eprops.put("creationDate", new Long(op.creationDate().getTime()));
@@ -3437,10 +3428,10 @@ public class TorcDb2 extends Db {
 
       List<Vertex> tags = new ArrayList<>(op.tagIds().size());
       op.tagIds().forEach((tagid) -> tags.add(
-            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label)));
 
       Vertex moderator = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.moderatorPersonId()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -3480,9 +3471,9 @@ public class TorcDb2 extends Db {
       Graph graph = cState.getGraph();
 
       Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
       Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
-          TorcEntity.FORUM.label, null);
+          TorcEntity.FORUM.label);
 
       Map<Object, Object> eprops = new HashMap<>();
       eprops.put("joinDate", new Long(op.joinDate().getTime()));
@@ -3532,15 +3523,15 @@ public class TorcDb2 extends Db {
       Vertex post = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.postId()),
           TorcEntity.POST.label, props);
       Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
       Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
           TorcEntity.FORUM.label, props);
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
-          TorcEntity.PLACE.label, null);
+          TorcEntity.PLACE.label);
 
       List<Vertex> tags = new ArrayList<>(op.tagIds().size());
       op.tagIds().forEach((tagid) -> tags.add(
-            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label)));
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -3590,22 +3581,22 @@ public class TorcDb2 extends Db {
 
       Vertex comment = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()),
           TorcEntity.COMMENT.label, props);
-      Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()), 
-          TorcEntity.PERSON.label, null);
+      Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()),
+          TorcEntity.PERSON.label);
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
-          TorcEntity.PLACE.label, null);
+          TorcEntity.PLACE.label);
 
       Vertex message = null;
       if (op.replyToCommentId() != -1)
         message = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.replyToCommentId()),
-            TorcEntity.COMMENT.label, null);
+            TorcEntity.COMMENT.label);
       else if (op.replyToPostId() != -1)
         message = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.replyToPostId()),
-            TorcEntity.POST.label, null);
+            TorcEntity.POST.label);
 
       List<Vertex> tags = new ArrayList<>(op.tagIds().size());
       op.tagIds().forEach((tagid) -> tags.add(
-            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label)));
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
@@ -3650,9 +3641,9 @@ public class TorcDb2 extends Db {
       props.put("creationDate", new Long(op.creationDate().getTime()));
 
       Vertex person1 = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.person1Id()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
       Vertex person2 = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.person2Id()), 
-          TorcEntity.PERSON.label, null);
+          TorcEntity.PERSON.label);
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
