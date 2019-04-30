@@ -2847,273 +2847,312 @@ public class TorcDb2 extends Db {
     }
   }
 
-//  /**
-//   * Given a start Person, retrieve all of their friends, and the date at which
-//   * they became friends. Order results descending by friendship creation date,
-//   * then ascending by friend identifier.[1]
-//   */
-//  public static class LdbcShortQuery3PersonFriendsHandler implements
-//      OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery3PersonFriends op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
-//
-//        Vertex person = client.vertices(
-//            new UInt128(TorcEntity.PERSON.idSpace, op.personId()))
-//            .next();
-//
-//        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.OUT, 
-//            new String[] {"knows"}, 
-//            new String[] {TorcEntity.PERSON.label});
-//
-//        edges.forEachRemaining((e) -> {
-//          long creationDate = e.<Long>property("creationDate").value().longValue();
-//
-//          Vertex friend = e.inVertex();
-//
-//          long personId = ((UInt128) friend.id()).getLowerLong();
-//
-//          String firstName = friend.<String>property("firstName").value();
-//          String lastName = friend.<String>property("lastName").value();
-//
-//          LdbcShortQuery3PersonFriendsResult res =
-//              new LdbcShortQuery3PersonFriendsResult(
-//                  personId,
-//                  firstName,
-//                  lastName,
-//                  creationDate);
-//          result.add(res);
-//        });
-//
-//        // Sort the result here.
-//        result.sort((a, b) -> {
-//          LdbcShortQuery3PersonFriendsResult r1 =
-//              (LdbcShortQuery3PersonFriendsResult) a;
-//          LdbcShortQuery3PersonFriendsResult r2 =
-//              (LdbcShortQuery3PersonFriendsResult) b;
-//
-//          if (r1.friendshipCreationDate() > r2.friendshipCreationDate()) {
-//            return -1;
-//          } else if (r1.friendshipCreationDate()
-//              < r2.friendshipCreationDate()) {
-//            return 1;
-//          } else {
-//            if (r1.personId() > r2.personId()) {
-//              return 1;
-//            } else if (r1.personId() < r2.personId()) {
-//              return -1;
-//            } else {
-//              return 0;
-//            }
-//          }
-//        });
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(result.size(), result, op);
-//        break;
-//      }
-//
-//    }
-//  }
-//
-//  /**
-//   * Given a Message (Post or Comment), retrieve its content and creation
-//   * date.[1]
-//   */
-//  public static class LdbcShortQuery4MessageContentHandler implements
-//      OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery4MessageContent op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        Vertex message = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
-//            .next();
-//
-//        long creationDate =
-//            message.<Long>property("creationDate").value().longValue();
-//        String content = message.<String>property("content").value();
-//        if (content.length() == 0) {
-//          content = message.<String>property("imageFile").value();
-//        }
-//
-//        LdbcShortQuery4MessageContentResult result =
-//            new LdbcShortQuery4MessageContentResult(
-//                content,
-//                creationDate);
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(1, result, op);
-//        break;
-//      }
-//
-//    }
-//  }
-//
-//  /**
-//   * Given a Message (Post or Comment), retrieve its author.[1]
-//   */
-//  public static class LdbcShortQuery5MessageCreatorHandler implements
-//      OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery5MessageCreator op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        Vertex message = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
-//            .next();
-//
-//        Vertex creator =
-//            ((TorcVertex) message).edges(Direction.OUT, 
-//                new String[] {"hasCreator"}, 
-//                new String[] {TorcEntity.PERSON.label}).next().inVertex();
-//
-//        long creatorId = ((UInt128) creator.id()).getLowerLong();
-//
-//        String creatorFirstName =
-//            creator.<String>property("firstName").value();
-//        String creatorLastName =
-//            creator.<String>property("lastName").value();
-//
-//        LdbcShortQuery5MessageCreatorResult result =
-//            new LdbcShortQuery5MessageCreatorResult(
-//                creatorId,
-//                creatorFirstName,
-//                creatorLastName);
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(1, result, op);
-//        break;
-//      }
-//
-//    }
-//  }
-//
-//  /**
-//   * Given a Message (Post or Comment), retrieve the Forum that contains it and
-//   * the Person that moderates that forum. Since comments are not directly
-//   * contained in forums, for comments, return the forum containing the
-//   * original post in the thread which the comment is replying to.[1]
-//   */
-//  public static class LdbcShortQuery6MessageForumHandler implements
-//      OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery6MessageForum op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        Vertex vertex = client.vertices(
-//            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
-//            .next();
-//
-//        LdbcShortQuery6MessageForumResult result;
-//        while (true) {
-//          if (vertex.label().equals(TorcEntity.FORUM.label)) {
-//            long forumId = ((UInt128) vertex.id()).getLowerLong();
-//            String forumTitle = vertex.<String>property("title").value();
-//
-//            Vertex moderator =
-//                ((TorcVertex) vertex).edges(Direction.OUT, 
-//                  new String[] {"hasModerator"},
-//                  new String[] {TorcEntity.PERSON.label}).next().inVertex();
-//
-//            long moderatorId = ((UInt128) moderator.id()).getLowerLong();
-//            String moderatorFirstName =
-//                moderator.<String>property("firstName").value();
-//            String moderatorLastName =
-//                moderator.<String>property("lastName").value();
-//
-//            result = new LdbcShortQuery6MessageForumResult(
-//                forumId,
-//                forumTitle,
-//                moderatorId,
-//                moderatorFirstName,
-//                moderatorLastName);
-//
-//            break;
-//          } else if (vertex.label().equals(TorcEntity.POST.label)) {
-//            vertex =
-//                ((TorcVertex) vertex).edges(Direction.IN, 
-//                  new String[] {"containerOf"},
-//                  new String[] {TorcEntity.FORUM.label}).next().outVertex();
-//          } else {
-//            vertex = ((TorcVertex) vertex).edges(Direction.OUT, 
-//                  new String[] {"replyOf"},
-//                  new String[] {TorcEntity.POST.label, 
-//                    TorcEntity.COMMENT.label})
-//                  .next().inVertex();
-//          }
-//        }
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(1, result, op);
-//        break;
-//      }
-//
-//    }
-//  }
-//
+  /**
+   * Given a start Person, retrieve all of their friends, and the date at which
+   * they became friends. Order results descending by friendship creation date,
+   * then ascending by friend identifier.[1]
+   */
+  public static class LdbcShortQuery3PersonFriendsHandler implements
+      OperationHandler<LdbcShortQuery3PersonFriends, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery3PersonFriends op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label);
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        List<LdbcShortQuery3PersonFriendsResult> result = new ArrayList<>();
+
+        TraversalResult friends = graph.traverse(person, "knows", Direction.OUT, true, "Person");
+
+        List<Vertex> friendList = friends.vMap.get(person);
+
+        // Create map from friend to creationDate to use for sorting.
+        final Map<Vertex, Long> friendshipDate = new HashMap<>(friendList.size());
+        for (int i = 0; i < friendList.size(); i++) {
+          Vertex friend = friendList.get(i);
+          Map<Object, Object> edgeProps = friends.pMap.get(person).get(i);
+          Long creationDate = edgeProps.get("creationDate");
+          friendshipDate.put(friend, creationDate);
+        }
+        
+        // Sort friends descending by creationDate, and ascending by friend identifier.
+        Comparator<Vertex> c = new Comparator<Vertex>() {
+              public int compare(Vertex v1, Vertex v2) {
+                Long v1creationDate = friendshipDate.get(v1);
+                Long v2creationDate = friendshipDate.get(v2);
+                if (v1creationDate.compareTo(v2creationDate) != 0)
+                  return -1*v1creationDate.compareTo(v2creationDate);
+                else 
+                  return v1.id().getLowerLong() - v2.id().getLowerLong();
+              }
+            };
+        
+        Collections.sort(friendList, c);
+
+        graph.fillProperties(friendList);
+
+        for (int i = 0; i < friendList.size(); i++) {
+          Vertex f = friendList.get(i);
+          result.add(new LdbcShortQuery3PersonFriendsResult(
+                  f.id().getLowerLong(),
+                  (String)f.getProperty("firstName"),
+                  (String)f.getProperty("lastName"),
+                  friendshipDate.get(f).longValue()));
+        }
+
+        if (graph.commitTx()) {
+          resultReporter.report(result.size(), result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Given a Message (Post or Comment), retrieve its content and creation
+   * date.[1]
+   */
+  public static class LdbcShortQuery4MessageContentHandler implements
+      OperationHandler<LdbcShortQuery4MessageContent, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery4MessageContent op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      // So this is an interesting case. LDBC SNB treats ID spaces and labels seaparately, and this
+      // is a perfect example. Here, Message is an ID space, and "Comment" and "Post" are labels
+      // that vertices in the "Message" ID space can have. But in TorcDB2, we think of labels
+      // themselves as the ID space. So since we don't actually know the label in this case we need
+      // to read both, but we rely on the fact that the message ID that's provided refers to either
+      // a Post or a Comment, but not both. For now we just do a trick where we read an imaginary
+      // "Messaged" labeled vertex.
+      Vertex message = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()), 
+          "Message");
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        graph.fillProperties(message);
+        
+        Map<Object, Object> props = message.getProperties();
+         
+        String content = (String)props.get("content");
+        if (content.equals(""))
+          content = (String)props.get("imageFile");
+        
+        long creationDate = ((Long)props.get("creationDate")).longValue();
+
+        LdbcShortQuery4MessageContentResult result =
+            new LdbcShortQuery4MessageContentResult(
+                content,
+                creationDate);
+
+        if (graph.commitTx()) {
+          resultReporter.report(1, result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Given a Message (Post or Comment), retrieve its author.[1]
+   */
+  public static class LdbcShortQuery5MessageCreatorHandler implements
+      OperationHandler<LdbcShortQuery5MessageCreator, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery5MessageCreator op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      // So this is an interesting case. LDBC SNB treats ID spaces and labels seaparately, and this
+      // is a perfect example. Here, Message is an ID space, and "Comment" and "Post" are labels
+      // that vertices in the "Message" ID space can have. But in TorcDB2, we think of labels
+      // themselves as the ID space. So since we don't actually know the label in this case we need
+      // to read both, but we rely on the fact that the message ID that's provided refers to either
+      // a Post or a Comment, but not both. For now we just do a trick where we read an imaginary
+      // "Messaged" labeled vertex.
+      Vertex message = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()), 
+          "Message");
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        TraversalResult creator = graph.traverse(message, "hasCreator", Direction.OUT, false, 
+            "Person");
+
+        Vertex author = creator.vMap.get(message).get(0);
+
+        graph.fillProperties(author);
+
+        LdbcShortQuery5MessageCreatorResult result =
+            new LdbcShortQuery5MessageCreatorResult(
+                author.id().getLowerLong(),
+                (String)author.getProperty("firstName"),
+                (String)author.getProperty("lastName"));
+
+        if (graph.commitTx()) {
+          resultReporter.report(1, result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
+  /**
+   * Given a Message (Post or Comment), retrieve the Forum that contains it and
+   * the Person that moderates that forum. Since comments are not directly
+   * contained in forums, for comments, return the forum containing the
+   * original post in the thread which the comment is replying to.[1]
+   */
+  public static class LdbcShortQuery6MessageForumHandler implements
+      OperationHandler<LdbcShortQuery6MessageForum, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery6MessageForum op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      // So this is an interesting case. LDBC SNB treats ID spaces and labels seaparately, and this
+      // is a perfect example. Here, Message is an ID space, and "Comment" and "Post" are labels
+      // that vertices in the "Message" ID space can have. But in TorcDB2, we think of labels
+      // themselves as the ID space. So since we don't actually know the label in this case we need
+      // to read both, but we rely on the fact that the message ID that's provided refers to either
+      // a Post or a Comment, but not both. For now we just do a trick where we read an imaginary
+      // "Messaged" labeled vertex.
+      Vertex message = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()), 
+          "Message");
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        Vertex cur = message;
+        while (true) {
+          TraversalResult haha = graph.traverse(cur, "replyOf", Direction.OUT, false, 
+              "Post", "Comment");
+          if (haha.vMap.size() == 0) {
+            // This is a post
+          }
+          cur = haha.vMap.get(cur).get(0);
+        }
+
+        TraversalResult 
+        TraversalResult creator = graph.traverse(message, "hasCreator", Direction.OUT, false, 
+            "Person");
+
+        Vertex author = creator.vMap.get(message).get(0);
+
+        graph.fillProperties(author);
+
+        LdbcShortQuery5MessageCreatorResult result =
+            new LdbcShortQuery5MessageCreatorResult(
+                author.id().getLowerLong(),
+                (String)author.getProperty("firstName"),
+                (String)author.getProperty("lastName"));
+
+        if (graph.commitTx()) {
+          resultReporter.report(1, result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
+
+        Vertex vertex = client.vertices(
+            new UInt128(TorcEntity.COMMENT.idSpace, op.messageId()))
+            .next();
+
+        LdbcShortQuery6MessageForumResult result;
+        while (true) {
+          if (vertex.label().equals(TorcEntity.FORUM.label)) {
+            long forumId = ((UInt128) vertex.id()).getLowerLong();
+            String forumTitle = vertex.<String>property("title").value();
+
+            Vertex moderator =
+                ((TorcVertex) vertex).edges(Direction.OUT, 
+                  new String[] {"hasModerator"},
+                  new String[] {TorcEntity.PERSON.label}).next().inVertex();
+
+            long moderatorId = ((UInt128) moderator.id()).getLowerLong();
+            String moderatorFirstName =
+                moderator.<String>property("firstName").value();
+            String moderatorLastName =
+                moderator.<String>property("lastName").value();
+
+            result = new LdbcShortQuery6MessageForumResult(
+                forumId,
+                forumTitle,
+                moderatorId,
+                moderatorFirstName,
+                moderatorLastName);
+
+            break;
+          } else if (vertex.label().equals(TorcEntity.POST.label)) {
+            vertex =
+                ((TorcVertex) vertex).edges(Direction.IN, 
+                  new String[] {"containerOf"},
+                  new String[] {TorcEntity.FORUM.label}).next().outVertex();
+          } else {
+            vertex = ((TorcVertex) vertex).edges(Direction.OUT, 
+                  new String[] {"replyOf"},
+                  new String[] {TorcEntity.POST.label, 
+                    TorcEntity.COMMENT.label})
+                  .next().inVertex();
+          }
+        }
+
+        if (doTransactionalReads) {
+          try {
+            client.tx().commit();
+          } catch (RuntimeException e) {
+            txAttempts++;
+            continue;
+          }
+        } else {
+          client.tx().rollback();
+        }
+
+        resultReporter.report(1, result, op);
+        break;
+      }
+
+    }
+  }
+
 //  /**
 //   * Given a Message (Post or Comment), retrieve the (1-hop) Comments that
 //   * reply to it. In addition, return a boolean flag indicating if the author
