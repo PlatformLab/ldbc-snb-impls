@@ -2690,154 +2690,163 @@ public class TorcDb2 extends Db {
     }
   }
 
-//  /**
-//   * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
-//   * created by that user. For each message, return that message, the original
-//   * post in its conversation, and the author of that post. If any of the
-//   * Messages is a Post, then the original Post will be the same Message, i.e.,
-//   * that Message will appear twice in that result. Order results descending by
-//   * message creation date, then descending by message identifier.[1]
-//   */
-//  public static class LdbcShortQuery2PersonPostsHandler implements
-//      OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
-//
-//    @Override
-//    public void executeOperation(final LdbcShortQuery2PersonPosts op,
-//        DbConnectionState dbConnState,
-//        ResultReporter resultReporter) throws DbException {
-//      int txAttempts = 0;
-//      while (txAttempts < MAX_TX_ATTEMPTS) {
-//        Graph client = ((TorcDb2ConnectionState) dbConnState).getGraph();
-//
-//        List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
-//
-//        Vertex person = client.vertices(
-//            new UInt128(TorcEntity.PERSON.idSpace, op.personId()))
-//            .next();
-//        Iterator<Edge> edges = ((TorcVertex) person).edges(Direction.IN, 
-//            new String[] {"hasCreator"}, 
-//            new String[] {TorcEntity.POST.label, TorcEntity.COMMENT.label});
-//
-//        List<Vertex> messageList = new ArrayList<>();
-//        edges.forEachRemaining((e) -> messageList.add(e.outVertex()));
-//        messageList.sort((a, b) -> {
-//          Vertex v1 = (Vertex) a;
-//          Vertex v2 = (Vertex) b;
-//
-//          long v1Date = v1.<Long>property("creationDate").value().longValue();
-//          long v2Date = v2.<Long>property("creationDate").value().longValue();
-//
-//          if (v1Date > v2Date) {
-//            return -1;
-//          } else if (v1Date < v2Date) {
-//            return 1;
-//          } else {
-//            long v1Id = ((UInt128) v1.id()).getLowerLong();
-//            long v2Id = ((UInt128) v2.id()).getLowerLong();
-//            if (v1Id > v2Id) {
-//              return -1;
-//            } else if (v1Id < v2Id) {
-//              return 1;
-//            } else {
-//              return 0;
-//            }
-//          }
-//        });
-//
-//        for (int i = 0; i < Integer.min(op.limit(), messageList.size());
-//            i++) {
-//          Vertex message = messageList.get(i);
-//
-//          Map<String, Object> propMap = new HashMap<>();
-//          message.<Object>properties().forEachRemaining((vp) -> {
-//            propMap.put(vp.key(), vp.value());
-//          });
-//
-//          long messageId = ((UInt128) message.id()).getLowerLong();
-//
-//          String messageContent;
-//          if (((String)propMap.get("content")).length() != 0) {
-//            messageContent = (String)propMap.get("content");
-//          } else {
-//            messageContent = (String)propMap.get("imageFile");
-//          }
-//
-//          long messageCreationDate = ((Long)propMap.get("creationDate")).longValue();
-//
-//          long originalPostId;
-//          long originalPostAuthorId;
-//          String originalPostAuthorFirstName;
-//          String originalPostAuthorLastName;
-//          if (message.label().equals(TorcEntity.POST.label)) {
-//            originalPostId = messageId;
-//            originalPostAuthorId = ((UInt128) person.id()).getLowerLong();
-//            originalPostAuthorFirstName =
-//                person.<String>property("firstName").value();
-//            originalPostAuthorLastName =
-//                person.<String>property("lastName").value();
-//          } else {
-//            Vertex parentMessage =
-//                ((TorcVertex) message).edges(Direction.OUT, 
-//                  new String[] {"replyOf"},
-//                  new String[] {TorcEntity.POST.label, 
-//                    TorcEntity.COMMENT.label})
-//                  .next().inVertex();
-//            while (true) {
-//              if (parentMessage.label().equals(TorcEntity.POST.label)) {
-//                originalPostId = ((UInt128) parentMessage.id()).getLowerLong();
-//
-//                Vertex author =
-//                    ((TorcVertex) parentMessage).edges(Direction.OUT, 
-//                      new String[] {"hasCreator"}, 
-//                      new String[] {TorcEntity.PERSON.label})
-//                    .next().inVertex();
-//                originalPostAuthorId = ((UInt128) author.id()).getLowerLong();
-//                originalPostAuthorFirstName =
-//                    author.<String>property("firstName").value();
-//                originalPostAuthorLastName =
-//                    author.<String>property("lastName").value();
-//                break;
-//              } else {
-//                parentMessage =
-//                    ((TorcVertex) parentMessage).edges(Direction.OUT, 
-//                      new String[] {"replyOf"},
-//                      new String[] {TorcEntity.POST.label, 
-//                        TorcEntity.COMMENT.label})
-//                    .next().inVertex();
-//              }
-//            }
-//          }
-//
-//          LdbcShortQuery2PersonPostsResult res =
-//              new LdbcShortQuery2PersonPostsResult(
-//                  messageId,
-//                  messageContent,
-//                  messageCreationDate,
-//                  originalPostId,
-//                  originalPostAuthorId,
-//                  originalPostAuthorFirstName,
-//                  originalPostAuthorLastName);
-//
-//          result.add(res);
-//        }
-//
-//        if (doTransactionalReads) {
-//          try {
-//            client.tx().commit();
-//          } catch (RuntimeException e) {
-//            txAttempts++;
-//            continue;
-//          }
-//        } else {
-//          client.tx().rollback();
-//        }
-//
-//        resultReporter.report(result.size(), result, op);
-//        break;
-//      }
-//    }
-//  }
-//
+  /**
+   * Given a start Person, retrieve the last 10 Messages (Posts or Comments)
+   * created by that user. For each message, return that message, the original
+   * post in its conversation, and the author of that post. If any of the
+   * Messages is a Post, then the original Post will be the same Message, i.e.,
+   * that Message will appear twice in that result. Order results descending by
+   * message creation date, then descending by message identifier.[1]
+   */
+  public static class LdbcShortQuery2PersonPostsHandler implements
+      OperationHandler<LdbcShortQuery2PersonPosts, DbConnectionState> {
+
+    @Override
+    public void executeOperation(final LdbcShortQuery2PersonPosts op,
+        DbConnectionState dbConnState,
+        ResultReporter resultReporter) throws DbException {
+      TorcDb2ConnectionState cState = (TorcDb2ConnectionState) dbConnState;
+
+      Graph graph = cState.getGraph();
+
+      Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
+          TorcEntity.PERSON.label);
+
+      int txAttempts = 0;
+      while (txAttempts < MAX_TX_ATTEMPTS) {
+        graph.beginTx();
+
+        List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
+
+        TraversalResult messages = graph.traverse(person, "hasCreator", Direction.IN, false, 
+            "Post", "Comment");
+
+        graph.fillProperties(messages.vSet, "creationDate");
+
+        // Sort the Posts and Comments descending by creationDate, and descending by message
+        // identifier. Comparator defines the reverse order because we use it in a PriorityQueue to
+        // efficiently implement finding the top-K results.
+        Comparator<Vertex> c = new Comparator<Vertex>() {
+              public int compare(Vertex v1, Vertex v2) {
+                Long v1creationDate = ((Long)v1.getProperty("creationDate"));
+                Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+                if (v1creationDate > v2creationDate)
+                  return 1;
+                else if (v1creationDate < v2creationDate)
+                  return -1;
+                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                  return 1;
+                else
+                  return -1;
+              }
+            };
+
+        PriorityQueue<Vertex> pq = new PriorityQueue(op.limit(), c);
+        for (Vertex m : messages.vSet) {
+          Long creationDate = (Long)m.getProperty("creationDate");
+         
+          if (pq.size() < op.limit()) {
+            pq.add(m);
+            continue;
+          }
+
+          if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+            pq.add(m);
+            pq.poll();
+          }
+        }
+
+        // Create a list from the priority queue with the elements sorted in the desired order.
+        LinkedList<Vertex> msgList = new LinkedList<>();
+        while (pq.size() > 0)
+          msgList.addFirst(pq.poll());
+
+        // Traverse "replyOf" relationships until we find the ancestor Post of all the Comment
+        // messages in our result set.
+        LinkedList<TraversalResult> trList = new LinkedList<>();
+        trList.addLast(new TraversalResult(null, null, new HashSet<>(msgList)));
+        Set<Vertex> postSet = new HashSet<>();
+        while (true) {
+          List<Vertex> cList = new ArrayList<>();
+          for (Vertex v : trList.getLast().vSet)
+            if (v.label().equals("Comment"))
+              cList.add(v);
+            else
+              if (trList.size() > 1)
+                postSet.add(v);
+
+          if (cList.size() > 0) 
+            trList.addLast(graph.traverse(cList, "replyOf", Direction.OUT, false, "Post", "Comment"));
+          else
+            break;
+        }
+        trList.removeFirst();
+
+        TraversalResult originalAuthors = 
+          graph.traverse(postSet, "hasCreator", Direction.OUT, false, "Person");
+
+        List<Vertex> propFetch = new ArrayList<>(msgList.size() + postSet.size() + 
+            originalAuthors.vSet.size() + 1);
+        propFetch.addAll(msgList);
+        propFetch.addAll(postSet);
+        propFetch.addAll(originalAuthors.vSet);
+        propFetch.add(person);
+        graph.fillProperties(propFetch);
+
+        for (int i = 0; i < msgList.size(); i++) {
+          Vertex m = msgList.get(i);
+
+          String content = (String)m.getProperty("content");
+          if (content.equals(""))
+            content = (String)m.getProperty("imageFile");
+
+          long originalPostId = -1;
+          long originalPostAuthorId = -1;
+          String originalPostAuthorFirstName = "";
+          String originalPostAuthorLastName = "";
+          if (m.label().equals("Post")) {
+            originalPostId = m.id().getLowerLong();
+            originalPostAuthorId = person.id().getLowerLong();
+            originalPostAuthorFirstName = (String)person.getProperty("firstName");
+            originalPostAuthorLastName = (String)person.getProperty("lastName");
+          } else {
+            Vertex base = m;
+            for (int j = 0; j < trList.size(); j++) {
+              TraversalResult tr = trList.get(j);
+              Vertex replyToV = tr.vMap.get(base).get(0);
+              if (replyToV.label().equals("Post")) {
+                Vertex author = originalAuthors.vMap.get(replyToV).get(0);
+                originalPostId = replyToV.id().getLowerLong();
+                originalPostAuthorId = author.id().getLowerLong();
+                originalPostAuthorFirstName = (String)author.getProperty("firstName");
+                originalPostAuthorLastName = (String)author.getProperty("lastName");
+                break;
+              }
+
+              base = replyToV;
+            }
+          }
+
+          result.add(new LdbcShortQuery2PersonPostsResult(
+                  m.id().getLowerLong(), //messageId,
+                  content, //messageContent,
+                  (Long)m.getProperty("creationDate"), //messageCreationDate,
+                  originalPostId,
+                  originalPostAuthorId,
+                  originalPostAuthorFirstName,
+                  originalPostAuthorLastName));
+        }
+
+        if (graph.commitTx()) {
+          resultReporter.report(result.size(), result, op);
+          break;
+        }
+
+        txAttempts++;
+      }
+    }
+  }
+
 //  /**
 //   * Given a start Person, retrieve all of their friends, and the date at which
 //   * they became friends. Order results descending by friendship creation date,
