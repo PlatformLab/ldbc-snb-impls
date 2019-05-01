@@ -2881,7 +2881,7 @@ public class TorcDb2 extends Db {
         for (int i = 0; i < friendList.size(); i++) {
           Vertex friend = friendList.get(i);
           Map<Object, Object> edgeProps = friends.pMap.get(person).get(i);
-          Long creationDate = edgeProps.get("creationDate");
+          Long creationDate = (Long)edgeProps.get("creationDate");
           friendshipDate.put(friend, creationDate);
         }
         
@@ -2892,8 +2892,11 @@ public class TorcDb2 extends Db {
                 Long v2creationDate = friendshipDate.get(v2);
                 if (v1creationDate.compareTo(v2creationDate) != 0)
                   return -1*v1creationDate.compareTo(v2creationDate);
-                else 
-                  return v1.id().getLowerLong() - v2.id().getLowerLong();
+                else
+                  if (v1.id().getLowerLong() > v2.id().getLowerLong())
+                    return 1;
+                  else
+                    return -1;
               }
             };
         
@@ -3137,27 +3140,31 @@ public class TorcDb2 extends Db {
           if (content.equals(""))
             content = (String)reply.getProperty("imageFile");
 
-          Vertex author = replyAuthors.vMap.get(reply).get(0);
+          Vertex replyAuthor = replyAuthors.vMap.get(reply).get(0);
 
           result.add(new LdbcShortQuery7MessageRepliesResult(
                   reply.id().getLowerLong(),
                   content,
                   (Long)reply.getProperty("creationDate"),
-                  author.id().getLowerLong(),
-                  (String)author.getProperty("firstName"),
-                  (String)author.getProperty("lastName"),
-                  friends.vSet.contains(author)));
+                  replyAuthor.id().getLowerLong(),
+                  (String)replyAuthor.getProperty("firstName"),
+                  (String)replyAuthor.getProperty("lastName"),
+                  friends.vSet.contains(replyAuthor)));
         }
 
         // Sort results descending by creationDate, and ascending by author identifier.
-        Comparator<Vertex> c = new Comparator<Vertex>() {
+        Comparator<LdbcShortQuery7MessageRepliesResult> c = new Comparator<LdbcShortQuery7MessageRepliesResult>() {
               public int compare(LdbcShortQuery7MessageRepliesResult r1, LdbcShortQuery7MessageRepliesResult r2) {
                 long r1creationDate = r1.commentCreationDate();
                 long r2creationDate = r2.commentCreationDate();
-                if ((r1creationDate - r2creationDate) != 0)
-                  return -1*(r1creationDate - r2creationDate);
-                else 
-                  return r1.replyAuthorId() - r2.replyAuthorId();
+                if (r1creationDate > r2creationDate)
+                  return -1;
+                else if (r1creationDate < r2creationDate)
+                  return 1;
+                else if (r1.replyAuthorId() > r2.replyAuthorId())
+                  return 1;
+                else
+                  return -1;
               }
             };
         
