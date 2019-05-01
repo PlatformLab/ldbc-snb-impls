@@ -105,19 +105,19 @@ public class TorcDb2 extends Db {
 //
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
-//    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
-//        LdbcShortQuery2PersonPostsHandler.class);
-//    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
-//        LdbcShortQuery3PersonFriendsHandler.class);
-//    registerOperationHandler(LdbcShortQuery4MessageContent.class,
-//        LdbcShortQuery4MessageContentHandler.class);
-//    registerOperationHandler(LdbcShortQuery5MessageCreator.class,
-//        LdbcShortQuery5MessageCreatorHandler.class);
-//    registerOperationHandler(LdbcShortQuery6MessageForum.class,
-//        LdbcShortQuery6MessageForumHandler.class);
-//    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
-//        LdbcShortQuery7MessageRepliesHandler.class);
-//
+    registerOperationHandler(LdbcShortQuery2PersonPosts.class,
+        LdbcShortQuery2PersonPostsHandler.class);
+    registerOperationHandler(LdbcShortQuery3PersonFriends.class,
+        LdbcShortQuery3PersonFriendsHandler.class);
+    registerOperationHandler(LdbcShortQuery4MessageContent.class,
+        LdbcShortQuery4MessageContentHandler.class);
+    registerOperationHandler(LdbcShortQuery5MessageCreator.class,
+        LdbcShortQuery5MessageCreatorHandler.class);
+    registerOperationHandler(LdbcShortQuery6MessageForum.class,
+        LdbcShortQuery6MessageForumHandler.class);
+    registerOperationHandler(LdbcShortQuery7MessageReplies.class,
+        LdbcShortQuery7MessageRepliesHandler.class);
+
     registerOperationHandler(LdbcUpdate1AddPerson.class,
         LdbcUpdate1AddPersonHandler.class);
     registerOperationHandler(LdbcUpdate2AddPostLike.class,
@@ -2718,6 +2718,7 @@ public class TorcDb2 extends Db {
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
+        System.out.println("person id: " + op.personId());
         TraversalResult messages = graph.traverse(person, "hasCreator", Direction.IN, false, 
             "Post", "Comment");
 
