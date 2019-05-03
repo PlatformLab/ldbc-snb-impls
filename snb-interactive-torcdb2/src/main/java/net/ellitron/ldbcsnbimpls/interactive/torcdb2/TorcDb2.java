@@ -2718,7 +2718,6 @@ public class TorcDb2 extends Db {
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
-        System.out.println("person id: " + op.personId());
         TraversalResult messages = graph.traverse(person, "hasCreator", Direction.IN, false, 
             "Post", "Comment");
 
