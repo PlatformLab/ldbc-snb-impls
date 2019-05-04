@@ -22,6 +22,12 @@
       <type>jar</type>
     </dependency>
     <dependency>
+      <groupId>net.ellitron.ldbcsnbimpls</groupId>
+      <artifactId>snb-interactive-torc</artifactId>
+      <version>0.1.0</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
       <groupId>net.ellitron.torcdb2</groupId>
       <artifactId>torcdb2</artifactId>
       <version>0.1.0</version>
