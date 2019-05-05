@@ -2456,7 +2456,7 @@ public class TorcDb2 extends Db {
                 (String)person.getProperty("gender"),
                 (Long)person.getProperty("creationDate"));
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
           break;
         }
@@ -2613,7 +2613,7 @@ public class TorcDb2 extends Db {
                   originalPostAuthorLastName));
         }
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(result.size(), result, op);
           break;
         }
@@ -2689,7 +2689,7 @@ public class TorcDb2 extends Db {
                   friendshipDate.get(f).longValue()));
         }
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(result.size(), result, op);
           break;
         }
@@ -2743,7 +2743,7 @@ public class TorcDb2 extends Db {
                 content,
                 creationDate);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
           break;
         }
@@ -2794,7 +2794,7 @@ public class TorcDb2 extends Db {
                 (String)author.getProperty("firstName"),
                 (String)author.getProperty("lastName"));
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
           break;
         }
@@ -2860,7 +2860,7 @@ public class TorcDb2 extends Db {
                 (String)moderator.getProperty("firstName"),
                 (String)moderator.getProperty("lastName"));
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
           break;
         }
@@ -2946,7 +2946,7 @@ public class TorcDb2 extends Db {
         
         Collections.sort(result, c);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           resultReporter.report(result.size(), result, op);
           break;
         }
@@ -3043,7 +3043,7 @@ public class TorcDb2 extends Db {
         for (int i = 0; i < companies.size(); i++)
           graph.addEdge(person, "workAt", companies.get(i), workAtProps.get(i));
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3083,7 +3083,7 @@ public class TorcDb2 extends Db {
 
         graph.addEdge(person, "likes", post, eprops);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3124,7 +3124,7 @@ public class TorcDb2 extends Db {
 
         graph.addEdge(person, "likes", comment, eprops);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3177,7 +3177,7 @@ public class TorcDb2 extends Db {
 
         graph.addEdge(forum, "hasModerator", moderator, null);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3217,7 +3217,7 @@ public class TorcDb2 extends Db {
 
         graph.addEdge(forum, "hasMember", person, eprops);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3278,7 +3278,7 @@ public class TorcDb2 extends Db {
         for (Vertex tag : tags)
           graph.addEdge(post, "hasTag", tag, null);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3343,7 +3343,7 @@ public class TorcDb2 extends Db {
         for (Vertex tag : tags)
           graph.addEdge(comment, "hasTag", tag, null);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
@@ -3385,7 +3385,7 @@ public class TorcDb2 extends Db {
         graph.addEdge(person1, "knows", person2, props);
         graph.addEdge(person2, "knows", person1, props);
 
-        if (graph.commitTx()) {
+        if (graph.commitAndSyncTx()) {
           reporter.report(0, LdbcNoResult.INSTANCE, op);
           break;
         }
