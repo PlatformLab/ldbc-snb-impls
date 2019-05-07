@@ -16,9 +16,10 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torcdb2.util;
 
+import net.ellitron.ldbcsnbimpls.interactive.torcdb2.TorcEntity;
+
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbEntity;
 import net.ellitron.ldbcsnbimpls.interactive.core.SnbRelation;
-import net.ellitron.ldbcsnbimpls.interactive.torc.TorcEntity;
 
 import net.ellitron.torcdb2.*;
 

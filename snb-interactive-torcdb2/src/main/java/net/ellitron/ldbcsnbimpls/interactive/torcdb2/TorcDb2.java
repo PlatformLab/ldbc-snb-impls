@@ -16,8 +16,6 @@
  */
 package net.ellitron.ldbcsnbimpls.interactive.torcdb2;
 
-import net.ellitron.ldbcsnbimpls.interactive.torc.TorcEntity;
-
 import net.ellitron.torcdb2.*;
 
 import com.ldbc.driver.control.LoggingService;
