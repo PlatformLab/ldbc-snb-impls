@@ -8,7 +8,7 @@
   </parent>
   <artifactId>snb-interactive-torcdb2</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0</version>
+  <version>1.0.0</version>
   <name>LDBC SNB Interactive Workload TorcDB2 Implementation</name>
   <url>https://github.com/ellitron/ldbc-snb-impls</url>
   <description>
