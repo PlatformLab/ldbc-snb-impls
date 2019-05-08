@@ -563,7 +563,7 @@ public class QueryTester {
   public static <R, T extends Operation<R>, S extends DbConnectionState> void
       execAndTimeQuery(OperationHandler<T, S> opHandler, T op,
           S connectionState, ResultReporter resultReporter, int repeatCount,
-          String timeUnits)
+          String timeUnits, String cmdstring)
       throws DbException {
 
     Long[] latencyNanos = new Long[repeatCount];
@@ -644,7 +644,7 @@ public class QueryTester {
 
     System.out.println("Query:");
     System.out.println(op.toString());
-    System.out.println();
+    System.out.println(String.format("cmd=[%s]", cmdstring));
     System.out.println(String.format(
         "Query Stats:\n"
         + "  Units:            %s\n"
@@ -753,6 +753,7 @@ public class QueryTester {
       while ((line = scriptFile.readLine()) != null) {
         Map<String, Object> scriptOpts =
             new Docopt(doc).withVersion("QueryTester 1.0").parse(line.split(" "));
+        scriptOpts.put("cmdstring", line);
         optList.add(scriptOpts);
       }
 
@@ -763,6 +764,8 @@ public class QueryTester {
 
     for (int opt_nr = 0; opt_nr < optList.size(); opt_nr++) {
       opts = optList.get(opt_nr);
+      
+      String cmdstring = (String) opts.get("cmdstring");
 
       // Get values of general options.
       String inputDir = (String) opts.get("--input");
@@ -828,7 +831,7 @@ public class QueryTester {
 
         // Let 'er rip!
         execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-            repeatCount, timeUnits);
+            repeatCount, timeUnits, cmdstring);
       }
 
       UpdateOp uop = null;
@@ -870,7 +873,7 @@ public class QueryTester {
               Operation op = parseUpdate(uop, line);
 
               execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-                  repeatCount, timeUnits);
+                  repeatCount, timeUnits, cmdstring);
 
               break;
             }
