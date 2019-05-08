@@ -74,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -128,6 +129,7 @@ public class QueryTester {
       + "  QueryTester [options] update6 <nth>\n"
       + "  QueryTester [options] update7 <nth>\n"
       + "  QueryTester [options] update8 <nth>\n"
+      + "  QueryTester [options] --script=<script>\n"
       + "  QueryTester (-h | --help)\n"
       + "  QueryTester --version\n"
       + "\n"
@@ -146,6 +148,10 @@ public class QueryTester {
       + "  --timeUnits=<unit>   Unit of time in which to report timings\n"
       + "                       (SECONDS, MILLISECONDS, MICROSECONDS,\n"
       + "                       NANOSECONDS) [default: MILLISECONDS].\n"
+      + "  --script=<script>    File to use as command script. Commands will\n"
+      + "                       be executed from this script as if the args\n"
+      + "                       were supplied at the command line, one per\n"
+      + "                       line.\n"
       + "  -h --help            Show this screen.\n"
       + "  --version            Show version.\n"
       + "\n";
@@ -701,10 +707,7 @@ public class QueryTester {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
 
-    // Get values of general options.
-    String inputDir = (String) opts.get("--input");
-    int repeatCount = Integer.decode((String) opts.get("--repeat"));
-    String timeUnits = (String) opts.get("--timeUnits");
+    System.out.println(opts);
 
     // Load properties from the configuration file.
     String configFilename = (String) opts.get("--config");
@@ -738,125 +741,154 @@ public class QueryTester {
             new ConcurrentErrorReporter());
 
     // Figure out which query the user wants to run.
-    ComplexAndShortOp csop = null;
-    for (ComplexAndShortOp op : ComplexAndShortOp.values()) {
-      if ((Boolean) opts.get(op.command)) {
-        cmdStr = op.command;
-        csop = op;
-      }
-    }
+    List<Map<String, Object>> optList = new LinkedList<>();
+    if (opts.get("--script") != null) {
+      String scriptFilename = (String) opts.get("--script");
 
-    if (csop != null) {
-      /*
-       * Use information in the QueryOp and some java reflection magic to
-       * generically construct the Operation and configured OperationHandler
-       * for this query. Here we go!
-       */
-      // First, gather up all the Operation constructor arguments and construct
-      // Operation instance.
-      List<Object> opCtorArgs = new ArrayList<>();
-      for (int i = 0; i < csop.opCtorParamTypes.length; i++) {
-        String argValue = (String) opts.get(csop.opCtorParamVals[i]);
-        if (i == 0)
-          cmdParamStr = argValue;
-        else
-          cmdParamStr += " " + argValue;
-        switch (csop.opCtorParamTypes[i].getSimpleName()) {
-          case "Date": {
-            opCtorArgs.add(new Date(Long.decode(argValue)));
-            break;
-          }
-          case "Integer": {
-            opCtorArgs.add(Integer.decode(argValue));
-            break;
-          }
-          case "Long": {
-            opCtorArgs.add(Long.decode(argValue));
-            break;
-          }
-          case "String": {
-            opCtorArgs.add(argValue);
-            break;
-          }
-          default: {
-            throw new RuntimeException(String.format("Unrecognized parameter "
-                + "type for %s constructor: %s", csop.opClass,
-                csop.opCtorParamTypes[i]));
-          }
-        }
-      }
-      Operation op = (Operation) csop.opClass
-          .getDeclaredConstructors()[0]
-          .newInstance(opCtorArgs.toArray());
-
-      // Now construct an instance of the OperationHandler type specified in 
-      // the configuration file.
-      OperationHandler opHandler = (OperationHandler) Class
-          .forName(prop.getProperty(dbName + "." + csop.opHandlerConfigKey))
-          .getDeclaredConstructor().newInstance();
-
-      // Let 'er rip!
-      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-          repeatCount, timeUnits);
-    }
-
-    UpdateOp uop = null;
-    for (UpdateOp op : UpdateOp.values()) {
-      if ((Boolean) opts.get(op.command)) {
-        cmdStr = op.command;
-        uop = op;
-      }
-    }
-
-    if (uop != null) {
-      // First construct an instance of the OperationHandler type specified in 
-      // the configuration file.
-      OperationHandler opHandler = (OperationHandler) Class
-          .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
-          .getDeclaredConstructor().newInstance();
-
-      String fileName;
-      if (uop.index == 1) {
-        fileName = "updateStream_0_0_person.csv";
-      } else {
-        fileName = "updateStream_0_0_forum.csv";
-      }
-
-      Path path = Paths.get(inputDir + "/" + fileName);
-      BufferedReader inFile =
+      Path path = Paths.get(scriptFilename);
+      BufferedReader scriptFile =
           Files.newBufferedReader(path, StandardCharsets.UTF_8);
 
-      Long nth = Long.decode((String) opts.get("<nth>"));
-
-      // Track how many update ops of this type we have read from the file.
-      long readCount = 0;
       String line;
-      while ((line = inFile.readLine()) != null) {
-        if (Integer.decode(line.split("\\|")[2]) == uop.index) {
-          readCount++;
+      while ((line = scriptFile.readLine()) != null) {
+        Map<String, Object> scriptOpts =
+            new Docopt(doc).withVersion("QueryTester 1.0").parse(line.split(" "));
+        optList.add(scriptOpts);
+      }
 
-          if (readCount == nth) {
-            Operation op = parseUpdate(uop, line);
+      scriptFile.close();
+    } else {
+      optList.add(opts);
+    }
 
-            execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-                repeatCount, timeUnits);
+    for (int opt_nr = 0; opt_nr < optList.size(); opt_nr++) {
+      opts = optList.get(opt_nr);
 
-            break;
-          }
+      // Get values of general options.
+      String inputDir = (String) opts.get("--input");
+      int repeatCount = Integer.decode((String) opts.get("--repeat"));
+      String timeUnits = (String) opts.get("--timeUnits");
+
+      ComplexAndShortOp csop = null;
+      for (ComplexAndShortOp op : ComplexAndShortOp.values()) {
+        if ((Boolean) opts.get(op.command)) {
+          cmdStr = op.command;
+          csop = op;
         }
       }
 
-      inFile.close();
+      if (csop != null) {
+        /*
+        * Use information in the QueryOp and some java reflection magic to
+        * generically construct the Operation and configured OperationHandler
+        * for this query. Here we go!
+        */
+        // First, gather up all the Operation constructor arguments and construct
+        // Operation instance.
+        List<Object> opCtorArgs = new ArrayList<>();
+        for (int i = 0; i < csop.opCtorParamTypes.length; i++) {
+          String argValue = (String) opts.get(csop.opCtorParamVals[i]);
+          if (i == 0)
+            cmdParamStr = argValue;
+          else
+            cmdParamStr += " " + argValue;
+          switch (csop.opCtorParamTypes[i].getSimpleName()) {
+            case "Date": {
+              opCtorArgs.add(new Date(Long.decode(argValue)));
+              break;
+            }
+            case "Integer": {
+              opCtorArgs.add(Integer.decode(argValue));
+              break;
+            }
+            case "Long": {
+              opCtorArgs.add(Long.decode(argValue));
+              break;
+            }
+            case "String": {
+              opCtorArgs.add(argValue);
+              break;
+            }
+            default: {
+              throw new RuntimeException(String.format("Unrecognized parameter "
+                  + "type for %s constructor: %s", csop.opClass,
+                  csop.opCtorParamTypes[i]));
+            }
+          }
+        }
+        Operation op = (Operation) csop.opClass
+            .getDeclaredConstructors()[0]
+            .newInstance(opCtorArgs.toArray());
 
-      if (readCount < nth) {
-        System.out.println(String.format("ERROR: File %s only contains %d"
-            + " update%d ops, but user requested execution of update #%d.",
-            path.toAbsolutePath(), readCount, uop.index, nth));
+        // Now construct an instance of the OperationHandler type specified in 
+        // the configuration file.
+        OperationHandler opHandler = (OperationHandler) Class
+            .forName(prop.getProperty(dbName + "." + csop.opHandlerConfigKey))
+            .getDeclaredConstructor().newInstance();
+
+        // Let 'er rip!
+        execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+            repeatCount, timeUnits);
       }
-    }
 
-    if (repeatCount == 1) {
-      printResult(resultReporter.result());
+      UpdateOp uop = null;
+      for (UpdateOp op : UpdateOp.values()) {
+        if ((Boolean) opts.get(op.command)) {
+          cmdStr = op.command;
+          uop = op;
+        }
+      }
+
+      if (uop != null) {
+        // First construct an instance of the OperationHandler type specified in 
+        // the configuration file.
+        OperationHandler opHandler = (OperationHandler) Class
+            .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
+            .getDeclaredConstructor().newInstance();
+
+        String fileName;
+        if (uop.index == 1) {
+          fileName = "updateStream_0_0_person.csv";
+        } else {
+          fileName = "updateStream_0_0_forum.csv";
+        }
+
+        Path path = Paths.get(inputDir + "/" + fileName);
+        BufferedReader inFile =
+            Files.newBufferedReader(path, StandardCharsets.UTF_8);
+
+        Long nth = Long.decode((String) opts.get("<nth>"));
+
+        // Track how many update ops of this type we have read from the file.
+        long readCount = 0;
+        String line;
+        while ((line = inFile.readLine()) != null) {
+          if (Integer.decode(line.split("\\|")[2]) == uop.index) {
+            readCount++;
+
+            if (readCount == nth) {
+              Operation op = parseUpdate(uop, line);
+
+              execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+                  repeatCount, timeUnits);
+
+              break;
+            }
+          }
+        }
+
+        inFile.close();
+
+        if (readCount < nth) {
+          System.out.println(String.format("ERROR: File %s only contains %d"
+              + " update%d ops, but user requested execution of update #%d.",
+              path.toAbsolutePath(), readCount, uop.index, nth));
+        }
+      }
+
+      if (repeatCount == 1) {
+        printResult(resultReporter.result());
+      }
     }
 
     dbConnectionState.close();
