@@ -762,6 +762,14 @@ public class QueryTester {
       optList.add(opts);
     }
 
+    Map<ComplexAndShortOp, OperationHandler> csopHandlerMap = new HashMap<>();
+    for (ComplexAndShortOp csop : ComplexAndShortOp.values()) {
+      OperationHandler opHandler = (OperationHandler) Class
+          .forName(prop.getProperty(dbName + "." + csop.opHandlerConfigKey))
+          .getDeclaredConstructor().newInstance();
+      csopHandlerMap.put(csop, opHandler);
+    }
+
     for (int opt_nr = 0; opt_nr < optList.size(); opt_nr++) {
       opts = optList.get(opt_nr);
       
@@ -823,11 +831,7 @@ public class QueryTester {
             .getDeclaredConstructors()[0]
             .newInstance(opCtorArgs.toArray());
 
-        // Now construct an instance of the OperationHandler type specified in 
-        // the configuration file.
-        OperationHandler opHandler = (OperationHandler) Class
-            .forName(prop.getProperty(dbName + "." + csop.opHandlerConfigKey))
-            .getDeclaredConstructor().newInstance();
+        OperationHandler opHandler = csopHandlerMap.get(csop);
 
         // Let 'er rip!
         execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
