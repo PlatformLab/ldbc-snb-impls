@@ -141,6 +141,8 @@ public class QueryTester {
       + "                       surpressed to show only the query timing\n"
       + "                       information\n"
       + "                       [default: 1].\n"
+      + "  --warmUp=<n>         How many seconds to warmup the query.\n"
+      + "                       [default: 0].\n"
       + "  --input=<input>      Directory of updateStream files to use as\n"
       + "                       input for update queries (the nth update of\n"
       + "                       its kind will be selected from the stream to\n"
@@ -563,8 +565,15 @@ public class QueryTester {
   public static <R, T extends Operation<R>, S extends DbConnectionState> void
       execAndTimeQuery(OperationHandler<T, S> opHandler, T op,
           S connectionState, ResultReporter resultReporter, int repeatCount,
-          String timeUnits, String cmdstring)
+          String timeUnits, String cmdstring, int warmUpTimeSeconds)
       throws DbException {
+
+    // First do warmUp
+    if (warmUpTimeSeconds != 0) {
+      long startTime = System.currentTimeMillis();
+      while ((System.currentTimeMillis() - startTime)/1000 < warmUpTimeSeconds)
+        opHandler.executeOperation(op, connectionState, resultReporter);
+    }
 
     Long[] latencyNanos = new Long[repeatCount];
     Long[] startTimeMillis = new Long[repeatCount];
@@ -602,11 +611,9 @@ public class QueryTester {
         Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
       for (int i = 0; i < latencyNanos.length; i++) {
-        latencyFile.append(String.format("%d,%d,%s,%s,%d,%d\n",
-              startTimeMillis[i],
-              endTimeMillis[i],
+        latencyFile.append(String.format("%s,%d,%d\n",
               cmdStr,
-              cmdParamStr,
+              //cmdParamStr,
               i+1,
               latencyNanos[i] / nanosPerTimeUnit));
       }
@@ -751,8 +758,13 @@ public class QueryTester {
 
       String line;
       while ((line = scriptFile.readLine()) != null) {
+        args = line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+        for (int i = 0; i < args.length; i++)
+          args[i] = args[i].replaceAll("^\"|\"$", "");
+        System.out.println(Arrays.toString(args));
+
         Map<String, Object> scriptOpts =
-            new Docopt(doc).withVersion("QueryTester 1.0").parse(line.split(" "));
+            new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
         scriptOpts.put("cmdstring", line);
         optList.add(scriptOpts);
       }
@@ -778,6 +790,7 @@ public class QueryTester {
       // Get values of general options.
       String inputDir = (String) opts.get("--input");
       int repeatCount = Integer.decode((String) opts.get("--repeat"));
+      int warmUpTimeSeconds = Integer.decode((String) opts.get("--warmUp"));
       String timeUnits = (String) opts.get("--timeUnits");
 
       ComplexAndShortOp csop = null;
@@ -835,7 +848,7 @@ public class QueryTester {
 
         // Let 'er rip!
         execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-            repeatCount, timeUnits, cmdstring);
+            repeatCount, timeUnits, cmdstring, warmUpTimeSeconds);
       }
 
       UpdateOp uop = null;
@@ -877,7 +890,7 @@ public class QueryTester {
               Operation op = parseUpdate(uop, line);
 
               execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-                  repeatCount, timeUnits, cmdstring);
+                  repeatCount, timeUnits, cmdstring, warmUpTimeSeconds);
 
               break;
             }
