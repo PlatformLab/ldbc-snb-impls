@@ -569,136 +569,139 @@ public class QueryTester {
       throws DbException {
 
     // First do warmUp
+    System.out.println(String.format("warmUp=[%s]", cmdstring));
     if (warmUpTimeSeconds != 0) {
       long startTime = System.currentTimeMillis();
       while ((System.currentTimeMillis() - startTime)/1000 < warmUpTimeSeconds)
         opHandler.executeOperation(op, connectionState, resultReporter);
     }
 
-    Long[] latencyNanos = new Long[repeatCount];
-    Long[] startTimeMillis = new Long[repeatCount];
-    Long[] endTimeMillis = new Long[repeatCount];
+    if (repeatCount > 0) {
+      Long[] latencyNanos = new Long[repeatCount];
+      Long[] startTimeMillis = new Long[repeatCount];
+      Long[] endTimeMillis = new Long[repeatCount];
 
-    long startNanos;
-    for (int i = 0; i < repeatCount; i++) {
-      startTimeMillis[i] = System.currentTimeMillis();
-      startNanos = System.nanoTime();
-      opHandler.executeOperation(op, connectionState, resultReporter);
-      latencyNanos[i] = System.nanoTime() - startNanos;
-      endTimeMillis[i] = System.currentTimeMillis();
-    }
+      long startNanos;
+      for (int i = 0; i < repeatCount; i++) {
+        startTimeMillis[i] = System.currentTimeMillis();
+        startNanos = System.nanoTime();
+        opHandler.executeOperation(op, connectionState, resultReporter);
+        latencyNanos[i] = System.nanoTime() - startNanos;
+        endTimeMillis[i] = System.currentTimeMillis();
+      }
 
-    long nanosPerTimeUnit;
-    switch (timeUnits) {
-      case "NANOSECONDS":
-        nanosPerTimeUnit = 1;
-        break;
-      case "MICROSECONDS":
-        nanosPerTimeUnit = 1000;
-        break;
-      case "MILLISECONDS":
-        nanosPerTimeUnit = 1000000;
-        break;
-      case "SECONDS":
-        nanosPerTimeUnit = 1000000000;
-        break;
-      default:
-        throw new RuntimeException("Unrecognized time unit: " + timeUnits);
-    }
+      long nanosPerTimeUnit;
+      switch (timeUnits) {
+        case "NANOSECONDS":
+          nanosPerTimeUnit = 1;
+          break;
+        case "MICROSECONDS":
+          nanosPerTimeUnit = 1000;
+          break;
+        case "MILLISECONDS":
+          nanosPerTimeUnit = 1000000;
+          break;
+        case "SECONDS":
+          nanosPerTimeUnit = 1000000000;
+          break;
+        default:
+          throw new RuntimeException("Unrecognized time unit: " + timeUnits);
+      }
 
-    try {
-      BufferedWriter latencyFile =
-        Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+      try {
+        BufferedWriter latencyFile =
+          Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 
+        for (int i = 0; i < latencyNanos.length; i++) {
+          latencyFile.append(String.format("%s,%d,%d\n",
+                cmdStr,
+                //cmdParamStr,
+                i+1,
+                latencyNanos[i] / nanosPerTimeUnit));
+        }
+
+        latencyFile.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+
+      Arrays.sort(latencyNanos);
+
+      long sum = 0;
+      long min = Long.MAX_VALUE;
+      long max = 0;
       for (int i = 0; i < latencyNanos.length; i++) {
-        latencyFile.append(String.format("%s,%d,%d\n",
+        sum += latencyNanos[i];
+
+        if (latencyNanos[i] < min) {
+          min = latencyNanos[i];
+        }
+
+        if (latencyNanos[i] > max) {
+          max = latencyNanos[i];
+        }
+      }
+
+      long mean = sum / repeatCount;
+
+      int p25 = (int) (0.25 * (float) repeatCount);
+      int p50 = (int) (0.50 * (float) repeatCount);
+      int p75 = (int) (0.75 * (float) repeatCount);
+      int p90 = (int) (0.90 * (float) repeatCount);
+      int p95 = (int) (0.95 * (float) repeatCount);
+      int p99 = (int) (0.99 * (float) repeatCount);
+
+      System.out.println("Query:");
+      System.out.println(op.toString());
+      System.out.println(String.format("cmd=[%s]", cmdstring));
+      System.out.println(String.format(
+          "Query Stats:\n"
+          + "  Units:            %s\n"
+          + "  Count:            %d\n"
+          + "  Min:              %d\n"
+          + "  Max:              %d\n"
+          + "  Mean:             %d\n"
+          + "  25th Percentile:  %d\n"
+          + "  50th Percentile:  %d\n"
+          + "  75th Percentile:  %d\n"
+          + "  90th Percentile:  %d\n"
+          + "  95th Percentile:  %d\n"
+          + "  99th Percentile:  %d\n",
+          timeUnits,
+          repeatCount,
+          min / nanosPerTimeUnit,
+          max / nanosPerTimeUnit,
+          mean / nanosPerTimeUnit,
+          latencyNanos[p25] / nanosPerTimeUnit,
+          latencyNanos[p50] / nanosPerTimeUnit,
+          latencyNanos[p75] / nanosPerTimeUnit,
+          latencyNanos[p90] / nanosPerTimeUnit,
+          latencyNanos[p95] / nanosPerTimeUnit,
+          latencyNanos[p99] / nanosPerTimeUnit));
+
+      try {
+        BufferedWriter statsFile =
+          Files.newBufferedWriter(Paths.get("latency_stats.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+        statsFile.append(String.format("%d,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+              startTimeMillis[0],
+              endTimeMillis[repeatCount-1],
               cmdStr,
-              //cmdParamStr,
-              i+1,
-              latencyNanos[i] / nanosPerTimeUnit));
+              cmdParamStr,
+              repeatCount,
+              min / nanosPerTimeUnit,
+              max / nanosPerTimeUnit,
+              latencyNanos[p25] / nanosPerTimeUnit,
+              latencyNanos[p50] / nanosPerTimeUnit,
+              latencyNanos[p75] / nanosPerTimeUnit,
+              latencyNanos[p90] / nanosPerTimeUnit,
+              latencyNanos[p95] / nanosPerTimeUnit,
+              latencyNanos[p99] / nanosPerTimeUnit));
+
+        statsFile.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
-
-      latencyFile.close();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-
-    Arrays.sort(latencyNanos);
-
-    long sum = 0;
-    long min = Long.MAX_VALUE;
-    long max = 0;
-    for (int i = 0; i < latencyNanos.length; i++) {
-      sum += latencyNanos[i];
-
-      if (latencyNanos[i] < min) {
-        min = latencyNanos[i];
-      }
-
-      if (latencyNanos[i] > max) {
-        max = latencyNanos[i];
-      }
-    }
-
-    long mean = sum / repeatCount;
-
-    int p25 = (int) (0.25 * (float) repeatCount);
-    int p50 = (int) (0.50 * (float) repeatCount);
-    int p75 = (int) (0.75 * (float) repeatCount);
-    int p90 = (int) (0.90 * (float) repeatCount);
-    int p95 = (int) (0.95 * (float) repeatCount);
-    int p99 = (int) (0.99 * (float) repeatCount);
-
-    System.out.println("Query:");
-    System.out.println(op.toString());
-    System.out.println(String.format("cmd=[%s]", cmdstring));
-    System.out.println(String.format(
-        "Query Stats:\n"
-        + "  Units:            %s\n"
-        + "  Count:            %d\n"
-        + "  Min:              %d\n"
-        + "  Max:              %d\n"
-        + "  Mean:             %d\n"
-        + "  25th Percentile:  %d\n"
-        + "  50th Percentile:  %d\n"
-        + "  75th Percentile:  %d\n"
-        + "  90th Percentile:  %d\n"
-        + "  95th Percentile:  %d\n"
-        + "  99th Percentile:  %d\n",
-        timeUnits,
-        repeatCount,
-        min / nanosPerTimeUnit,
-        max / nanosPerTimeUnit,
-        mean / nanosPerTimeUnit,
-        latencyNanos[p25] / nanosPerTimeUnit,
-        latencyNanos[p50] / nanosPerTimeUnit,
-        latencyNanos[p75] / nanosPerTimeUnit,
-        latencyNanos[p90] / nanosPerTimeUnit,
-        latencyNanos[p95] / nanosPerTimeUnit,
-        latencyNanos[p99] / nanosPerTimeUnit));
-
-    try {
-      BufferedWriter statsFile =
-        Files.newBufferedWriter(Paths.get("latency_stats.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-
-      statsFile.append(String.format("%d,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
-            startTimeMillis[0],
-            endTimeMillis[repeatCount-1],
-            cmdStr,
-            cmdParamStr,
-            repeatCount,
-            min / nanosPerTimeUnit,
-            max / nanosPerTimeUnit,
-            latencyNanos[p25] / nanosPerTimeUnit,
-            latencyNanos[p50] / nanosPerTimeUnit,
-            latencyNanos[p75] / nanosPerTimeUnit,
-            latencyNanos[p90] / nanosPerTimeUnit,
-            latencyNanos[p95] / nanosPerTimeUnit,
-            latencyNanos[p99] / nanosPerTimeUnit));
-
-      statsFile.close();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -747,33 +750,6 @@ public class QueryTester {
         new ResultReporter.SimpleResultReporter(
             new ConcurrentErrorReporter());
 
-    // Figure out which query the user wants to run.
-    List<Map<String, Object>> optList = new LinkedList<>();
-    if (opts.get("--script") != null) {
-      String scriptFilename = (String) opts.get("--script");
-
-      Path path = Paths.get(scriptFilename);
-      BufferedReader scriptFile =
-          Files.newBufferedReader(path, StandardCharsets.UTF_8);
-
-      String line;
-      while ((line = scriptFile.readLine()) != null) {
-        args = line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-        for (int i = 0; i < args.length; i++)
-          args[i] = args[i].replaceAll("^\"|\"$", "");
-        System.out.println(Arrays.toString(args));
-
-        Map<String, Object> scriptOpts =
-            new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
-        scriptOpts.put("cmdstring", line);
-        optList.add(scriptOpts);
-      }
-
-      scriptFile.close();
-    } else {
-      optList.add(opts);
-    }
-
     Map<ComplexAndShortOp, OperationHandler> csopHandlerMap = new HashMap<>();
     for (ComplexAndShortOp csop : ComplexAndShortOp.values()) {
       OperationHandler opHandler = (OperationHandler) Class
@@ -782,9 +758,35 @@ public class QueryTester {
       csopHandlerMap.put(csop, opHandler);
     }
 
-    for (int opt_nr = 0; opt_nr < optList.size(); opt_nr++) {
-      opts = optList.get(opt_nr);
-      
+    BufferedReader scriptFile = null;
+    if (opts.get("--script") != null) {
+      String scriptFilename = (String) opts.get("--script");
+
+      Path path = Paths.get(scriptFilename);
+      scriptFile = Files.newBufferedReader(path, StandardCharsets.UTF_8);
+    }
+
+    boolean done = false;
+    while (!done) {
+      if (scriptFile != null) {
+        String line;
+        if ((line = scriptFile.readLine()) != null) {
+          args = line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+          for (int i = 0; i < args.length; i++)
+            args[i] = args[i].replaceAll("^\"|\"$", "");
+
+          Map<String, Object> scriptOpts =
+              new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
+          scriptOpts.put("cmdstring", line);
+          opts = scriptOpts;
+        } else {
+          scriptFile.close();
+          break;
+        }
+      } else {
+        done = true;
+      }
+
       String cmdstring = (String) opts.get("cmdstring");
 
       // Get values of general options.
