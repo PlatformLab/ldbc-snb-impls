@@ -143,6 +143,12 @@ public class QueryTester {
       + "                       [default: 1].\n"
       + "  --warmUp=<n>         How many seconds to warmup the query.\n"
       + "                       [default: 0].\n"
+      + "  --smartWarmUp=<n>    Warm up query until latency stabilizes. Can\n"
+      + "                       be used in conjunction with --warmUp, in\n"
+      + "                       which case warmUp is performed first before\n"
+      + "                       warming up to stabilization. Parameter value\n"
+      + "                       N is the number of times to measure the min\n"
+      + "                       latency before we claim stabilization.\n"
       + "  --input=<input>      Directory of updateStream files to use as\n"
       + "                       input for update queries (the nth update of\n"
       + "                       its kind will be selected from the stream to\n"
@@ -565,15 +571,46 @@ public class QueryTester {
   public static <R, T extends Operation<R>, S extends DbConnectionState> void
       execAndTimeQuery(OperationHandler<T, S> opHandler, T op,
           S connectionState, ResultReporter resultReporter, int repeatCount,
-          String timeUnits, String cmdstring, int warmUpTimeSeconds)
+          String timeUnits, String cmdstring, int warmUpTimeSeconds, 
+          Map<String, Object> opts)
       throws DbException {
 
     // First do warmUp
-    System.out.println(String.format("warmUp=[%s]", cmdstring));
     if (warmUpTimeSeconds != 0) {
+      System.out.println(String.format("warmUp=[%s]", cmdstring));
       long startTime = System.currentTimeMillis();
       while ((System.currentTimeMillis() - startTime)/1000 < warmUpTimeSeconds)
         opHandler.executeOperation(op, connectionState, resultReporter);
+    }
+
+    if (cmdstring.contains("--smartWarmUp")) {
+      System.out.println(String.format("smartWarmUp=[%s]", cmdstring));
+      int smartCount = Integer.decode((String) opts.get("--smartWarmUp"));
+      long globalMin = Long.MAX_VALUE;
+      long globalMinCount = 0;
+      long smartWarmUpStartTime = System.currentTimeMillis();
+      while (true) {
+        long startTime = System.nanoTime();
+        opHandler.executeOperation(op, connectionState, resultReporter);
+        long execTime = (System.nanoTime() - startTime)/1000;
+      
+        if (execTime < globalMin) {
+          globalMin = execTime;
+          globalMinCount = 0;
+        } else if (execTime <= (globalMin + Math.max(globalMin/75, 1))) {
+          globalMinCount++;
+
+          if (globalMinCount == smartCount)
+            break;
+        }
+
+        if (System.currentTimeMillis() - smartWarmUpStartTime > 5000) {
+          System.out.println(String.format("smartWarmUp: Current Min: [%d,%d], Current Count: %d", globalMin, globalMin + Math.max(globalMin/100,1), globalMinCount));
+          smartWarmUpStartTime = System.currentTimeMillis();
+        }
+      }
+
+      System.out.println(String.format("smartWarmUp(%d) Min: %d us", smartCount, globalMin));
     }
 
     if (repeatCount > 0) {
@@ -770,7 +807,12 @@ public class QueryTester {
     while (!done) {
       if (scriptFile != null) {
         String line;
-        if ((line = scriptFile.readLine()) != null) {
+        while (((line = scriptFile.readLine()) != null) && line.startsWith("#")) {
+          // Skip over commented out lines
+          continue;
+        }
+
+        if (line != null) {
           args = line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
           for (int i = 0; i < args.length; i++)
             args[i] = args[i].replaceAll("^\"|\"$", "");
@@ -784,6 +826,13 @@ public class QueryTester {
           break;
         }
       } else {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < args.length; i++) {
+          sb.append(args[i]);
+          if (i < args.length - 1)
+            sb.append(" ");
+        }
+        opts.put("cmdstring", sb.toString());
         done = true;
       }
 
@@ -850,7 +899,7 @@ public class QueryTester {
 
         // Let 'er rip!
         execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-            repeatCount, timeUnits, cmdstring, warmUpTimeSeconds);
+            repeatCount, timeUnits, cmdstring, warmUpTimeSeconds, opts);
       }
 
       UpdateOp uop = null;
@@ -892,7 +941,7 @@ public class QueryTester {
               Operation op = parseUpdate(uop, line);
 
               execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-                  repeatCount, timeUnits, cmdstring, warmUpTimeSeconds);
+                  repeatCount, timeUnits, cmdstring, warmUpTimeSeconds, opts);
 
               break;
             }
