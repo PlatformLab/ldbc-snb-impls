@@ -58,15 +58,23 @@ import org.docopt.Docopt;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -121,6 +129,7 @@ public class QueryTester {
       + "  QueryTester [options] update6 <nth>\n"
       + "  QueryTester [options] update7 <nth>\n"
       + "  QueryTester [options] update8 <nth>\n"
+      + "  QueryTester [options] --script=<script>\n"
       + "  QueryTester (-h | --help)\n"
       + "  QueryTester --version\n"
       + "\n"
@@ -132,6 +141,14 @@ public class QueryTester {
       + "                       surpressed to show only the query timing\n"
       + "                       information\n"
       + "                       [default: 1].\n"
+      + "  --warmUp=<n>         How many seconds to warmup the query.\n"
+      + "                       [default: 0].\n"
+      + "  --smartWarmUp=<n>    Warm up query until latency stabilizes. Can\n"
+      + "                       be used in conjunction with --warmUp, in\n"
+      + "                       which case warmUp is performed first before\n"
+      + "                       warming up to stabilization. Parameter value\n"
+      + "                       N is the number of times to measure the min\n"
+      + "                       latency before we claim stabilization.\n"
       + "  --input=<input>      Directory of updateStream files to use as\n"
       + "                       input for update queries (the nth update of\n"
       + "                       its kind will be selected from the stream to\n"
@@ -139,6 +156,10 @@ public class QueryTester {
       + "  --timeUnits=<unit>   Unit of time in which to report timings\n"
       + "                       (SECONDS, MILLISECONDS, MICROSECONDS,\n"
       + "                       NANOSECONDS) [default: MILLISECONDS].\n"
+      + "  --script=<script>    File to use as command script. Commands will\n"
+      + "                       be executed from this script as if the args\n"
+      + "                       were supplied at the command line, one per\n"
+      + "                       line.\n"
       + "  -h --help            Show this screen.\n"
       + "  --version            Show version.\n"
       + "\n";
@@ -495,6 +516,10 @@ public class QueryTester {
     List<Object> argList = new ArrayList<>();
     for (int i = 0; i < update.params.length; i++) {
       String fieldValue = colVals.get(3 + i);
+      if (i == 0)
+        cmdParamStr = fieldValue;
+      else
+        cmdParamStr += " " + fieldValue;
       switch (paramDataTypes.get(update.params[i])) {
         case "Date":
           argList.add(new Date(Long.decode(fieldValue)));
@@ -546,91 +571,175 @@ public class QueryTester {
   public static <R, T extends Operation<R>, S extends DbConnectionState> void
       execAndTimeQuery(OperationHandler<T, S> opHandler, T op,
           S connectionState, ResultReporter resultReporter, int repeatCount,
-          String timeUnits)
+          String timeUnits, String cmdstring, int warmUpTimeSeconds, 
+          Map<String, Object> opts)
       throws DbException {
 
-    Long[] timings = new Long[repeatCount];
-
-    long startTime, endTime;
-    for (int i = 0; i < repeatCount; i++) {
-      startTime = System.nanoTime();
-      opHandler.executeOperation(op, connectionState, resultReporter);
-      endTime = System.nanoTime();
-      timings[i] = endTime - startTime;
+    // First do warmUp
+    if (warmUpTimeSeconds != 0) {
+      System.out.println(String.format("warmUp=[%s]", cmdstring));
+      long startTime = System.currentTimeMillis();
+      while ((System.currentTimeMillis() - startTime)/1000 < warmUpTimeSeconds)
+        opHandler.executeOperation(op, connectionState, resultReporter);
     }
 
-    Arrays.sort(timings);
+    if (cmdstring.contains("--smartWarmUp")) {
+      System.out.println(String.format("smartWarmUp=[%s]", cmdstring));
+      int smartCount = Integer.decode((String) opts.get("--smartWarmUp"));
+      long globalMin = Long.MAX_VALUE;
+      long globalMinCount = 0;
+      long smartWarmUpStartTime = System.currentTimeMillis();
+      while (true) {
+        long startTime = System.nanoTime();
+        opHandler.executeOperation(op, connectionState, resultReporter);
+        long execTime = (System.nanoTime() - startTime)/1000;
+      
+        if (execTime < globalMin) {
+          globalMin = execTime;
+          globalMinCount = 0;
+        } else if (execTime <= (globalMin + Math.max(globalMin/75, 1))) {
+          globalMinCount++;
 
-    long sum = 0;
-    long min = Long.MAX_VALUE;
-    long max = 0;
-    for (int i = 0; i < timings.length; i++) {
-      sum += timings[i];
+          if (globalMinCount == smartCount)
+            break;
+        }
 
-      if (timings[i] < min) {
-        min = timings[i];
+        if (System.currentTimeMillis() - smartWarmUpStartTime > 5000) {
+          System.out.println(String.format("smartWarmUp: Current Min: [%d,%d], Current Count: %d", globalMin, globalMin + Math.max(globalMin/100,1), globalMinCount));
+          smartWarmUpStartTime = System.currentTimeMillis();
+        }
       }
 
-      if (timings[i] > max) {
-        max = timings[i];
+      System.out.println(String.format("smartWarmUp(%d) Min: %d us", smartCount, globalMin));
+    }
+
+    if (repeatCount > 0) {
+      Long[] latencyNanos = new Long[repeatCount];
+      Long[] startTimeMillis = new Long[repeatCount];
+      Long[] endTimeMillis = new Long[repeatCount];
+
+      long startNanos;
+      for (int i = 0; i < repeatCount; i++) {
+        startTimeMillis[i] = System.currentTimeMillis();
+        startNanos = System.nanoTime();
+        opHandler.executeOperation(op, connectionState, resultReporter);
+        latencyNanos[i] = System.nanoTime() - startNanos;
+        endTimeMillis[i] = System.currentTimeMillis();
+      }
+
+      long nanosPerTimeUnit;
+      switch (timeUnits) {
+        case "NANOSECONDS":
+          nanosPerTimeUnit = 1;
+          break;
+        case "MICROSECONDS":
+          nanosPerTimeUnit = 1000;
+          break;
+        case "MILLISECONDS":
+          nanosPerTimeUnit = 1000000;
+          break;
+        case "SECONDS":
+          nanosPerTimeUnit = 1000000000;
+          break;
+        default:
+          throw new RuntimeException("Unrecognized time unit: " + timeUnits);
+      }
+
+      try {
+        BufferedWriter latencyFile =
+          Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+        for (int i = 0; i < latencyNanos.length; i++) {
+          latencyFile.append(String.format("%s,%d,%d\n",
+                cmdStr,
+                //cmdParamStr,
+                i+1,
+                latencyNanos[i] / nanosPerTimeUnit));
+        }
+
+        latencyFile.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+
+      Arrays.sort(latencyNanos);
+
+      long sum = 0;
+      long min = Long.MAX_VALUE;
+      long max = 0;
+      for (int i = 0; i < latencyNanos.length; i++) {
+        sum += latencyNanos[i];
+
+        if (latencyNanos[i] < min) {
+          min = latencyNanos[i];
+        }
+
+        if (latencyNanos[i] > max) {
+          max = latencyNanos[i];
+        }
+      }
+
+      long mean = sum / repeatCount;
+
+      int p25 = (int) (0.25 * (float) repeatCount);
+      int p50 = (int) (0.50 * (float) repeatCount);
+      int p75 = (int) (0.75 * (float) repeatCount);
+      int p90 = (int) (0.90 * (float) repeatCount);
+      int p95 = (int) (0.95 * (float) repeatCount);
+      int p99 = (int) (0.99 * (float) repeatCount);
+
+      System.out.println("Query:");
+      System.out.println(op.toString());
+      System.out.println(String.format("cmd=[%s]", cmdstring));
+      System.out.println(String.format(
+          "Query Stats:\n"
+          + "  Units:            %s\n"
+          + "  Count:            %d\n"
+          + "  Min:              %d\n"
+          + "  Max:              %d\n"
+          + "  Mean:             %d\n"
+          + "  25th Percentile:  %d\n"
+          + "  50th Percentile:  %d\n"
+          + "  75th Percentile:  %d\n"
+          + "  90th Percentile:  %d\n"
+          + "  95th Percentile:  %d\n"
+          + "  99th Percentile:  %d\n",
+          timeUnits,
+          repeatCount,
+          min / nanosPerTimeUnit,
+          max / nanosPerTimeUnit,
+          mean / nanosPerTimeUnit,
+          latencyNanos[p25] / nanosPerTimeUnit,
+          latencyNanos[p50] / nanosPerTimeUnit,
+          latencyNanos[p75] / nanosPerTimeUnit,
+          latencyNanos[p90] / nanosPerTimeUnit,
+          latencyNanos[p95] / nanosPerTimeUnit,
+          latencyNanos[p99] / nanosPerTimeUnit));
+
+      try {
+        BufferedWriter statsFile =
+          Files.newBufferedWriter(Paths.get("latency_stats.csv"), StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+        statsFile.append(String.format("%d,%d,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+              startTimeMillis[0],
+              endTimeMillis[repeatCount-1],
+              cmdStr,
+              cmdParamStr,
+              repeatCount,
+              min / nanosPerTimeUnit,
+              max / nanosPerTimeUnit,
+              latencyNanos[p25] / nanosPerTimeUnit,
+              latencyNanos[p50] / nanosPerTimeUnit,
+              latencyNanos[p75] / nanosPerTimeUnit,
+              latencyNanos[p90] / nanosPerTimeUnit,
+              latencyNanos[p95] / nanosPerTimeUnit,
+              latencyNanos[p99] / nanosPerTimeUnit));
+
+        statsFile.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
       }
     }
-
-    long mean = sum / repeatCount;
-
-    int p25 = (int) (0.25 * (float) repeatCount);
-    int p50 = (int) (0.50 * (float) repeatCount);
-    int p75 = (int) (0.75 * (float) repeatCount);
-    int p90 = (int) (0.90 * (float) repeatCount);
-    int p95 = (int) (0.95 * (float) repeatCount);
-    int p99 = (int) (0.99 * (float) repeatCount);
-
-    long nanosPerTimeUnit;
-
-    switch (timeUnits) {
-      case "NANOSECONDS":
-        nanosPerTimeUnit = 1;
-        break;
-      case "MICROSECONDS":
-        nanosPerTimeUnit = 1000;
-        break;
-      case "MILLISECONDS":
-        nanosPerTimeUnit = 1000000;
-        break;
-      case "SECONDS":
-        nanosPerTimeUnit = 1000000000;
-        break;
-      default:
-        throw new RuntimeException("Unrecognized time unit: " + timeUnits);
-    }
-
-    System.out.println("Query:");
-    System.out.println(op.toString());
-    System.out.println();
-    System.out.println(String.format(
-        "Query Stats:\n"
-        + "  Units:            %s\n"
-        + "  Count:            %d\n"
-        + "  Min:              %d\n"
-        + "  Max:              %d\n"
-        + "  Mean:             %d\n"
-        + "  25th Percentile:  %d\n"
-        + "  50th Percentile:  %d\n"
-        + "  75th Percentile:  %d\n"
-        + "  90th Percentile:  %d\n"
-        + "  95th Percentile:  %d\n"
-        + "  99th Percentile:  %d\n",
-        timeUnits,
-        repeatCount,
-        min / nanosPerTimeUnit,
-        max / nanosPerTimeUnit,
-        mean / nanosPerTimeUnit,
-        timings[p25] / nanosPerTimeUnit,
-        timings[p50] / nanosPerTimeUnit,
-        timings[p75] / nanosPerTimeUnit,
-        timings[p90] / nanosPerTimeUnit,
-        timings[p95] / nanosPerTimeUnit,
-        timings[p99] / nanosPerTimeUnit));
   }
 
   public static OperationHandler<? extends Operation, DbConnectionState>
@@ -639,14 +748,13 @@ public class QueryTester {
         .forName(className).getConstructor().newInstance();
   }
 
+  static String cmdStr = "";
+  static String cmdParamStr = "";
   public static void main(String[] args) throws Exception {
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
 
-    // Get values of general options.
-    String inputDir = (String) opts.get("--input");
-    int repeatCount = Integer.decode((String) opts.get("--repeat"));
-    String timeUnits = (String) opts.get("--timeUnits");
+    System.out.println(opts);
 
     // Load properties from the configuration file.
     String configFilename = (String) opts.get("--config");
@@ -679,120 +787,179 @@ public class QueryTester {
         new ResultReporter.SimpleResultReporter(
             new ConcurrentErrorReporter());
 
-    // Figure out which query the user wants to run.
-    ComplexAndShortOp csop = null;
-    for (ComplexAndShortOp op : ComplexAndShortOp.values()) {
-      if ((Boolean) opts.get(op.command)) {
-        csop = op;
-      }
-    }
-
-    if (csop != null) {
-      /*
-       * Use information in the QueryOp and some java reflection magic to
-       * generically construct the Operation and configured OperationHandler
-       * for this query. Here we go!
-       */
-      // First, gather up all the Operation constructor arguments and construct
-      // Operation instance.
-      List<Object> opCtorArgs = new ArrayList<>();
-      for (int i = 0; i < csop.opCtorParamTypes.length; i++) {
-        String argValue = (String) opts.get(csop.opCtorParamVals[i]);
-        switch (csop.opCtorParamTypes[i].getSimpleName()) {
-          case "Date": {
-            opCtorArgs.add(new Date(Long.decode(argValue)));
-            break;
-          }
-          case "Integer": {
-            opCtorArgs.add(Integer.decode(argValue));
-            break;
-          }
-          case "Long": {
-            opCtorArgs.add(Long.decode(argValue));
-            break;
-          }
-          case "String": {
-            opCtorArgs.add(argValue);
-            break;
-          }
-          default: {
-            throw new RuntimeException(String.format("Unrecognized parameter "
-                + "type for %s constructor: %s", csop.opClass,
-                csop.opCtorParamTypes[i]));
-          }
-        }
-      }
-      Operation op = (Operation) csop.opClass
-          .getDeclaredConstructors()[0]
-          .newInstance(opCtorArgs.toArray());
-
-      // Now construct an instance of the OperationHandler type specified in 
-      // the configuration file.
+    Map<ComplexAndShortOp, OperationHandler> csopHandlerMap = new HashMap<>();
+    for (ComplexAndShortOp csop : ComplexAndShortOp.values()) {
       OperationHandler opHandler = (OperationHandler) Class
           .forName(prop.getProperty(dbName + "." + csop.opHandlerConfigKey))
           .getDeclaredConstructor().newInstance();
-
-      // Let 'er rip!
-      execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-          repeatCount, timeUnits);
+      csopHandlerMap.put(csop, opHandler);
     }
 
-    UpdateOp uop = null;
-    for (UpdateOp op : UpdateOp.values()) {
-      if ((Boolean) opts.get(op.command)) {
-        uop = op;
-      }
+    BufferedReader scriptFile = null;
+    if (opts.get("--script") != null) {
+      String scriptFilename = (String) opts.get("--script");
+
+      Path path = Paths.get(scriptFilename);
+      scriptFile = Files.newBufferedReader(path, StandardCharsets.UTF_8);
     }
 
-    if (uop != null) {
-      // First construct an instance of the OperationHandler type specified in 
-      // the configuration file.
-      OperationHandler opHandler = (OperationHandler) Class
-          .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
-          .getDeclaredConstructor().newInstance();
+    boolean done = false;
+    while (!done) {
+      if (scriptFile != null) {
+        String line;
+        while (((line = scriptFile.readLine()) != null) && line.startsWith("#")) {
+          // Skip over commented out lines
+          continue;
+        }
 
-      String fileName;
-      if (uop.index == 1) {
-        fileName = "updateStream_0_0_person.csv";
+        if (line != null) {
+          args = line.split(" (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+          for (int i = 0; i < args.length; i++)
+            args[i] = args[i].replaceAll("^\"|\"$", "");
+
+          Map<String, Object> scriptOpts =
+              new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
+          scriptOpts.put("cmdstring", line);
+          opts = scriptOpts;
+        } else {
+          scriptFile.close();
+          break;
+        }
       } else {
-        fileName = "updateStream_0_0_forum.csv";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < args.length; i++) {
+          sb.append(args[i]);
+          if (i < args.length - 1)
+            sb.append(" ");
+        }
+        opts.put("cmdstring", sb.toString());
+        done = true;
       }
 
-      Path path = Paths.get(inputDir + "/" + fileName);
-      BufferedReader inFile =
-          Files.newBufferedReader(path, StandardCharsets.UTF_8);
+      String cmdstring = (String) opts.get("cmdstring");
 
-      Long nth = Long.decode((String) opts.get("<nth>"));
+      // Get values of general options.
+      String inputDir = (String) opts.get("--input");
+      int repeatCount = Integer.decode((String) opts.get("--repeat"));
+      int warmUpTimeSeconds = Integer.decode((String) opts.get("--warmUp"));
+      String timeUnits = (String) opts.get("--timeUnits");
 
-      // Track how many update ops of this type we have read from the file.
-      long readCount = 0;
-      String line;
-      while ((line = inFile.readLine()) != null) {
-        if (Integer.decode(line.split("\\|")[2]) == uop.index) {
-          readCount++;
-
-          if (readCount == nth) {
-            Operation op = parseUpdate(uop, line);
-
-            execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
-                repeatCount, timeUnits);
-
-            break;
-          }
+      ComplexAndShortOp csop = null;
+      for (ComplexAndShortOp op : ComplexAndShortOp.values()) {
+        if ((Boolean) opts.get(op.command)) {
+          cmdStr = op.command;
+          csop = op;
         }
       }
 
-      inFile.close();
+      if (csop != null) {
+        /*
+        * Use information in the QueryOp and some java reflection magic to
+        * generically construct the Operation and configured OperationHandler
+        * for this query. Here we go!
+        */
+        // First, gather up all the Operation constructor arguments and construct
+        // Operation instance.
+        List<Object> opCtorArgs = new ArrayList<>();
+        for (int i = 0; i < csop.opCtorParamTypes.length; i++) {
+          String argValue = (String) opts.get(csop.opCtorParamVals[i]);
+          if (i == 0)
+            cmdParamStr = argValue;
+          else
+            cmdParamStr += " " + argValue;
+          switch (csop.opCtorParamTypes[i].getSimpleName()) {
+            case "Date": {
+              opCtorArgs.add(new Date(Long.decode(argValue)));
+              break;
+            }
+            case "Integer": {
+              opCtorArgs.add(Integer.decode(argValue));
+              break;
+            }
+            case "Long": {
+              opCtorArgs.add(Long.decode(argValue));
+              break;
+            }
+            case "String": {
+              opCtorArgs.add(argValue);
+              break;
+            }
+            default: {
+              throw new RuntimeException(String.format("Unrecognized parameter "
+                  + "type for %s constructor: %s", csop.opClass,
+                  csop.opCtorParamTypes[i]));
+            }
+          }
+        }
+        Operation op = (Operation) csop.opClass
+            .getDeclaredConstructors()[0]
+            .newInstance(opCtorArgs.toArray());
 
-      if (readCount < nth) {
-        System.out.println(String.format("ERROR: File %s only contains %d"
-            + " update%d ops, but user requested execution of update #%d.",
-            path.toAbsolutePath(), readCount, uop.index, nth));
+        OperationHandler opHandler = csopHandlerMap.get(csop);
+
+        // Let 'er rip!
+        execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+            repeatCount, timeUnits, cmdstring, warmUpTimeSeconds, opts);
       }
-    }
 
-    if (repeatCount == 1) {
-      printResult(resultReporter.result());
+      UpdateOp uop = null;
+      for (UpdateOp op : UpdateOp.values()) {
+        if ((Boolean) opts.get(op.command)) {
+          cmdStr = op.command;
+          uop = op;
+        }
+      }
+
+      if (uop != null) {
+        // First construct an instance of the OperationHandler type specified in 
+        // the configuration file.
+        OperationHandler opHandler = (OperationHandler) Class
+            .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
+            .getDeclaredConstructor().newInstance();
+
+        String fileName;
+        if (uop.index == 1) {
+          fileName = "updateStream_0_0_person.csv";
+        } else {
+          fileName = "updateStream_0_0_forum.csv";
+        }
+
+        Path path = Paths.get(inputDir + "/" + fileName);
+        BufferedReader inFile =
+            Files.newBufferedReader(path, StandardCharsets.UTF_8);
+
+        Long nth = Long.decode((String) opts.get("<nth>"));
+
+        // Track how many update ops of this type we have read from the file.
+        long readCount = 0;
+        String line;
+        while ((line = inFile.readLine()) != null) {
+          if (Integer.decode(line.split("\\|")[2]) == uop.index) {
+            readCount++;
+
+            if (readCount == nth) {
+              Operation op = parseUpdate(uop, line);
+
+              execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter,
+                  repeatCount, timeUnits, cmdstring, warmUpTimeSeconds, opts);
+
+              break;
+            }
+          }
+        }
+
+        inFile.close();
+
+        if (readCount < nth) {
+          System.out.println(String.format("ERROR: File %s only contains %d"
+              + " update%d ops, but user requested execution of update #%d.",
+              path.toAbsolutePath(), readCount, uop.index, nth));
+        }
+      }
+
+      if (repeatCount == 1) {
+        printResult(resultReporter.result());
+      }
     }
 
     dbConnectionState.close();
