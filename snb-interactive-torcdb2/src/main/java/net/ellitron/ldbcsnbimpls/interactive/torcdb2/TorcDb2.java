@@ -264,12 +264,7 @@ public class TorcDb2 extends Db {
               } else {
                 Long v1Id = v1.id().getLowerLong();
                 Long v2Id = v2.id().getLowerLong();
-                if (v1Id > v2Id)
-                  return 1;
-                else if (v1Id < v2Id)
-                  return -1;
-                else
-                  return 0;
+                return v1Id.compareTo(v2Id);
               }
             }
           };
@@ -418,14 +413,10 @@ public class TorcDb2 extends Db {
             public int compare(Vertex v1, Vertex v2) {
               Long v1creationDate = ((Long)v1.getProperty("creationDate"));
               Long v2creationDate = ((Long)v2.getProperty("creationDate"));
-              if (v1creationDate > v2creationDate)
-                return 1;
-              else if (v1creationDate < v2creationDate)
-                return -1;
-              else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                return -1;
+              if (v1creationDate.compareTo(v2creationDate) != 0)
+                return v1creationDate.compareTo(v2creationDate);
               else
-                return 1;
+                return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
             }
           };
 
@@ -613,20 +604,13 @@ public class TorcDb2 extends Db {
               Long v1MsgCount = friendCountryXMsgCounts.get(v1) + friendCountryYMsgCounts.get(v1);
               Long v2MsgCount = friendCountryXMsgCounts.get(v2) + friendCountryYMsgCounts.get(v2);
 
-              if (v1MsgCount != v2MsgCount) {
-                // Post count sort is descending
-                if (v1MsgCount > v2MsgCount)
-                  return -1;
-                else
-                  return 1;
+              if (v1MsgCount.compareTo(v2MsgCount) != 0) {
+                // Message count is descending
+                return -1*v1MsgCount.compareTo(v2MsgCount);
               } else {
                 Long v1Id = v1.id().getLowerLong();
                 Long v2Id = v2.id().getLowerLong();
-                // IDs are ascending
-                if (v1Id > v2Id)
-                  return 1;
-                else
-                  return -1;
+                return v1Id.compareTo(v2Id);
               }
             }
           };
@@ -752,12 +736,9 @@ public class TorcDb2 extends Db {
               Long t1Count = tagCounts.get(t1);
               Long t2Count = tagCounts.get(t2);
 
-              if (t1Count != t2Count) {
+              if (t1Count.compareTo(t2Count) != 0) {
                 // Tag count sort is descending
-                if (t1Count > t2Count)
-                  return -1;
-                else
-                  return 1;
+                return -1*t1Count.compareTo(t2Count);
               } else {
                 String t1Name = (String)t1.getProperty("name");
                 String t2Name = (String)t2.getProperty("name");
@@ -887,20 +868,14 @@ public class TorcDb2 extends Db {
               Integer forum1FriendPostCount = forumFriendPostCounts.get(v1);
               Integer forum2FriendPostCount = forumFriendPostCounts.get(v2);
 
-              if (forum1FriendPostCount != forum2FriendPostCount) {
+              if (forum1FriendPostCount.compareTo(forum2FriendPostCount) != 0) {
                 // Post count sort is descending
-                if (forum1FriendPostCount > forum2FriendPostCount)
-                  return -1;
-                else
-                  return 1;
+                return -1*forum1FriendPostCount.compareTo(forum2FriendPostCount);
               } else {
                 Long v1Id = v1.id().getLowerLong();
                 Long v2Id = v2.id().getLowerLong();
                 // IDs are ascending
-                if (v1Id > v2Id)
-                  return 1;
-                else
-                  return -1;
+                return v1Id.compareTo(v2Id);
               }
             }
           };
@@ -1016,12 +991,9 @@ public class TorcDb2 extends Db {
               Long t1Count = coTagCounts.get(t1);
               Long t2Count = coTagCounts.get(t2);
 
-              if (t1Count != t2Count) {
+              if (t1Count.compareTo(t2Count) != 0) {
                 // Tag count sort is descending
-                if (t1Count > t2Count)
-                  return -1;
-                else
-                  return 1;
+                return -1*t1Count.compareTo(t2Count);
               } else {
                 String t1Name = (String)t1.getProperty("name");
                 String t2Name = (String)t2.getProperty("name");
@@ -1224,14 +1196,10 @@ public class TorcDb2 extends Db {
             public int compare(Vertex v1, Vertex v2) {
               Long v1likeDate = likeDates.get(v1);
               Long v2likeDate = likeDates.get(v2);
-              if (v1likeDate > v2likeDate)
-                return -1;
-              else if (v1likeDate < v2likeDate)
-                return 1;
-              else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                return 1;
+              if (v1likeDate.compareTo(v2likeDate) != 0)
+                return -1*v1likeDate.compareTo(v2likeDate);
               else
-                return -1;
+                return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
             }
           };
 
@@ -2399,11 +2367,8 @@ public class TorcDb2 extends Db {
               public int compare(VertexPath p1, VertexPath p2) {
                 Double p1Weight = pathWeights.get(p1);
                 Double p2Weight = pathWeights.get(p2);
-        
-                if (p2Weight > p1Weight)
-                  return 1;
-                else
-                  return -1;
+       
+                return p2Weight.compareTo(p1Weight);
               }
             };
 
@@ -2684,10 +2649,7 @@ public class TorcDb2 extends Db {
                 if (v1creationDate.compareTo(v2creationDate) != 0)
                   return -1*v1creationDate.compareTo(v2creationDate);
                 else
-                  if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                    return 1;
-                  else
-                    return -1;
+                  return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
               }
             };
         
@@ -2952,14 +2914,10 @@ public class TorcDb2 extends Db {
               public int compare(LdbcShortQuery7MessageRepliesResult r1, LdbcShortQuery7MessageRepliesResult r2) {
                 long r1creationDate = r1.commentCreationDate();
                 long r2creationDate = r2.commentCreationDate();
-                if (r1creationDate > r2creationDate)
-                  return -1;
-                else if (r1creationDate < r2creationDate)
-                  return 1;
-                else if (r1.replyAuthorId() > r2.replyAuthorId())
-                  return 1;
-                else
-                  return -1;
+                if (r1creationDate != r2creationDate)
+                  return -1*(int)(r1creationDate - r2creationDate);
+                else 
+                  return (int)(r1.replyAuthorId() - r2.replyAuthorId());
               }
             };
         
