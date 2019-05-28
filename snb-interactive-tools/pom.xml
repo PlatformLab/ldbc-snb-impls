@@ -79,6 +79,22 @@
           <rules><dependencyConvergence/></rules> 
         </configuration> 
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Xss100M</argument>
+            <argument>-Xms50G</argument>
+            <argument>-Xmx50G</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>net.ellitron.ldbcsnbimpls.interactive.tools.QueryTester</argument>
+            <argument>${exec.qtargs}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <reporting>
