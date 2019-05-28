@@ -751,6 +751,9 @@ public class QueryTester {
   static String cmdStr = "";
   static String cmdParamStr = "";
   public static void main(String[] args) throws Exception {
+    if (args.length == 1)
+     args = args[0].split("\\s+");
+
     Map<String, Object> opts =
         new Docopt(doc).withVersion("QueryTester 1.0").parse(args);
 
