@@ -18,6 +18,8 @@ package net.ellitron.ldbcsnbimpls.interactive.neo4j;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
+import org.neo4j.driver.v1.exceptions.ClientException;
+
 import net.ellitron.ldbcsnbimpls.interactive.neo4j.util.DbHelper;
 
 import com.ldbc.driver.control.LoggingService;
@@ -348,6 +350,8 @@ public class Neo4jDb extends Db {
                     universities,
                     companies));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -415,6 +419,8 @@ public class Neo4jDb extends Db {
                     record.get("messageContent").asString(),
                     record.get("messageDate").asLong()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -507,6 +513,8 @@ public class Neo4jDb extends Db {
                     record.get("yCount").asInt(),
                     record.get("xyCount").asInt()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -574,6 +582,8 @@ public class Neo4jDb extends Db {
                     record.get("tagName").asString(),
                     record.get("postCount").asInt()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -635,6 +645,8 @@ public class Neo4jDb extends Db {
                     record.get("forumName").asString(),
                     record.get("postCount").asInt()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -699,6 +711,8 @@ public class Neo4jDb extends Db {
                     record.get("tagName").asString(),
                     record.get("postCount").asInt()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -778,6 +792,8 @@ public class Neo4jDb extends Db {
                     (int) (record.get("latencyAsMilli").asLong() / (1000l * 60l)),
                     record.get("isNew").asBoolean()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -842,6 +858,8 @@ public class Neo4jDb extends Db {
                     Long.valueOf(record.get("commentId").asString()),
                     record.get("commentContent").asString()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -910,6 +928,8 @@ public class Neo4jDb extends Db {
                     record.get("messageContent").asString(),
                     record.get("messageCreationDate").asLong()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -996,6 +1016,8 @@ public class Neo4jDb extends Db {
                     record.get("personGender").asString(),
                     record.get("personCityName").asString()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -1063,6 +1085,8 @@ public class Neo4jDb extends Db {
                     record.get("companyName").asString(),
                     record.get("workFromYear").asInt()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -1137,6 +1161,8 @@ public class Neo4jDb extends Db {
                       record.get("count").asInt()));
             }
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
@@ -1192,6 +1218,8 @@ public class Neo4jDb extends Db {
           } else {
             resultReporter.report(0, null, operation);
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
     }
@@ -1256,6 +1284,8 @@ public class Neo4jDb extends Db {
                     personIdsInPath,
                     record.get("weight").asDouble()));
           }
+        } catch (ClientException e) {
+          System.out.println("Caught ClientException: " + e.code());
         }
       }
 
