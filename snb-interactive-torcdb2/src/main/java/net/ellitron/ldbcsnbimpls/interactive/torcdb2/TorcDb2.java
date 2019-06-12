@@ -2063,7 +2063,8 @@ public class TorcDb2 extends Db {
       int n = 1;
       do {
         friends = graph.traverse(friends, "knows", Direction.OUT, false, "Person");
-        GraphHelper.subtract(friends, seenSet);
+        
+        friends.vSet.removeAll(seenSet);
         
         // No path to destination vertex.
         if (friends.vSet.size() == 0) {
