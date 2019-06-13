@@ -408,15 +408,19 @@ public class TorcDb2 extends Db {
 
       graph.fillProperties(messages);
       
-      // Sort the Posts and Comments by their creation date.
+      // Sort the Posts and Comments descending by their creation date and ascending by post
+      // identifier. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Long v1creationDate = ((Long)v1.getProperty("creationDate"));
               Long v2creationDate = ((Long)v2.getProperty("creationDate"));
               if (v1creationDate.compareTo(v2creationDate) != 0)
                 return v1creationDate.compareTo(v2creationDate);
-              else
-                return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
+              else {
+                Long v1Id = v1.id().getLowerLong();
+                Long v2Id = v2.id().getLowerLong();
+                return -1*v1Id.compareTo(v2Id);
+              }
             }
           };
 
@@ -598,7 +602,8 @@ public class TorcDb2 extends Db {
         }
       }
       
-      // Sort friends by post count, then ascending by person identifier.
+      // Sort results descending by total number of Posts/Comments, and then ascending by Person
+      // identifier.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Long v1MsgCount = friendCountryXMsgCounts.get(v1) + friendCountryYMsgCounts.get(v1);
@@ -862,7 +867,8 @@ public class TorcDb2 extends Db {
       }
 
       List<Vertex> forums = new ArrayList<>(forumFriendPostCounts.keySet());
-
+      
+      // Sort results descending by the count of Posts, and then ascending by Forum  identifier.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Integer forum1FriendPostCount = forumFriendPostCounts.get(v1);
@@ -1189,8 +1195,8 @@ public class TorcDb2 extends Db {
 
       List<Vertex> likersList = new ArrayList<>(personMostRecentLikeDate.keySet());
 
-      // Sort the likers by their creation date (descending in creationDate
-      // and ascending in id).
+      // Sort results descending by creation time of Like, then  ascending by Person identifier of
+      // liker.
       final Map<Vertex, Long> likeDates = personMostRecentLikeDate;
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
@@ -1198,8 +1204,11 @@ public class TorcDb2 extends Db {
               Long v2likeDate = likeDates.get(v2);
               if (v1likeDate.compareTo(v2likeDate) != 0)
                 return -1*v1likeDate.compareTo(v2likeDate);
-              else
-                return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
+              else {
+                Long v1Id = v1.id().getLowerLong();
+                Long v2Id = v2.id().getLowerLong();
+                return v1Id.compareTo(v2Id);
+              }
             }
           };
 
@@ -1304,19 +1313,19 @@ public class TorcDb2 extends Db {
 
       graph.fillProperties(replies.vSet, "creationDate");
 
-      // Sort the replies by their creation date.
+      // Sort results descending by creation date of reply Comment, and then ascending by identifier
+      // of reply Comment. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Long v1creationDate = ((Long)v1.getProperty("creationDate"));
               Long v2creationDate = ((Long)v2.getProperty("creationDate"));
-              if (v1creationDate > v2creationDate)
-                return 1;
-              else if (v1creationDate < v2creationDate)
-                return -1;
-              else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                return -1;
-              else
-                return 1;
+              if (v1creationDate.compareTo(v2creationDate) != 0)
+                return v1creationDate.compareTo(v2creationDate);
+              else {
+                Long v1Id = v1.id().getLowerLong();
+                Long v2Id = v2.id().getLowerLong();
+                return -1*v1Id.compareTo(v2Id);
+              }
             }
           };
 
@@ -1435,19 +1444,19 @@ public class TorcDb2 extends Db {
       
       graph.fillProperties(messages.vSet, "creationDate");
 
-      // Sort the Posts and Comments by their creation date.
+      // Sort results descending by creation date of Post/Comment, and then ascending by
+      // Post/Comment identifier. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Long v1creationDate = ((Long)v1.getProperty("creationDate"));
               Long v2creationDate = ((Long)v2.getProperty("creationDate"));
-              if (v1creationDate > v2creationDate)
-                return 1;
-              else if (v1creationDate < v2creationDate)
-                return -1;
-              else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                return -1;
-              else
-                return 1;
+              if (v1creationDate.compareTo(v2creationDate) != 0)
+                return v1creationDate.compareTo(v2creationDate);
+              else {
+                Long v1Id = v1.id().getLowerLong();
+                Long v2Id = v2.id().getLowerLong();
+                return -1*v1Id.compareTo(v2Id);
+              }
             }
           };
 
@@ -1616,22 +1625,19 @@ public class TorcDb2 extends Db {
         }
       }
 
-      // Sort the friends by their similarity score
-      // Here the comparator defines an ascending order because the priority
-      // queue's head is the first element in sorted order, which we would
-      // like to be the least element.
+      // Sort results descending by similarity score, and then ascending by Person identifier.
+      // Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
               Long v1similarityScore = similarityScore.get(v1);
               Long v2similarityScore = similarityScore.get(v2);
-              if (v1similarityScore > v2similarityScore)
-                return 1;
-              else if (v1similarityScore < v2similarityScore)
-                return -1;
-              else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                return -1;
-              else
-                return 1;
+              if (v1similarityScore.compareTo(v2similarityScore) != 0)
+                return v1similarityScore.compareTo(v2similarityScore);
+              else {
+                Long v1Id = v1.id().getLowerLong();
+                Long v2Id = v2.id().getLowerLong();
+                return -1*v1Id.compareTo(v2Id);
+              }
             }
           };
 
@@ -1774,16 +1780,16 @@ public class TorcDb2 extends Db {
 
       graph.fillProperties(company.vSet, "name");
 
+      // Sort results ascending by the start date, then ascending by Person identifier, and lastly
+      // by Organization name descending. Reversed for priority queue.
       Comparator<ResultTuple> comparator = new Comparator<ResultTuple>() {
             public int compare(ResultTuple a, ResultTuple b) {
-              if (a.year > b.year)
-                return -1;
-              else if (a.year < b.year)
-                return 1;
-              else if (a.v.id().getLowerLong() > b.v.id().getLowerLong())
-                return -1;
-              else if (a.v.id().getLowerLong() < b.v.id().getLowerLong())
-                return 1;
+              Long aId = a.v.id().getLowerLong();
+              Long bId = b.v.id().getLowerLong();
+              if (a.year != b.year)
+                return -1*(a.year - b.year);
+              else if (aId.compareTo(bId) != 0)
+                return -1*aId.compareTo(bId);
               else
                 return a.name.compareTo(b.name);
             }
@@ -2500,20 +2506,18 @@ public class TorcDb2 extends Db {
         graph.fillProperties(messages.vSet, "creationDate");
 
         // Sort the Posts and Comments descending by creationDate, and descending by message
-        // identifier. Comparator defines the reverse order because we use it in a PriorityQueue to
-        // efficiently implement finding the top-K results.
+        // identifier. Reversed for priority queue.
         Comparator<Vertex> c = new Comparator<Vertex>() {
               public int compare(Vertex v1, Vertex v2) {
                 Long v1creationDate = ((Long)v1.getProperty("creationDate"));
                 Long v2creationDate = ((Long)v2.getProperty("creationDate"));
-                if (v1creationDate > v2creationDate)
-                  return 1;
-                else if (v1creationDate < v2creationDate)
-                  return -1;
-                else if (v1.id().getLowerLong() > v2.id().getLowerLong())
-                  return 1;
-                else
-                  return -1;
+                if (v1creationDate.compareTo(v2creationDate) != 0)
+                  return v1creationDate.compareTo(v2creationDate);
+                else {
+                  Long v1Id = v1.id().getLowerLong();
+                  Long v2Id = v2.id().getLowerLong();
+                  return v1Id.compareTo(v2Id);
+                }
               }
             };
 
@@ -2669,8 +2673,14 @@ public class TorcDb2 extends Db {
                 Long v2creationDate = friendshipDate.get(v2);
                 if (v1creationDate.compareTo(v2creationDate) != 0)
                   return -1*v1creationDate.compareTo(v2creationDate);
-                else
-                  return (int)(v1.id().getLowerLong() - v2.id().getLowerLong());
+                else {
+                  if (v1.id().getLowerLong() - v2.id().getLowerLong() > 0)
+                    return 1;
+                  else if (v1.id().getLowerLong() - v2.id().getLowerLong() < 0)
+                    return -1;
+                  else
+                    return 0;
+                }
               }
             };
         
