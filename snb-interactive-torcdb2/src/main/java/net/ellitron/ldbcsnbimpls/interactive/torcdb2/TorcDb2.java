@@ -2056,26 +2056,46 @@ public class TorcDb2 extends Db {
       Set<Vertex> start = new HashSet<>();
       start.add(new Vertex(torcPerson1Id, TorcEntity.PERSON.label));
 
-      Vertex end = new Vertex(torcPerson2Id, TorcEntity.PERSON.label);
+      Set<Vertex> end = new HashSet<>();
+      end.add(new Vertex(torcPerson2Id, TorcEntity.PERSON.label));
 
-      TraversalResult friends = new TraversalResult(null, null, start);
-      Set<Vertex> seenSet = new HashSet<>();
+      TraversalResult startFriends = new TraversalResult(null, null, start);
+      TraversalResult endFriends = new TraversalResult(null, null, end);
+      Set<Vertex> startSeenSet = new HashSet<>();
+      Set<Vertex> endSeenSet = new HashSet<>();
       int n = 1;
       do {
-        friends = graph.traverse(friends, "knows", Direction.OUT, false, "Person");
+        startFriends = graph.traverse(startFriends, "knows", Direction.OUT, false, "Person");
         
-        friends.vSet.removeAll(seenSet);
+        startFriends.vSet.removeAll(startSeenSet);
         
         // No path to destination vertex.
-        if (friends.vSet.size() == 0) {
+        if (startFriends.vSet.size() == 0) {
           n = -1;
           break;
         }
 
-        if (friends.vSet.contains(end))
+        if (!Collections.disjoint(startFriends.vSet, endFriends.vSet))
           break;
 
-        seenSet.addAll(friends.vSet);
+        startSeenSet.addAll(startFriends.vSet);
+
+        n++;
+
+        endFriends = graph.traverse(endFriends, "knows", Direction.OUT, false, "Person");
+
+        endFriends.vSet.removeAll(endSeenSet);
+
+        // No path to destination vertex.
+        if (endFriends.vSet.size() == 0) {
+          n = -1;
+          break;
+        }
+
+        if (!Collections.disjoint(startFriends.vSet, endFriends.vSet))
+          break;
+
+        endSeenSet.addAll(endFriends.vSet);
 
         n++;
       } while (true);
