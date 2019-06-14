@@ -2316,7 +2316,7 @@ public class TorcDb2 extends Db {
 
           for (int i = endTRList.size()-1; i >= 0; i--) {
             if (i == endTRList.size()-1)
-              GraphHelper.intersect(endTRList.get(i), endTRList.get(startTRList.size()-1).vSet);
+              GraphHelper.intersect(endTRList.get(i), startTRList.get(startTRList.size()-1).vSet);
             else
               GraphHelper.intersect(endTRList.get(i), endTRList.get(i+1).vMap.keySet());
           }
