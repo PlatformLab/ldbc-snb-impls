@@ -2180,6 +2180,22 @@ public class TorcDb2 extends Db {
 
           return false;
         }
+
+        @Override
+        public String toString() {
+          StringBuilder sb = new StringBuilder();
+          VertexPath it = this;
+          sb.append("[");
+          while (it != null) {
+            if (it.p != null)
+              sb.append(it.v.id().getLowerLong() + ",");
+            else
+              sb.append(it.v.id().getLowerLong());
+            it = it.p;
+          }
+          sb.append("]");
+          return sb.toString();
+        }
       };
 
       // Define a vertex pair map key.
@@ -2230,74 +2246,189 @@ public class TorcDb2 extends Db {
 
       Vertex start = new Vertex(torcPerson1Id, TorcEntity.PERSON.label);
       Vertex end = new Vertex(torcPerson2Id, TorcEntity.PERSON.label);
-
+      
       Set<Vertex> startSet = new HashSet<>();
-      startSet.add(new Vertex(torcPerson1Id, TorcEntity.PERSON.label));
+      startSet.add(start);
 
-      // Handle start == end here
+      Set<Vertex> endSet = new HashSet<>();
+      endSet.add(end);
 
-      TraversalResult friends = new TraversalResult(null, null, startSet);
-      Set<Vertex> seenSet = new HashSet<>();
-
-      // Keep around each of the traversal results during the serach.
-      List<TraversalResult> trList = new ArrayList<>();
-      int hops = 0;
-      while (!friends.vSet.contains(end)) {
-        seenSet.addAll(friends.vSet);
-
-        friends = graph.traverse(friends, "knows", Direction.OUT, false, "Person");
-        GraphHelper.subtract(friends, seenSet);
-
+      TraversalResult startFriends = new TraversalResult(null, null, startSet);
+      TraversalResult endFriends = new TraversalResult(null, null, endSet);
+      Set<Vertex> startSeenSet = new HashSet<>();
+      Set<Vertex> endSeenSet = new HashSet<>();
+      List<TraversalResult> startTRList = new ArrayList<>();
+      List<TraversalResult> endTRList = new ArrayList<>();
+      int hops = 1;
+      do {
+        startFriends = graph.traverse(startFriends, "knows", Direction.OUT, false, "Person");
+        
+        startFriends.vSet.removeAll(startSeenSet);
+        
         // No path to destination vertex.
-        if (friends.vSet.size() == 0) {
+        if (startFriends.vSet.size() == 0) {
           hops = -1;
           break;
         }
 
-        trList.add(friends);
-        
-        hops++;
-      }
+        startTRList.add(startFriends);
 
-      if (hops != -1) {
-        // Filter for paths that lead to the end vertex.
-        for (int i = trList.size()-1; i >= 0; i--) {
-          if (i == trList.size()-1)
-            GraphHelper.intersect(trList.get(i), end);
-          else
-            GraphHelper.intersect(trList.get(i), trList.get(i+1).vMap.keySet());
+        if (!Collections.disjoint(startFriends.vSet, endFriends.vSet))
+          break;
+
+        startSeenSet.addAll(startFriends.vSet);
+
+        hops++;
+
+        endFriends = graph.traverse(endFriends, "knows", Direction.OUT, false, "Person");
+
+        endFriends.vSet.removeAll(endSeenSet);
+
+        // No path to destination vertex.
+        if (endFriends.vSet.size() == 0) {
+          hops = -1;
+          break;
         }
 
-        // Create cache of calculated paths so we don't unnecessarily
-        // recalculate them.
-        Map<Vertex, List<VertexPath>> pathCache = new HashMap<>();
-        for (int i = trList.size()-1; i >= 0; i--) {
-          for (Vertex b : trList.get(i).vMap.keySet()) {
-            List<VertexPath> paths = new ArrayList<>();
-            for (Vertex n : trList.get(i).vMap.get(b)) {
-              if (!pathCache.containsKey(n)) {
-                List<VertexPath> p = new ArrayList<>();
-                p.add(new VertexPath(n, null));
-                pathCache.put(n, p);
+        endTRList.add(endFriends);
+
+        if (!Collections.disjoint(startFriends.vSet, endFriends.vSet))
+          break;
+
+        endSeenSet.addAll(endFriends.vSet);
+
+        hops++;
+      } while (true);
+      
+      if (hops != -1) {
+        List<VertexPath> shortestPaths = new ArrayList<>();
+        if (hops == 1) {
+          // Special case where shortest path is of length 1
+          shortestPaths.add(new VertexPath(start, new VertexPath(end, null)));
+        } else {
+          // Filter for paths that lead to the end vertex.
+          for (int i = startTRList.size()-1; i >= 0; i--) {
+            if (i == startTRList.size()-1)
+              GraphHelper.intersect(startTRList.get(i), endTRList.get(endTRList.size()-1).vSet);
+            else
+              GraphHelper.intersect(startTRList.get(i), startTRList.get(i+1).vMap.keySet());
+          }
+
+          for (int i = endTRList.size()-1; i >= 0; i--) {
+            if (i == endTRList.size()-1)
+              GraphHelper.intersect(endTRList.get(i), endTRList.get(startTRList.size()-1).vSet);
+            else
+              GraphHelper.intersect(endTRList.get(i), endTRList.get(i+1).vMap.keySet());
+          }
+
+          // Path cache stores a list of all of the paths that start from a given vertex. All of the
+          // paths in the list for a given vertex X start with vertex X. We then build this cache
+          // "backwards" starting from the end of the traversal and working towards the beginning,
+          // so that we finish with a list of all the paths starting from the start node. We also do
+          // this from the end node too, since we have these two traversal result lists.
+          Map<Vertex, List<VertexPath>> startPathCache = new HashMap<>();
+          for (int i = startTRList.size()-1; i >= 0; i--) {
+            for (Vertex b : startTRList.get(i).vMap.keySet()) {
+              List<VertexPath> paths = new ArrayList<>();
+              for (Vertex n : startTRList.get(i).vMap.get(b)) {
+                if (!startPathCache.containsKey(n)) {
+                  List<VertexPath> p = new ArrayList<>();
+                  p.add(new VertexPath(n, null));
+                  startPathCache.put(n, p);
+                }
+
+                for (VertexPath path : startPathCache.get(n)) {
+                  paths.add(new VertexPath(b, path));
+                }
               }
 
-              for (VertexPath path : pathCache.get(n)) {
-                paths.add(new VertexPath(b, path));
-              }
+              startPathCache.put(b, paths);
             }
+          }
 
-            pathCache.put(b, paths);
+          List<VertexPath> startPaths = startPathCache.get(start);
+          
+          Map<Vertex, List<VertexPath>> endPathCache = new HashMap<>();
+          for (int i = endTRList.size()-1; i >= 0; i--) {
+            for (Vertex b : endTRList.get(i).vMap.keySet()) {
+              List<VertexPath> paths = new ArrayList<>();
+              for (Vertex n : endTRList.get(i).vMap.get(b)) {
+                if (!endPathCache.containsKey(n)) {
+                  List<VertexPath> p = new ArrayList<>();
+                  p.add(new VertexPath(n, null));
+                  endPathCache.put(n, p);
+                }
+
+                for (VertexPath path : endPathCache.get(n)) {
+                  paths.add(new VertexPath(b, path));
+                }
+              }
+
+              endPathCache.put(b, paths);
+            }
+          }
+
+          List<VertexPath> endPaths = endPathCache.get(end);
+
+          // Now we use startPaths and endPaths to construct 'shortestPaths' which is a list of all
+          // the shortest paths from start to end. We begin with organizing the end paths by the
+          // vertex reached from the end.
+          Map<Vertex, List<VertexPath>> invEndPaths = new HashMap<>();
+          for (VertexPath p : endPaths) {
+            VertexPath it = p;
+            while (it.p != null)
+              it = it.p;
+
+            if (!invEndPaths.containsKey(it.v)) {
+              List<VertexPath> path = new ArrayList<>();
+              path.add(p);
+              invEndPaths.put(it.v, path);
+            } else {
+              List<VertexPath> path = invEndPaths.get(it.v);
+              path.add(p);
+            }
+          }
+
+          for (VertexPath sp : startPaths) {
+            VertexPath it = sp;
+            while (it.p != null)
+              it = it.p;
+
+            for (VertexPath ep : invEndPaths.get(it.v)) {
+              it = sp;
+              VertexPath cpStart = null;
+              VertexPath cpEnd = null;
+              while (it != null) {
+                VertexPath vp = new VertexPath(it.v, null);
+                if (cpStart == null) {
+                  cpStart = vp;
+                  cpEnd = cpStart;
+                } else {
+                  cpEnd.p = vp;
+                  cpEnd = vp;
+                }
+                it = it.p;
+              }
+
+              it = ep;
+              VertexPath vp = null;
+              while (!it.v.equals(cpEnd.v)) {
+                vp = new VertexPath(it.v, vp);
+                it = it.p;
+              }
+              cpEnd.p = vp;
+
+              shortestPaths.add(cpStart);
+            }
           }
         }
-
-        List<VertexPath> paths = pathCache.get(start);
 
         // Calculate the path weights.
         Map<VertexPair, Double> pairWeights = new HashMap<>();
         Map<VertexPath, Double> pathWeights = new HashMap<>();
         Map<Vertex, TraversalResult[]> traversalResultCache = new HashMap<>();
-        for (int i = 0; i < paths.size(); i++) {
-          VertexPath path = paths.get(i);
+        for (int i = 0; i < shortestPaths.size(); i++) {
+          VertexPath path = shortestPaths.get(i);
           double pathWeight = 0.0;
           while (path != null) {
             if (path.p != null) {
@@ -2387,7 +2518,7 @@ public class TorcDb2 extends Db {
             path = path.p;
           }
 
-          pathWeights.put(paths.get(i), pathWeight);
+          pathWeights.put(shortestPaths.get(i), pathWeight);
         }
 
         Comparator<VertexPath> c = new Comparator<VertexPath>() {
@@ -2399,17 +2530,17 @@ public class TorcDb2 extends Db {
               }
             };
 
-        Collections.sort(paths, c);
+        Collections.sort(shortestPaths, c);
 
-        for (int i = 0; i < paths.size(); i++) {
-          VertexPath path = paths.get(i);
+        for (int i = 0; i < shortestPaths.size(); i++) {
+          VertexPath path = shortestPaths.get(i);
           List<Long> ids = new ArrayList<>();
           while (path != null) {
             ids.add(path.v.id().getLowerLong());
             path = path.p;
           }
 
-          result.add(new LdbcQuery14Result(ids, pathWeights.get(paths.get(i))));
+          result.add(new LdbcQuery14Result(ids, pathWeights.get(shortestPaths.get(i))));
         }
       }
 
