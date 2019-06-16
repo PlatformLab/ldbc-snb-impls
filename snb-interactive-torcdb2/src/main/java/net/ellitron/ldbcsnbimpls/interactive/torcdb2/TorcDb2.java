@@ -2786,46 +2786,48 @@ public class TorcDb2 extends Db {
 
         TraversalResult friends = graph.traverse(person, "knows", Direction.OUT, true, "Person");
 
-        List<Vertex> friendList = friends.vMap.get(person);
+        if (friends.vMap.containsKey(person)) {
+          List<Vertex> friendList = friends.vMap.get(person);
 
-        // Create map from friend to creationDate to use for sorting.
-        final Map<Vertex, Long> friendshipDate = new HashMap<>(friendList.size());
-        for (int i = 0; i < friendList.size(); i++) {
-          Vertex friend = friendList.get(i);
-          Map<Object, Object> edgeProps = friends.pMap.get(person).get(i);
-          Long creationDate = (Long)edgeProps.get("creationDate");
-          friendshipDate.put(friend, creationDate);
-        }
-        
-        // Sort friends descending by creationDate, and ascending by friend identifier.
-        Comparator<Vertex> c = new Comparator<Vertex>() {
-              public int compare(Vertex v1, Vertex v2) {
-                Long v1creationDate = friendshipDate.get(v1);
-                Long v2creationDate = friendshipDate.get(v2);
-                if (v1creationDate.compareTo(v2creationDate) != 0)
-                  return -1*v1creationDate.compareTo(v2creationDate);
-                else {
-                  if (v1.id().getLowerLong() - v2.id().getLowerLong() > 0)
-                    return 1;
-                  else if (v1.id().getLowerLong() - v2.id().getLowerLong() < 0)
-                    return -1;
-                  else
-                    return 0;
+          // Create map from friend to creationDate to use for sorting.
+          final Map<Vertex, Long> friendshipDate = new HashMap<>(friendList.size());
+          for (int i = 0; i < friendList.size(); i++) {
+            Vertex friend = friendList.get(i);
+            Map<Object, Object> edgeProps = friends.pMap.get(person).get(i);
+            Long creationDate = (Long)edgeProps.get("creationDate");
+            friendshipDate.put(friend, creationDate);
+          }
+          
+          // Sort friends descending by creationDate, and ascending by friend identifier.
+          Comparator<Vertex> c = new Comparator<Vertex>() {
+                public int compare(Vertex v1, Vertex v2) {
+                  Long v1creationDate = friendshipDate.get(v1);
+                  Long v2creationDate = friendshipDate.get(v2);
+                  if (v1creationDate.compareTo(v2creationDate) != 0)
+                    return -1*v1creationDate.compareTo(v2creationDate);
+                  else {
+                    if (v1.id().getLowerLong() - v2.id().getLowerLong() > 0)
+                      return 1;
+                    else if (v1.id().getLowerLong() - v2.id().getLowerLong() < 0)
+                      return -1;
+                    else
+                      return 0;
+                  }
                 }
-              }
-            };
-        
-        Collections.sort(friendList, c);
+              };
+          
+          Collections.sort(friendList, c);
 
-        graph.fillProperties(friendList);
+          graph.fillProperties(friendList);
 
-        for (int i = 0; i < friendList.size(); i++) {
-          Vertex f = friendList.get(i);
-          result.add(new LdbcShortQuery3PersonFriendsResult(
-                  f.id().getLowerLong(),
-                  (String)f.getProperty("firstName"),
-                  (String)f.getProperty("lastName"),
-                  friendshipDate.get(f).longValue()));
+          for (int i = 0; i < friendList.size(); i++) {
+            Vertex f = friendList.get(i);
+            result.add(new LdbcShortQuery3PersonFriendsResult(
+                    f.id().getLowerLong(),
+                    (String)f.getProperty("firstName"),
+                    (String)f.getProperty("lastName"),
+                    friendshipDate.get(f).longValue()));
+          }
         }
 
         if (graph.commitAndSyncTx()) {
@@ -3054,36 +3056,38 @@ public class TorcDb2 extends Db {
 
         List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
 
-        for (Vertex reply : replies.vMap.get(message)) {
-          String content = (String)reply.getProperty("content");
-          if (content.equals(""))
-            content = (String)reply.getProperty("imageFile");
+        if (replies.vMap.containsKey(message)) {
+          for (Vertex reply : replies.vMap.get(message)) {
+            String content = (String)reply.getProperty("content");
+            if (content.equals(""))
+              content = (String)reply.getProperty("imageFile");
 
-          Vertex replyAuthor = replyAuthors.vMap.get(reply).get(0);
+            Vertex replyAuthor = replyAuthors.vMap.get(reply).get(0);
 
-          result.add(new LdbcShortQuery7MessageRepliesResult(
-                  reply.id().getLowerLong(),
-                  content,
-                  (Long)reply.getProperty("creationDate"),
-                  replyAuthor.id().getLowerLong(),
-                  (String)replyAuthor.getProperty("firstName"),
-                  (String)replyAuthor.getProperty("lastName"),
-                  friends.vSet.contains(replyAuthor)));
+            result.add(new LdbcShortQuery7MessageRepliesResult(
+                    reply.id().getLowerLong(),
+                    content,
+                    (Long)reply.getProperty("creationDate"),
+                    replyAuthor.id().getLowerLong(),
+                    (String)replyAuthor.getProperty("firstName"),
+                    (String)replyAuthor.getProperty("lastName"),
+                    friends.vSet.contains(replyAuthor)));
+          }
+
+          // Sort results descending by creationDate, and ascending by author identifier.
+          Comparator<LdbcShortQuery7MessageRepliesResult> c = new Comparator<LdbcShortQuery7MessageRepliesResult>() {
+                public int compare(LdbcShortQuery7MessageRepliesResult r1, LdbcShortQuery7MessageRepliesResult r2) {
+                  long r1creationDate = r1.commentCreationDate();
+                  long r2creationDate = r2.commentCreationDate();
+                  if (r1creationDate != r2creationDate)
+                    return -1*(int)(r1creationDate - r2creationDate);
+                  else 
+                    return (int)(r1.replyAuthorId() - r2.replyAuthorId());
+                }
+              };
+          
+          Collections.sort(result, c);
         }
-
-        // Sort results descending by creationDate, and ascending by author identifier.
-        Comparator<LdbcShortQuery7MessageRepliesResult> c = new Comparator<LdbcShortQuery7MessageRepliesResult>() {
-              public int compare(LdbcShortQuery7MessageRepliesResult r1, LdbcShortQuery7MessageRepliesResult r2) {
-                long r1creationDate = r1.commentCreationDate();
-                long r2creationDate = r2.commentCreationDate();
-                if (r1creationDate != r2creationDate)
-                  return -1*(int)(r1creationDate - r2creationDate);
-                else 
-                  return (int)(r1.replyAuthorId() - r2.replyAuthorId());
-              }
-            };
-        
-        Collections.sort(result, c);
 
         if (graph.commitAndSyncTx()) {
           resultReporter.report(result.size(), result, op);
