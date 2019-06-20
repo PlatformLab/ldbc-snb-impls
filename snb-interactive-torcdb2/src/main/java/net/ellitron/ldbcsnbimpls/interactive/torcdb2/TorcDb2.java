@@ -2627,14 +2627,20 @@ public class TorcDb2 extends Db {
 
       int txAttempts = 0;
       while (txAttempts < MAX_TX_ATTEMPTS) {
+        long startTime = 0;
+
         graph.beginTx();
 
         List<LdbcShortQuery2PersonPostsResult> result = new ArrayList<>();
 
+        startTime = System.nanoTime();
         TraversalResult messages = graph.traverse(person, "hasCreator", Direction.IN, false, 
             "Post", "Comment");
+        System.out.println(String.format("graph.traverse(person): %d us", (System.nanoTime() - startTime)/1000));
 
+        startTime = System.nanoTime();
         graph.fillProperties(messages.vSet, "creationDate");
+        System.out.println(String.format("graph.fillProperties(messages.vSet): %d us", (System.nanoTime() - startTime)/1000));
 
         // Sort the Posts and Comments descending by creationDate, and descending by message
         // identifier. Reversed for priority queue.
@@ -2652,6 +2658,7 @@ public class TorcDb2 extends Db {
               }
             };
 
+        startTime = System.nanoTime();
         PriorityQueue<Vertex> pq = new PriorityQueue(op.limit(), c);
         for (Vertex m : messages.vSet) {
           Long creationDate = (Long)m.getProperty("creationDate");
@@ -2666,12 +2673,14 @@ public class TorcDb2 extends Db {
             pq.poll();
           }
         }
+        System.out.println(String.format("Priority queue sorting: %d us", (System.nanoTime() - startTime)/1000));
 
         // Create a list from the priority queue with the elements sorted in the desired order.
         LinkedList<Vertex> msgList = new LinkedList<>();
         while (pq.size() > 0)
           msgList.addFirst(pq.poll());
 
+        startTime = System.nanoTime();
         // Traverse "replyOf" relationships until we find the ancestor Post of all the Comment
         // messages in our result set.
         LinkedList<TraversalResult> trList = new LinkedList<>();
@@ -2692,10 +2701,14 @@ public class TorcDb2 extends Db {
             break;
         }
         trList.removeFirst();
+        System.out.println(String.format("traverse reply of relationships: %d us", (System.nanoTime() - startTime)/1000));
 
+        startTime = System.nanoTime();
         TraversalResult originalAuthors = 
           graph.traverse(postSet, "hasCreator", Direction.OUT, false, "Person");
+        System.out.println(String.format("get original authors: %d us", (System.nanoTime() - startTime)/1000));
 
+        startTime = System.nanoTime();
         List<Vertex> propFetch = new ArrayList<>(msgList.size() + postSet.size() + 
             originalAuthors.vSet.size() + 1);
         propFetch.addAll(msgList);
@@ -2703,7 +2716,9 @@ public class TorcDb2 extends Db {
         propFetch.addAll(originalAuthors.vSet);
         propFetch.add(person);
         graph.fillProperties(propFetch);
+        System.out.println(String.format("get properties on original posts and authors: %d us", (System.nanoTime() - startTime)/1000));
 
+        startTime = System.nanoTime();
         for (int i = 0; i < msgList.size(); i++) {
           Vertex m = msgList.get(i);
 
@@ -2747,9 +2762,13 @@ public class TorcDb2 extends Db {
                   originalPostAuthorFirstName,
                   originalPostAuthorLastName));
         }
+        System.out.println(String.format("Compose results array: %d us", (System.nanoTime() - startTime)/1000));
 
+        startTime = System.nanoTime();
         if (graph.commitAndSyncTx()) {
           resultReporter.report(result.size(), result, op);
+          System.out.println(String.format("Commit and sync: %d us", (System.nanoTime() - startTime)/1000));
+
           break;
         }
 
