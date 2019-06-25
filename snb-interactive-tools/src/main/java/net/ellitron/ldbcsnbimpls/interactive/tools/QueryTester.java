@@ -129,6 +129,7 @@ public class QueryTester {
       + "  QueryTester [options] update6 <nth>\n"
       + "  QueryTester [options] update7 <nth>\n"
       + "  QueryTester [options] update8 <nth>\n"
+      + "  QueryTester [options] updates <count>\n"
       + "  QueryTester [options] --script=<script>\n"
       + "  QueryTester (-h | --help)\n"
       + "  QueryTester --version\n"
@@ -958,6 +959,71 @@ public class QueryTester {
               + " update%d ops, but user requested execution of update #%d.",
               path.toAbsolutePath(), readCount, uop.index, nth));
         }
+      }
+
+      if ((Boolean) opts.get("updates")) {
+        String personUpdatesFileName = "updateStream_0_0_person.csv";
+        String forumUpdatesFileName = "updateStream_0_0_forum.csv";
+
+        Path path = Paths.get(inputDir + "/" + personUpdatesFileName);
+        BufferedReader personInFile =
+            Files.newBufferedReader(path, StandardCharsets.UTF_8);
+        path = Paths.get(inputDir + "/" + forumUpdatesFileName);
+        BufferedReader forumInFile =
+            Files.newBufferedReader(path, StandardCharsets.UTF_8);
+
+        Long n = Long.decode((String) opts.get("<count>"));
+
+        uop = UpdateOp.UPDATE1;
+        OperationHandler opHandler = (OperationHandler) Class
+            .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
+            .getDeclaredConstructor().newInstance();
+        
+        long readCount = 1;
+        String line;
+        while ((line = personInFile.readLine()) != null) {
+          Operation op = parseUpdate(uop, line);
+
+          execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter, repeatCount, 
+              timeUnits, String.format("update1 %d", readCount), warmUpTimeSeconds, opts);
+
+          if (readCount == n)
+            break;
+          
+          readCount++;
+        }
+
+        personInFile.close();
+
+        int readCounts[] = new int[9];
+        for (int i = 0; i < 9; i++)
+          readCounts[i] = 0;
+
+        int totalCount = 0;
+        while ((line = forumInFile.readLine()) != null) {
+          int updateType = Integer.decode(line.split("\\|")[2]);
+          
+          if (readCounts[updateType] < n) {
+            uop = UpdateOp.values()[updateType-1];
+            Operation op = parseUpdate(uop, line);
+
+            opHandler = (OperationHandler) Class
+                .forName(prop.getProperty(dbName + "." + uop.opHandlerConfigKey))
+                .getDeclaredConstructor().newInstance();
+
+            execAndTimeQuery(opHandler, op, dbConnectionState, resultReporter, repeatCount, 
+                timeUnits, String.format("update%d %d", updateType, readCounts[updateType]+1), 
+                warmUpTimeSeconds, opts);
+
+            readCounts[updateType]++;
+            totalCount++;
+          }
+
+          if (totalCount == 7*n)
+            break;
+        }
+
+        forumInFile.close();
       }
 
       if (repeatCount == 1) {
