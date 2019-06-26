@@ -37,6 +37,40 @@
           </descriptorRefs>
         </configuration>
       </plugin>
+      <!--      
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Xss100M</argument>
+            <argument>-Xms20G</argument>
+            <argument>-Xmx20G</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>net.ellitron.ldbcsnbimpls.interactive.torcdb2.TorcDb2Client</argument>
+            <argument>${exec.progargs}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+      -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>-Xss100M</argument>
+            <argument>-Xms50G</argument>
+            <argument>-Xmx50G</argument>
+            <argument>-classpath</argument>
+            <classpath/>
+            <argument>net.ellitron.ldbcsnbimpls.interactive.torcdb2.TorcDb2Server</argument>
+            <argument>${exec.progargs}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
   <properties>
