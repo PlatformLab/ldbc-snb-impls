@@ -88,7 +88,7 @@ import java.util.*;
 
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
- * against TorcDB on behalf of remote clients. 
+ * against TorcDB2 on behalf of remote clients. 
  *
  * @author Jonathan Ellithorpe (jde@cs.stanford.edu)
  */
@@ -96,7 +96,7 @@ public class TorcDb2Server {
 
   private static final String doc =
       "TorcDb2Server: A multithreaded server that executes LDBC SNB\n"
-      + "Interactive Workload queries against TorcDB on behalf of remote\n"
+      + "Interactive Workload queries against TorcDB2 on behalf of remote\n"
       + "clients.\n"
       + "\n"
       + "Usage:\n"
@@ -106,7 +106,7 @@ public class TorcDb2Server {
       + "\n"
       + "Arguments:\n"
       + "  COORDLOC   RAMCloud coordinator locator string.\n"
-      + "  GRAPHNAME  Name of TorcDB graph to execute queries against.\n"
+      + "  GRAPHNAME  Name of TorcDB2 graph to execute queries against.\n"
       + "\n"
       + "Options:\n"
       + "  --port=<n>        Port on which to listen for new connections.\n"
@@ -625,7 +625,7 @@ public class TorcDb2Server {
     Map<String, String> props = new HashMap<>();
     props.put("coordinatorLocator", coordinatorLocator);
     props.put("graphName", graphName);
-    System.out.println("Connecting to TorcDB...");
+    System.out.println("Connecting to TorcDB2...");
     TorcDb2ConnectionState connectionState = new TorcDb2ConnectionState(props);
 
     // Create mapping from op type to op handler for processing requests.
