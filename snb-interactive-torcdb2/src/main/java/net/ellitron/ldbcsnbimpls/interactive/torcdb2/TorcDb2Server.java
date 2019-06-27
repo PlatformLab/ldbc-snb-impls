@@ -607,6 +607,9 @@ public class TorcDb2Server {
   }
 
   public static void main(String[] args) throws Exception {
+    if (args.length == 1)
+     args = args[0].split("\\s+");
+
     Map<String, Object> opts =
         new Docopt(doc).withVersion("TorcDb2Server 1.0").parse(args);
 
