@@ -85,6 +85,7 @@ import org.docopt.Docopt;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.util.concurrent.locks.*;
 
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
@@ -150,6 +151,8 @@ public class TorcDb2Server {
 
         System.out.println("Listening on: " + server.toString());
 
+        Lock lock = new ReentrantLock();
+
         while (true) {
           Socket client = server.accept();
 
@@ -157,7 +160,7 @@ public class TorcDb2Server {
 
           Thread clientThread = new Thread(new ClientThread(client, 
                concurrentErrorReporter, connectionState, queryHandlerMap,
-               clientID));
+               clientID, lock));
 
           clientThread.start();
 
@@ -185,12 +188,14 @@ public class TorcDb2Server {
     private final Map<Class<? extends Operation>, OperationHandler> 
         queryHandlerMap;
     private final int clientID;
+    private final Lock lock;
 
     public ClientThread(Socket client, 
         ConcurrentErrorReporter concurrentErrorReporter, 
         TorcDb2ConnectionState connectionState,
         Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
-        int clientID) {
+        int clientID, 
+        Lock lock) {
       this.client = client;
       this.concurrentErrorReporter = concurrentErrorReporter;
       this.resultReporter = 
@@ -198,6 +203,7 @@ public class TorcDb2Server {
       this.connectionState = connectionState;
       this.queryHandlerMap = queryHandlerMap;
       this.clientID = clientID;
+      this.lock = lock;
     }
 
     public void run() {
@@ -214,8 +220,10 @@ public class TorcDb2Server {
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op, 
                 connectionState, resultReporter);
+
             List<LdbcQuery1Result> result = 
                 (List<LdbcQuery1Result>) resultReporter.result();
 
@@ -223,14 +231,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery1ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush();
           } else if (query instanceof LdbcQuery2Serializable) {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery2Result> result = 
                 (List<LdbcQuery2Result>) resultReporter.result();
 
@@ -238,14 +249,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery2ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery3Serializable) {
             LdbcQuery3 op = ((LdbcQuery3Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery3Result> result = 
                 (List<LdbcQuery3Result>) resultReporter.result();
 
@@ -253,14 +267,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery3ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery4Serializable) {
             LdbcQuery4 op = ((LdbcQuery4Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery4Result> result = 
                 (List<LdbcQuery4Result>) resultReporter.result();
 
@@ -268,14 +285,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery4ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery5Serializable) {
             LdbcQuery5 op = ((LdbcQuery5Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery5Result> result = 
                 (List<LdbcQuery5Result>) resultReporter.result();
 
@@ -283,14 +303,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery5ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery6Serializable) {
             LdbcQuery6 op = ((LdbcQuery6Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery6Result> result = 
                 (List<LdbcQuery6Result>) resultReporter.result();
 
@@ -298,14 +321,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery6ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery7Serializable) {
             LdbcQuery7 op = ((LdbcQuery7Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery7Result> result = 
                 (List<LdbcQuery7Result>) resultReporter.result();
 
@@ -313,14 +339,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery7ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery8Serializable) {
             LdbcQuery8 op = ((LdbcQuery8Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery8Result> result = 
                 (List<LdbcQuery8Result>) resultReporter.result();
 
@@ -328,14 +357,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery8ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery9Serializable) {
             LdbcQuery9 op = ((LdbcQuery9Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery9Result> result = 
                 (List<LdbcQuery9Result>) resultReporter.result();
 
@@ -343,14 +375,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery9ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery10Serializable) {
             LdbcQuery10 op = ((LdbcQuery10Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery10Result> result = 
                 (List<LdbcQuery10Result>) resultReporter.result();
 
@@ -358,14 +393,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery10ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery11Serializable) {
             LdbcQuery11 op = ((LdbcQuery11Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery11Result> result = 
                 (List<LdbcQuery11Result>) resultReporter.result();
 
@@ -373,14 +411,17 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery11ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery12Serializable) {
             LdbcQuery12 op = ((LdbcQuery12Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery12Result> result = 
                 (List<LdbcQuery12Result>) resultReporter.result();
 
@@ -388,27 +429,33 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery12ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery13Serializable) {
             LdbcQuery13 op = ((LdbcQuery13Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             LdbcQuery13Result result = 
                 (LdbcQuery13Result) resultReporter.result();
 
             LdbcQuery13ResultSerializable resp = 
                 new LdbcQuery13ResultSerializable(result);
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
           } else if (query instanceof LdbcQuery14Serializable) {
             LdbcQuery14 op = ((LdbcQuery14Serializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcQuery14Result> result = 
                 (List<LdbcQuery14Result>) resultReporter.result();
 
@@ -416,6 +463,7 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery14ResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -423,13 +471,16 @@ public class TorcDb2Server {
             LdbcShortQuery1PersonProfile op = 
                 ((LdbcShortQuery1PersonProfileSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             LdbcShortQuery1PersonProfileResult result = 
                 (LdbcShortQuery1PersonProfileResult) resultReporter.result();
 
             LdbcShortQuery1PersonProfileResultSerializable resp = 
                 new LdbcShortQuery1PersonProfileResultSerializable(result);
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -437,8 +488,10 @@ public class TorcDb2Server {
             LdbcShortQuery2PersonPosts op = 
                 ((LdbcShortQuery2PersonPostsSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcShortQuery2PersonPostsResult> result = 
                 (List<LdbcShortQuery2PersonPostsResult>) resultReporter.result();
 
@@ -447,6 +500,7 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery2PersonPostsResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -454,8 +508,10 @@ public class TorcDb2Server {
             LdbcShortQuery3PersonFriends op = 
                 ((LdbcShortQuery3PersonFriendsSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcShortQuery3PersonFriendsResult> result = 
                 (List<LdbcShortQuery3PersonFriendsResult>) resultReporter.result();
 
@@ -464,6 +520,7 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery3PersonFriendsResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -471,13 +528,16 @@ public class TorcDb2Server {
             LdbcShortQuery4MessageContent op = 
                 ((LdbcShortQuery4MessageContentSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             LdbcShortQuery4MessageContentResult result = 
                 (LdbcShortQuery4MessageContentResult) resultReporter.result();
 
             LdbcShortQuery4MessageContentResultSerializable resp = 
                 new LdbcShortQuery4MessageContentResultSerializable(result);
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -485,13 +545,16 @@ public class TorcDb2Server {
             LdbcShortQuery5MessageCreator op = 
                 ((LdbcShortQuery5MessageCreatorSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             LdbcShortQuery5MessageCreatorResult result = 
                 (LdbcShortQuery5MessageCreatorResult) resultReporter.result();
 
             LdbcShortQuery5MessageCreatorResultSerializable resp = 
                 new LdbcShortQuery5MessageCreatorResultSerializable(result);
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -499,8 +562,11 @@ public class TorcDb2Server {
             LdbcShortQuery6MessageForum op = 
                 ((LdbcShortQuery6MessageForumSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
+
             LdbcShortQuery6MessageForumResult result = 
                 (LdbcShortQuery6MessageForumResult) resultReporter.result();
 
@@ -513,8 +579,10 @@ public class TorcDb2Server {
             LdbcShortQuery7MessageReplies op = 
                 ((LdbcShortQuery7MessageRepliesSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
             List<LdbcShortQuery7MessageRepliesResult> result = 
                 (List<LdbcShortQuery7MessageRepliesResult>) resultReporter.result();
 
@@ -523,6 +591,7 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery7MessageRepliesResultSerializable(v));
             });
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -530,8 +599,10 @@ public class TorcDb2Server {
             LdbcUpdate1AddPerson op = 
                 ((LdbcUpdate1AddPersonSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -539,8 +610,10 @@ public class TorcDb2Server {
             LdbcUpdate2AddPostLike op = 
                 ((LdbcUpdate2AddPostLikeSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -548,8 +621,10 @@ public class TorcDb2Server {
             LdbcUpdate3AddCommentLike op = 
                 ((LdbcUpdate3AddCommentLikeSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -557,8 +632,10 @@ public class TorcDb2Server {
             LdbcUpdate4AddForum op = 
                 ((LdbcUpdate4AddForumSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -566,8 +643,10 @@ public class TorcDb2Server {
             LdbcUpdate5AddForumMembership op = 
                 ((LdbcUpdate5AddForumMembershipSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -575,8 +654,10 @@ public class TorcDb2Server {
             LdbcUpdate6AddPost op = 
                 ((LdbcUpdate6AddPostSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -584,8 +665,10 @@ public class TorcDb2Server {
             LdbcUpdate7AddComment op = 
                 ((LdbcUpdate7AddCommentSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
@@ -593,8 +676,10 @@ public class TorcDb2Server {
             LdbcUpdate8AddFriendship op = 
                 ((LdbcUpdate8AddFriendshipSerializable) query).unpack();
 
+            lock.lock();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+            lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
             out.flush(); 
