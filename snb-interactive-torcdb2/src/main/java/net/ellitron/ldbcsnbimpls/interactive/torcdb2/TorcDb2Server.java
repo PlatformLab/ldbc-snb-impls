@@ -111,6 +111,8 @@ public class TorcDb2Server {
       + "Options:\n"
       + "  --port=<n>        Port on which to listen for new connections.\n"
       + "                    [default: 5577].\n"
+      + "  --dpdkPort=<n>    DPDK port to use for connecting to servers.\n"
+      + "                    [default: -1].\n"
       + "  --verbose         Print verbose output to stdout.\n"
       + "  -h --help         Show this screen.\n"
       + "  --version         Show version.\n"
@@ -617,17 +619,21 @@ public class TorcDb2Server {
     final String coordinatorLocator = (String) opts.get("COORDLOC");
     final String graphName = (String) opts.get("GRAPHNAME");
     final int port = Integer.decode((String) opts.get("--port"));
+    final int dpdkPort = Integer.decode((String) opts.get("--dpdkPort"));
 
     System.out.println(String.format("TorcDb2Server: {coordinatorLocator: %s, "
-        + "graphName: %s, port: %d}",
+        + "graphName: %s, port: %d, dpdkPort: %d}",
         coordinatorLocator,
         graphName,
-        port));
+        port,
+        dpdkPort));
    
     // Connect to database. 
     Map<String, String> props = new HashMap<>();
     props.put("coordinatorLocator", coordinatorLocator);
     props.put("graphName", graphName);
+    if (dpdkPort != -1)
+      props.put("dpdkPort", (String) opts.get("--dpdkPort"));
     System.out.println("Connecting to TorcDB2...");
     TorcDb2ConnectionState connectionState = new TorcDb2ConnectionState(props);
 
