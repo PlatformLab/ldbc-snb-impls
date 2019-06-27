@@ -106,16 +106,30 @@ public class TorcDb2Client extends Db {
         LdbcQuery1Handler.class);
     registerOperationHandler(LdbcQuery2.class,
         LdbcQuery2Handler.class);
+    registerOperationHandler(LdbcQuery3.class,
+        LdbcQuery3Handler.class);
+    registerOperationHandler(LdbcQuery4.class,
+        LdbcQuery4Handler.class);
+    registerOperationHandler(LdbcQuery5.class,
+        LdbcQuery5Handler.class);
+    registerOperationHandler(LdbcQuery6.class,
+        LdbcQuery6Handler.class);
     registerOperationHandler(LdbcQuery7.class,
         LdbcQuery7Handler.class);
     registerOperationHandler(LdbcQuery8.class,
         LdbcQuery8Handler.class);
+    registerOperationHandler(LdbcQuery9.class,
+        LdbcQuery9Handler.class);
     registerOperationHandler(LdbcQuery10.class,
         LdbcQuery10Handler.class);
     registerOperationHandler(LdbcQuery11.class,
         LdbcQuery11Handler.class);
+    registerOperationHandler(LdbcQuery12.class,
+        LdbcQuery12Handler.class);
     registerOperationHandler(LdbcQuery13.class,
         LdbcQuery13Handler.class);
+    registerOperationHandler(LdbcQuery14.class,
+        LdbcQuery14Handler.class);
 
     registerOperationHandler(LdbcShortQuery1PersonProfile.class,
         LdbcShortQuery1PersonProfileHandler.class);
