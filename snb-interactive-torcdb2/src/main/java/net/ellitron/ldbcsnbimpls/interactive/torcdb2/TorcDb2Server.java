@@ -241,6 +241,7 @@ public class TorcDb2Server {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op, 
                 connectionState, resultReporter);
@@ -252,6 +253,8 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery1ResultSerializable(v));
             });
+            
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -263,6 +266,7 @@ public class TorcDb2Server {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -275,6 +279,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery2ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -285,6 +291,7 @@ public class TorcDb2Server {
             LdbcQuery3 op = ((LdbcQuery3Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -297,6 +304,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery3ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -307,6 +316,7 @@ public class TorcDb2Server {
             LdbcQuery4 op = ((LdbcQuery4Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -319,6 +329,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery4ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -329,6 +341,7 @@ public class TorcDb2Server {
             LdbcQuery5 op = ((LdbcQuery5Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -341,6 +354,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery5ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -351,6 +366,7 @@ public class TorcDb2Server {
             LdbcQuery6 op = ((LdbcQuery6Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -363,6 +379,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery6ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -373,6 +391,7 @@ public class TorcDb2Server {
             LdbcQuery7 op = ((LdbcQuery7Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -385,6 +404,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery7ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -395,6 +416,7 @@ public class TorcDb2Server {
             LdbcQuery8 op = ((LdbcQuery8Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -407,6 +429,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery8ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -417,6 +441,7 @@ public class TorcDb2Server {
             LdbcQuery9 op = ((LdbcQuery9Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -429,6 +454,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery9ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -439,6 +466,7 @@ public class TorcDb2Server {
             LdbcQuery10 op = ((LdbcQuery10Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -451,6 +479,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery10ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -461,6 +491,7 @@ public class TorcDb2Server {
             LdbcQuery11 op = ((LdbcQuery11Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -473,6 +504,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery11ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -483,6 +516,7 @@ public class TorcDb2Server {
             LdbcQuery12 op = ((LdbcQuery12Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -495,6 +529,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery12ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -505,6 +541,7 @@ public class TorcDb2Server {
             LdbcQuery13 op = ((LdbcQuery13Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -514,6 +551,8 @@ public class TorcDb2Server {
 
             LdbcQuery13ResultSerializable resp = 
                 new LdbcQuery13ResultSerializable(result);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -525,6 +564,7 @@ public class TorcDb2Server {
             LdbcQuery14 op = ((LdbcQuery14Serializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -537,6 +577,8 @@ public class TorcDb2Server {
               resp.add(new LdbcQuery14ResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -548,6 +590,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery1PersonProfileSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -557,6 +600,8 @@ public class TorcDb2Server {
 
             LdbcShortQuery1PersonProfileResultSerializable resp = 
                 new LdbcShortQuery1PersonProfileResultSerializable(result);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -569,6 +614,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery2PersonPostsSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -582,6 +628,8 @@ public class TorcDb2Server {
               resp.add(new LdbcShortQuery2PersonPostsResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -593,6 +641,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery3PersonFriendsSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -606,6 +655,8 @@ public class TorcDb2Server {
               resp.add(new LdbcShortQuery3PersonFriendsResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -617,6 +668,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery4MessageContentSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -626,6 +678,8 @@ public class TorcDb2Server {
 
             LdbcShortQuery4MessageContentResultSerializable resp = 
                 new LdbcShortQuery4MessageContentResultSerializable(result);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -638,6 +692,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery5MessageCreatorSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -647,6 +702,8 @@ public class TorcDb2Server {
 
             LdbcShortQuery5MessageCreatorResultSerializable resp = 
                 new LdbcShortQuery5MessageCreatorResultSerializable(result);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -659,19 +716,22 @@ public class TorcDb2Server {
                 ((LdbcShortQuery6MessageForumSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
-
-            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
-            latencyFile.flush();
-            lock.unlock();
 
             LdbcShortQuery6MessageForumResult result = 
                 (LdbcShortQuery6MessageForumResult) resultReporter.result();
 
             LdbcShortQuery6MessageForumResultSerializable resp = 
                 new LdbcShortQuery6MessageForumResultSerializable(result);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
+            lock.unlock();
 
             out.writeObject(resp);
             out.flush(); 
@@ -680,6 +740,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery7MessageRepliesSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
@@ -693,6 +754,8 @@ public class TorcDb2Server {
               resp.add(new LdbcShortQuery7MessageRepliesResultSerializable(v));
             });
 
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
+
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
             lock.unlock();
@@ -704,9 +767,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate1AddPersonSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -719,9 +785,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate2AddPostLikeSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -734,9 +803,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate3AddCommentLikeSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -749,9 +821,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate4AddForumSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -764,9 +839,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate5AddForumMembershipSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -779,9 +857,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate6AddPostSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -794,9 +875,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate7AddCommentSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
@@ -809,9 +893,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate8AddFriendshipSerializable) query).unpack();
 
             lock.lock();
+            System.out.println(String.format("Client %d executing %s", clientID, query.toString()));
             long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            System.out.println(String.format("Client %d executed query in %d us", clientID, (System.nanoTime() - startTime)/1000));
 
             latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
             latencyFile.flush();
