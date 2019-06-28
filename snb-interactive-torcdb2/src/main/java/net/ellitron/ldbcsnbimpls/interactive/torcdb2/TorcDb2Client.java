@@ -181,8 +181,8 @@ public class TorcDb2Client extends Db {
       List<ObjectOutputStream> oStreams = connState.getObjectOutputStreams();
       List<ObjectInputStream> iStreams = connState.getObjectInputStreams();
 
-      // Pick server uniformly at random.
-      int n = (int) (Math.random() * oStreams.size());
+      // Pick server.
+      int n = connState.loadBalancer.load(operation);
       ObjectOutputStream out = oStreams.get(n);
       ObjectInputStream in = iStreams.get(n);
 
@@ -554,6 +554,8 @@ public class TorcDb2Client extends Db {
       } else {
         throw new RuntimeException("Unrecognized query");
       }
+
+      connState.loadBalancer.deload(operation, n);
 
     } catch (Exception e) {
         throw new RuntimeException(e);
