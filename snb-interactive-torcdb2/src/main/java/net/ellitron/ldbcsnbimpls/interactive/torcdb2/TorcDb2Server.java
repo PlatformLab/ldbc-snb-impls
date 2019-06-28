@@ -82,10 +82,19 @@ import com.ldbc.driver.workloads.ldbc.snb.interactive.LdbcUpdate8AddFriendship;
 
 import org.docopt.Docopt;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.locks.*;
+import java.util.concurrent.atomic.*;
+
 
 /**
  * A multithreaded server that executes LDBC SNB Interactive Workload queries
@@ -134,14 +143,17 @@ public class TorcDb2Server {
         queryHandlerMap;
     private final ConcurrentErrorReporter concurrentErrorReporter;
     private int clientID = 1;
+    private final BufferedWriter latencyFile;
 
     public ListenerThread(int port, TorcDb2ConnectionState connectionState,
         Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
-        ConcurrentErrorReporter concurrentErrorReporter) {
+        ConcurrentErrorReporter concurrentErrorReporter,
+        BufferedWriter latencyFile) {
       this.port = port;
       this.connectionState = connectionState;
       this.queryHandlerMap = queryHandlerMap;
       this.concurrentErrorReporter = concurrentErrorReporter;
+      this.latencyFile = latencyFile;
     }
 
     @Override
@@ -153,6 +165,8 @@ public class TorcDb2Server {
 
         Lock lock = new ReentrantLock();
 
+        AtomicInteger numClientThreads = new AtomicInteger(0);
+
         while (true) {
           Socket client = server.accept();
 
@@ -160,7 +174,7 @@ public class TorcDb2Server {
 
           Thread clientThread = new Thread(new ClientThread(client, 
                concurrentErrorReporter, connectionState, queryHandlerMap,
-               clientID, lock));
+               clientID, lock, latencyFile, numClientThreads));
 
           clientThread.start();
 
@@ -189,13 +203,17 @@ public class TorcDb2Server {
         queryHandlerMap;
     private final int clientID;
     private final Lock lock;
+    private final BufferedWriter latencyFile;
+    private final AtomicInteger numClientThreads;
 
     public ClientThread(Socket client, 
         ConcurrentErrorReporter concurrentErrorReporter, 
         TorcDb2ConnectionState connectionState,
         Map<Class<? extends Operation>, OperationHandler> queryHandlerMap,
         int clientID, 
-        Lock lock) {
+        Lock lock,
+        BufferedWriter latencyFile,
+        AtomicInteger numClientThreads) {
       this.client = client;
       this.concurrentErrorReporter = concurrentErrorReporter;
       this.resultReporter = 
@@ -204,23 +222,26 @@ public class TorcDb2Server {
       this.queryHandlerMap = queryHandlerMap;
       this.clientID = clientID;
       this.lock = lock;
+      this.latencyFile = latencyFile;
+      this.numClientThreads = numClientThreads;
     }
 
     public void run() {
       try {
+        numClientThreads.incrementAndGet();
+
         ObjectInputStream in = new ObjectInputStream(client.getInputStream());
         ObjectOutputStream out = 
             new ObjectOutputStream(client.getOutputStream());
 
-        while (true) {
+        while (client.isConnected()) {
           Object query = in.readObject();
-
-          System.out.println("Client " + clientID + " Received Query: " + query.toString());
 
           if (query instanceof LdbcQuery1Serializable) {
             LdbcQuery1 op = ((LdbcQuery1Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op, 
                 connectionState, resultReporter);
 
@@ -231,6 +252,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery1ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -239,6 +263,7 @@ public class TorcDb2Server {
             LdbcQuery2 op = ((LdbcQuery2Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -249,6 +274,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery2ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -257,6 +285,7 @@ public class TorcDb2Server {
             LdbcQuery3 op = ((LdbcQuery3Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -267,6 +296,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery3ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -275,6 +307,7 @@ public class TorcDb2Server {
             LdbcQuery4 op = ((LdbcQuery4Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -285,6 +318,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery4ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -293,6 +329,7 @@ public class TorcDb2Server {
             LdbcQuery5 op = ((LdbcQuery5Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -303,6 +340,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery5ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -311,6 +351,7 @@ public class TorcDb2Server {
             LdbcQuery6 op = ((LdbcQuery6Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -321,6 +362,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery6ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -329,6 +373,7 @@ public class TorcDb2Server {
             LdbcQuery7 op = ((LdbcQuery7Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -339,6 +384,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery7ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -347,6 +395,7 @@ public class TorcDb2Server {
             LdbcQuery8 op = ((LdbcQuery8Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -357,6 +406,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery8ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -365,6 +417,7 @@ public class TorcDb2Server {
             LdbcQuery9 op = ((LdbcQuery9Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -375,6 +428,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery9ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -383,6 +439,7 @@ public class TorcDb2Server {
             LdbcQuery10 op = ((LdbcQuery10Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -393,6 +450,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery10ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -401,6 +461,7 @@ public class TorcDb2Server {
             LdbcQuery11 op = ((LdbcQuery11Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -411,6 +472,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery11ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -419,6 +483,7 @@ public class TorcDb2Server {
             LdbcQuery12 op = ((LdbcQuery12Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -429,6 +494,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery12ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -437,6 +505,7 @@ public class TorcDb2Server {
             LdbcQuery13 op = ((LdbcQuery13Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -445,6 +514,9 @@ public class TorcDb2Server {
 
             LdbcQuery13ResultSerializable resp = 
                 new LdbcQuery13ResultSerializable(result);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -453,6 +525,7 @@ public class TorcDb2Server {
             LdbcQuery14 op = ((LdbcQuery14Serializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -463,6 +536,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcQuery14ResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -472,6 +548,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery1PersonProfileSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -480,6 +557,9 @@ public class TorcDb2Server {
 
             LdbcShortQuery1PersonProfileResultSerializable resp = 
                 new LdbcShortQuery1PersonProfileResultSerializable(result);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -489,6 +569,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery2PersonPostsSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -500,6 +581,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery2PersonPostsResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -509,6 +593,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery3PersonFriendsSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -520,6 +605,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery3PersonFriendsResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -529,6 +617,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery4MessageContentSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -537,6 +626,9 @@ public class TorcDb2Server {
 
             LdbcShortQuery4MessageContentResultSerializable resp = 
                 new LdbcShortQuery4MessageContentResultSerializable(result);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -546,6 +638,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery5MessageCreatorSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -554,6 +647,9 @@ public class TorcDb2Server {
 
             LdbcShortQuery5MessageCreatorResultSerializable resp = 
                 new LdbcShortQuery5MessageCreatorResultSerializable(result);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -563,8 +659,12 @@ public class TorcDb2Server {
                 ((LdbcShortQuery6MessageForumSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             LdbcShortQuery6MessageForumResult result = 
@@ -580,6 +680,7 @@ public class TorcDb2Server {
                 ((LdbcShortQuery7MessageRepliesSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
 
@@ -591,6 +692,9 @@ public class TorcDb2Server {
             result.forEach((v) -> {
               resp.add(new LdbcShortQuery7MessageRepliesResultSerializable(v));
             });
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(resp);
@@ -600,8 +704,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate1AddPersonSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -611,8 +719,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate2AddPostLikeSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -622,8 +734,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate3AddCommentLikeSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -633,8 +749,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate4AddForumSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -644,8 +764,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate5AddForumMembershipSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -655,8 +779,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate6AddPostSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -666,8 +794,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate7AddCommentSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -677,8 +809,12 @@ public class TorcDb2Server {
                 ((LdbcUpdate8AddFriendshipSerializable) query).unpack();
 
             lock.lock();
+            long startTime = System.nanoTime();
             queryHandlerMap.get(op.getClass()).executeOperation(op,
                 connectionState, resultReporter);
+
+            latencyFile.append(String.format("%s,%d\n", query.toString(), (System.nanoTime() - startTime)/1000));
+            latencyFile.flush();
             lock.unlock();
 
             out.writeObject(LdbcNoResultSerializable.INSTANCE);
@@ -687,6 +823,16 @@ public class TorcDb2Server {
             throw new RuntimeException("Unrecognized query type.");
           }
         }
+
+        System.out.println("Client disconnected: " + client.toString());
+
+        int clients = numClientThreads.decrementAndGet();
+
+        if (clients == 0) {
+          System.out.println("All clients have disconnected");
+          latencyFile.close();
+        }
+
       } catch (Exception e) {
 
       }
@@ -774,9 +920,13 @@ public class TorcDb2Server {
     ConcurrentErrorReporter concurrentErrorReporter = 
         new ConcurrentErrorReporter();
 
+    BufferedWriter latencyFile = 
+      Files.newBufferedWriter(Paths.get("latency.csv"), StandardCharsets.UTF_8, 
+          StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
     // Listener thread accepts connections and spawns client threads.
     Thread listener = new Thread(new ListenerThread(port, connectionState,
-          queryHandlerMap, concurrentErrorReporter));
+          queryHandlerMap, concurrentErrorReporter, latencyFile));
     listener.start();
     listener.join();
   }

@@ -172,6 +172,7 @@ public class TorcDb2ClientConnectionState extends DbConnectionState {
 
   @Override
   public void close() throws IOException {
+    System.out.println("Closing TorcDb2Server connections...");
     threadLocalServerConnList.forEach((thread, sktList) -> {
       for (Socket s : sktList) {
         try {
