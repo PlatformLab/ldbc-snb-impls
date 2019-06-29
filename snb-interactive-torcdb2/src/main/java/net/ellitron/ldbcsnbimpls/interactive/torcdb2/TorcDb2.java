@@ -816,16 +816,27 @@ public class TorcDb2 extends Db {
       List<LdbcQuery5Result> result = new ArrayList<>(limit);
 
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
-      
+
+      long startTime = System.nanoTime();
+
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
       TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
+      
+      System.out.println(String.format("l1 l2 friends time: %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
 
       Set<Vertex> friends = new HashSet<>(l1_friends.vSet.size() + l2_friends.vSet.size());
       friends.addAll(l1_friends.vSet);
       friends.addAll(l2_friends.vSet);
       friends.remove(start);
+      
+      System.out.println(String.format("create friends set: %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
 
       TraversalResult friendForums = graph.traverse(friends, "hasMember", Direction.IN, true, "Forum");
+
+      System.out.println(String.format("graph.traverse(friends): %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
 
       // Filter out all edges with joinDate <= minDate
       GraphHelper.removeEdgeIf(friendForums, (v, p) -> { 
@@ -835,37 +846,64 @@ public class TorcDb2 extends Db {
           return false;
       });
 
+      System.out.println(String.format("removeEdgeIf time: %d us", (System.nanoTime() - startTime)/1000));
+      
+      startTime = System.nanoTime();
+
       // Invert the friendForums mapping so we get a list of all the friends
       // that joined a given forum after a certain date.
-      Map<Vertex, Set<Vertex>> forumFriends = new HashMap<>(friendForums.vSet.size());
+      Map<Vertex, List<Vertex>> forumFriendsVMap = new HashMap<>(friendForums.vSet.size());
       for (Vertex friend : friendForums.vMap.keySet()) {
         List<Vertex> forums = friendForums.vMap.get(friend);
         for (Vertex forum : forums) {
-          if (forumFriends.containsKey(forum))
-            forumFriends.get(forum).add(friend);
+          if (forumFriendsVMap.containsKey(forum))
+            forumFriendsVMap.get(forum).add(friend);
           else {
-            Set<Vertex> fSet = new HashSet<>();
-            fSet.add(friend);
-            forumFriends.put(forum, fSet);
+            List<Vertex> fList = new ArrayList<>();
+            fList.add(friend);
+            forumFriendsVMap.put(forum, fList);
           }
         }
       }
 
-      TraversalResult forumPosts = graph.traverse(friendForums, "containerOf", Direction.OUT, false, "Post");
-      TraversalResult postAuthor = graph.traverse(forumPosts, "hasCreator", Direction.OUT, false, "Person");
-      TraversalResult forumAuthors = GraphHelper.fuse(forumPosts, postAuthor, false);
+      TraversalResult forumFriends = new TraversalResult(forumFriendsVMap, null, null);
 
-      Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumAuthors.vMap.size());
+      System.out.println(String.format("invert friendForums time: %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
+
+      TraversalResult friendPosts = graph.traverse(friendForums.vMap.keySet(), "hasCreator", Direction.IN, false, "Post");
+
+      System.out.println(String.format("graph.traverse(friendForums.vMap.keySet()): %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
+      
+      TraversalResult forumPosts = graph.traverse(friendForums, "containerOf", Direction.OUT, false, "Post");
+      
+      System.out.println(String.format("graph.traverse(friendForums): %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
+     
+//      Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumAuthors.vMap.size());
+      Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumPosts.vMap.size());
       for (Vertex forum : friendForums.vSet) {
-        if (forumAuthors.vMap.containsKey(forum)) {
-          List<Vertex> authors = forumAuthors.vMap.get(forum);
-          authors.retainAll(forumFriends.get(forum));
-          forumFriendPostCounts.put(forum, authors.size());
-        } else {
-          forumFriendPostCounts.put(forum, 0);
+        // forum posts
+        int count = 0;
+        if (forumPosts.vMap.containsKey(forum)) {
+          Set<Vertex> forumPostSet = new HashSet<>(forumPosts.vMap.get(forum));
+          for (Vertex friend : forumFriends.vMap.get(forum)) {
+            if (friendPosts.vMap.containsKey(friend)) {
+              for (Vertex post : friendPosts.vMap.get(friend)) {
+                if (forumPostSet.contains(post))
+                  count++;
+              }
+            }
+          }
         }
+
+        forumFriendPostCounts.put(forum, count);
       }
 
+      System.out.println(String.format("make forumFriendPostCounts: %d us", (System.nanoTime() - startTime)/1000));
+      startTime = System.nanoTime();
+      
       List<Vertex> forums = new ArrayList<>(forumFriendPostCounts.keySet());
       
       // Sort results descending by the count of Posts, and then ascending by Forum  identifier.
@@ -888,6 +926,10 @@ public class TorcDb2 extends Db {
 
       Collections.sort(forums, c);
 
+      System.out.println(String.format("sort forums: %d us", (System.nanoTime() - startTime)/1000));
+     
+      startTime = System.nanoTime();
+      
       // Take top limit
       forums = forums.subList(0, Math.min(forums.size(), limit));
 
@@ -901,6 +943,8 @@ public class TorcDb2 extends Db {
             forumFriendPostCounts.get(forum)));
       }
 
+      System.out.println(String.format("generate result: %d us", (System.nanoTime() - startTime)/1000));
+      
       resultReporter.report(result.size(), result, op);
     }
   }
