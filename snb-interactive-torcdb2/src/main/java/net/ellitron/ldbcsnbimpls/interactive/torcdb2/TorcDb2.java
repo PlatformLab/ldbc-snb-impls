@@ -33,6 +33,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import java.lang.InterruptedException;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -835,7 +837,7 @@ public class TorcDb2 extends Db {
 
       TraversalResult friendForums = graph.traverse(friends, "hasMember", Direction.IN, true, "Forum");
 
-      System.out.println(String.format("graph.traverse(friends): %d us", (System.nanoTime() - startTime)/1000));
+      System.out.println(String.format("friendForums(%d) = graph.traverse(friends(%d), hasMember): %d us", friendForums.vSet.size(), friends.size(), (System.nanoTime() - startTime)/1000));
       startTime = System.nanoTime();
 
       // Filter out all edges with joinDate <= minDate
@@ -847,7 +849,6 @@ public class TorcDb2 extends Db {
       });
 
       System.out.println(String.format("removeEdgeIf time: %d us", (System.nanoTime() - startTime)/1000));
-      
       startTime = System.nanoTime();
 
       // Invert the friendForums mapping so we get a list of all the friends
@@ -873,33 +874,74 @@ public class TorcDb2 extends Db {
 
       TraversalResult friendPosts = graph.traverse(friendForums.vMap.keySet(), "hasCreator", Direction.IN, false, "Post");
 
-      System.out.println(String.format("graph.traverse(friendForums.vMap.keySet()): %d us", (System.nanoTime() - startTime)/1000));
+      System.out.println(String.format("friendPosts(%d) = graph.traverse(friendForums.vMap.keySet()(%d)): %d us", friendPosts.vSet.size(), friendForums.vMap.size(), (System.nanoTime() - startTime)/1000));
       startTime = System.nanoTime();
       
       TraversalResult forumPosts = graph.traverse(friendForums, "containerOf", Direction.OUT, false, "Post");
       
-      System.out.println(String.format("graph.traverse(friendForums): %d us", (System.nanoTime() - startTime)/1000));
+      System.out.println(String.format("forumPosts(%d) = graph.traverse(friendForums(%d)): %d us", forumPosts.vSet.size(), friendForums.vSet.size(), (System.nanoTime() - startTime)/1000));
       startTime = System.nanoTime();
      
-//      Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumAuthors.vMap.size());
       Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumPosts.vMap.size());
-      for (Vertex forum : friendForums.vSet) {
-        // forum posts
-        int count = 0;
-        if (forumPosts.vMap.containsKey(forum)) {
-          Set<Vertex> forumPostSet = new HashSet<>(forumPosts.vMap.get(forum));
-          for (Vertex friend : forumFriends.vMap.get(forum)) {
-            if (friendPosts.vMap.containsKey(friend)) {
-              for (Vertex post : friendPosts.vMap.get(friend)) {
-                if (forumPostSet.contains(post))
-                  count++;
+
+      Thread t1 = new Thread(() -> {
+        int forumCount = 0;
+        for (Vertex forum : friendForums.vSet) {
+          if ((forumCount % 2) == 0) {
+            int count = 0;
+            if (forumPosts.vMap.containsKey(forum)) {
+              Set<Vertex> forumPostSet = new HashSet<>(forumPosts.vMap.get(forum));
+              for (Vertex friend : forumFriends.vMap.get(forum)) {
+                if (friendPosts.vMap.containsKey(friend)) {
+                  for (Vertex post : friendPosts.vMap.get(friend)) {
+                    if (forumPostSet.contains(post))
+                      count++;
+                  }
+                }
               }
             }
-          }
-        }
 
-        forumFriendPostCounts.put(forum, count);
+            forumFriendPostCounts.put(forum, count);
+          }
+
+          forumCount++;
+        }
+      });
+
+      Thread t2 = new Thread(() -> {
+        int forumCount = 0;
+        for (Vertex forum : friendForums.vSet) {
+          if ((forumCount % 2) == 1) {
+            int count = 0;
+            if (forumPosts.vMap.containsKey(forum)) {
+              Set<Vertex> forumPostSet = new HashSet<>(forumPosts.vMap.get(forum));
+              for (Vertex friend : forumFriends.vMap.get(forum)) {
+                if (friendPosts.vMap.containsKey(friend)) {
+                  for (Vertex post : friendPosts.vMap.get(friend)) {
+                    if (forumPostSet.contains(post))
+                      count++;
+                  }
+                }
+              }
+            }
+
+            forumFriendPostCounts.put(forum, count);
+          }
+
+          forumCount++;
+        }
+      });
+
+      t1.start();
+      t2.start();
+
+      try {
+        t1.join();
+        t2.join();
+      } catch (InterruptedException e) {
+        System.out.println("Rudely interrupted");
       }
+
 
       System.out.println(String.format("make forumFriendPostCounts: %d us", (System.nanoTime() - startTime)/1000));
       startTime = System.nanoTime();
