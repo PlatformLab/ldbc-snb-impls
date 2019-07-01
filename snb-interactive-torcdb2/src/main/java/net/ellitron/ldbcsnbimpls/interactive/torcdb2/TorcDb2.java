@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -882,7 +883,7 @@ public class TorcDb2 extends Db {
       System.out.println(String.format("forumPosts(%d) = graph.traverse(friendForums(%d)): %d us", forumPosts.vSet.size(), friendForums.vSet.size(), (System.nanoTime() - startTime)/1000));
       startTime = System.nanoTime();
      
-      Map<Vertex, Integer> forumFriendPostCounts = new HashMap<>(forumPosts.vMap.size());
+      Map<Vertex, Integer> forumFriendPostCounts = new ConcurrentHashMap<>(forumPosts.vMap.size());
 
       Thread t1 = new Thread(() -> {
         int forumCount = 0;
