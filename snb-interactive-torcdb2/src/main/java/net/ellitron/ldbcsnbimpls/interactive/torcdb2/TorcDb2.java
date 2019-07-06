@@ -208,6 +208,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       // Vertices that match our search criteria.
       List<Vertex> l1_matches = new ArrayList<>();
       List<Vertex> l2_matches = new ArrayList<>();
@@ -216,9 +218,9 @@ public class TorcDb2 extends Db {
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
 
-      graph.fillProperties(l1_friends);
+      graph.getProperties(vProps, l1_friends);
       for (Vertex v : l1_friends.vSet) {
-        if (((String)v.getProperty("firstName")).equals(firstName)) {
+        if (((String)vProps.get(v).get("firstName")).equals(firstName)) {
           l1_matches.add(v);
         }
       }
@@ -232,9 +234,9 @@ public class TorcDb2 extends Db {
 
         GraphHelper.subtract(l2_friends, seenSet);
 
-        graph.fillProperties(l2_friends);
+        graph.getProperties(vProps, l2_friends);
         for (Vertex v : l2_friends.vSet) {
-          if (((String)v.getProperty("firstName")).equals(firstName)) {
+          if (((String)vProps.get(v).get("firstName")).equals(firstName)) {
             l2_matches.add(v);
           }
         }
@@ -246,9 +248,9 @@ public class TorcDb2 extends Db {
 
           GraphHelper.subtract(l3_friends, seenSet);
 
-          graph.fillProperties(l3_friends);
+          graph.getProperties(vProps, l3_friends);
           for (Vertex v : l3_friends.vSet) {
-            if (((String)v.getProperty("firstName")).equals(firstName)) {
+            if (((String)vProps.get(v).get("firstName")).equals(firstName)) {
               l3_matches.add(v);
             }
           }
@@ -259,8 +261,8 @@ public class TorcDb2 extends Db {
       // identifier for a given distance.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
-              String v1LastName = ((String)v1.getProperty("lastName"));
-              String v2LastName = ((String)v2.getProperty("lastName"));
+              String v1LastName = ((String)vProps.get(v1).get("lastName"));
+              String v2LastName = ((String)vProps.get(v2).get("lastName"));
               
               if (v1LastName.compareTo(v2LastName) != 0) {
                 return v1LastName.compareTo(v2LastName);
@@ -289,7 +291,7 @@ public class TorcDb2 extends Db {
       TraversalResult university_place = graph.traverse(match_universities, "isLocatedIn", Direction.OUT, false, "Place");
       TraversalResult company_place = graph.traverse(match_companies, "isLocatedIn", Direction.OUT, false, "Place");
 
-      graph.fillProperties(match_place, match_universities, match_companies, university_place, company_place);
+      graph.getProperties(vProps, match_place, match_universities, match_companies, university_place, company_place);
 
       for (int j = 0; j < matches.size(); j++) {
         Vertex f = matches.get(j);
@@ -310,9 +312,9 @@ public class TorcDb2 extends Db {
             Map<Object, Object> props = uniProps.get(i);
 
             List<Object> info = new ArrayList<>(3);
-            info.add(university.getProperty("name"));
+            info.add(vProps.get(university).get("name"));
             info.add(props.get("classYear"));
-            info.add(university_place.vMap.get(university).get(0).getProperty("name"));
+            info.add(vProps.get(university_place.vMap.get(university).get(0)).get("name"));
             universityInfo.add(info);
           }
         }
@@ -326,25 +328,25 @@ public class TorcDb2 extends Db {
             Map<Object, Object> props = comProps.get(i);
 
             List<Object> info = new ArrayList<>(3);
-            info.add(company.getProperty("name"));
+            info.add(vProps.get(company).get("name"));
             info.add(props.get("workFrom"));
-            info.add(company_place.vMap.get(company).get(0).getProperty("name"));
+            info.add(vProps.get(company_place.vMap.get(company).get(0)).get("name"));
             companyInfo.add(info);
           }
         }
 
         result.add(new LdbcQuery1Result(
             f.id().getLowerLong(), //((UInt128)t.get().get("friendId")).getLowerLong(),
-            ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
+            ((String)vProps.get(f).get("lastName")), //(String)t.get().get("lastName"),
             distance, //((Long)t.get().get("distance")).intValue() - 1,
-            ((Long)f.getProperty("birthday")), //Long.valueOf((String)t.get().get("birthday")),
-            ((Long)f.getProperty("creationDate")), //Long.valueOf((String)t.get().get("creationDate")),
-            ((String)f.getProperty("gender")), //(String)t.get().get("gender"),
-            ((String)f.getProperty("browserUsed")), //(String)t.get().get("browserUsed"),
-            ((String)f.getProperty("locationIP")), //(String)t.get().get("locationIP"),
-            ((List<String>)f.getProperty("email")), //(List<String>)t.get().get("emails"),
-            ((List<String>)f.getProperty("language")), //(List<String>)t.get().get("languages"),
-            ((String)match_place.vMap.get(f).get(0).getProperty("name")), //(String)t.get().get("placeName"),
+            ((Long)vProps.get(f).get("birthday")), //Long.valueOf((String)t.get().get("birthday")),
+            ((Long)vProps.get(f).get("creationDate")), //Long.valueOf((String)t.get().get("creationDate")),
+            ((String)vProps.get(f).get("gender")), //(String)t.get().get("gender"),
+            ((String)vProps.get(f).get("browserUsed")), //(String)t.get().get("browserUsed"),
+            ((String)vProps.get(f).get("locationIP")), //(String)t.get().get("locationIP"),
+            ((List<String>)vProps.get(f).get("email")), //(List<String>)t.get().get("emails"),
+            ((List<String>)vProps.get(f).get("language")), //(List<String>)t.get().get("languages"),
+            ((String)vProps.get(match_place.vMap.get(f).get(0)).get("name")), //(String)t.get().get("placeName"),
             universityInfo, //(List<List<Object>>)t.get().get("universityInfo"),
             companyInfo)); //(List<List<Object>>)t.get().get("companyInfo")));
       }
@@ -404,19 +406,21 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
 
       TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
 
-      graph.fillProperties(messages);
+      graph.getProperties(vProps, messages);
       
       // Sort the Posts and Comments descending by their creation date and ascending by post
       // identifier. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
-              Long v1creationDate = ((Long)v1.getProperty("creationDate"));
-              Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+              Long v1creationDate = ((Long)vProps.get(v1).get("creationDate"));
+              Long v2creationDate = ((Long)vProps.get(v2).get("creationDate"));
               if (v1creationDate.compareTo(v2creationDate) != 0)
                 return v1creationDate.compareTo(v2creationDate);
               else {
@@ -429,7 +433,7 @@ public class TorcDb2 extends Db {
 
       PriorityQueue<Vertex> pq = new PriorityQueue(limit, c);
       for (Vertex m : messages.vSet) {
-        Long creationDate = (Long)m.getProperty("creationDate");
+        Long creationDate = (Long)vProps.get(m).get("creationDate");
         
         if (creationDate > maxDate)
           continue;
@@ -439,7 +443,7 @@ public class TorcDb2 extends Db {
           continue;
         }
 
-        if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+        if (creationDate > (Long)vProps.get(pq.peek()).get("creationDate")) {
           pq.add(m);
           pq.poll();
         }
@@ -456,23 +460,23 @@ public class TorcDb2 extends Db {
       // so go and read the authors.
       TraversalResult authors = graph.traverse(msgList, "hasCreator", Direction.OUT, false, "Person");
 
-      graph.fillProperties(authors);
+      graph.getProperties(vProps, authors);
 
       for (int i = msgList.size()-1; i >= 0; i--) {
         Vertex m = msgList.get(i);
         Vertex f = authors.vMap.get(m).get(0);
 
-        String content = (String)m.getProperty("content");
+        String content = (String)vProps.get(m).get("content");
         if (content.equals(""))
-          content = (String)m.getProperty("imageFile");
+          content = (String)vProps.get(m).get("imageFile");
 
         result.add(new LdbcQuery2Result(
             f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
-            ((String)f.getProperty("firstName")), //(String)t.get().get("firstName"), 
-            ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
+            ((String)vProps.get(f).get("firstName")), //(String)t.get().get("firstName"), 
+            ((String)vProps.get(f).get("lastName")), //(String)t.get().get("lastName"),
             m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
             content, //(String)t.get().get("content"),
-            ((Long)m.getProperty("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
+            ((Long)vProps.get(m).get("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
       }
 
       resultReporter.report(result.size(), result, op);
@@ -537,6 +541,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
@@ -549,31 +555,31 @@ public class TorcDb2 extends Db {
 
       TraversalResult friendCity = graph.traverse(friends, "isLocatedIn", Direction.OUT, false, "Place");
       TraversalResult cityCountry = graph.traverse(friendCity, "isPartOf", Direction.OUT, false, "Place");
-      graph.fillProperties(cityCountry);
+      graph.getProperties(vProps, cityCountry);
 
       // Filter out all friends located in either countryX or countryY.
       friends.removeIf(f -> {
-        String placeName = (String)cityCountry.vMap.get(friendCity.vMap.get(f).get(0)).get(0).getProperty("name");
+        String placeName = (String)vProps.get(cityCountry.vMap.get(friendCity.vMap.get(f).get(0)).get(0)).get("name");
         return placeName.equals(countryXName) || placeName.equals(countryYName);
       });
 
       TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
       
-      graph.fillProperties(messages.vSet, "creationDate");
+      graph.getProperties(vProps, messages.vSet, "creationDate");
 
       // Filter out all messages not in the given time window.
       messages.vSet.removeIf(m -> {
-        Long creationDate = (Long)m.getProperty("creationDate");
+        Long creationDate = (Long)vProps.get(m).get("creationDate");
         return !(startDate <= creationDate && creationDate <= endDate);
       });
 
       TraversalResult messageLocation = graph.traverse(messages.vSet, "isLocatedIn", Direction.OUT, false, "Place");
 
-      graph.fillProperties(messageLocation.vSet, "name");
+      graph.getProperties(vProps, messageLocation.vSet, "name");
 
       // Filter out all messages not in countryX or countryY.
       messages.vSet.removeIf(m -> {
-        String placeName = (String)messageLocation.vMap.get(m).get(0).getProperty("name");
+        String placeName = (String)vProps.get(messageLocation.vMap.get(m).get(0)).get("name");
         return !(placeName.equals(countryXName) || placeName.equals(countryYName));
       });
 
@@ -589,7 +595,7 @@ public class TorcDb2 extends Db {
         long countryXCount = 0;
         long countryYCount = 0;
         for (Vertex m : mList) {
-          String placeName = (String)messageLocation.vMap.get(m).get(0).getProperty("name");
+          String placeName = (String)vProps.get(messageLocation.vMap.get(m).get(0)).get("name");
 
           if (placeName.equals(countryXName))
             countryXCount++;
@@ -628,15 +634,15 @@ public class TorcDb2 extends Db {
       // Take top limit
       friendResults = friendResults.subList(0, Math.min(friendResults.size(), limit));
 
-      graph.fillProperties(friendResults);
+      graph.getProperties(vProps, friendResults);
 
       for (int i = 0; i < friendResults.size(); i++) {
         Vertex f = friendResults.get(i);
 
         result.add(new LdbcQuery3Result(
             f.id().getLowerLong(), //((UInt128)((Traverser<Map>)t).get().get("personId")).getLowerLong(),
-            (String)f.getProperty("firstName"), //(String)((Traverser<Map>)t).get().get("firstName"), 
-            (String)f.getProperty("lastName"), //(String)((Traverser<Map>)t).get().get("lastName"),
+            (String)vProps.get(f).get("firstName"), //(String)((Traverser<Map>)t).get().get("firstName"), 
+            (String)vProps.get(f).get("lastName"), //(String)((Traverser<Map>)t).get().get("lastName"),
             friendCountryXMsgCounts.get(f), //(Long)((Traverser<Map>)t).get().get("countryXCount"),
             friendCountryYMsgCounts.get(f), //(Long)((Traverser<Map>)t).get().get("countryYCount"),
             friendCountryXMsgCounts.get(f) + friendCountryYMsgCounts.get(f))); //(Long)((Traverser<Map>)t).get().get("totalCount")))
@@ -696,17 +702,19 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
       TraversalResult friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
       TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post");
 
-      graph.fillProperties(posts);
+      graph.getProperties(vProps, posts);
 
       // Filter out posts that are more recent than endDate. Don't want to do
       // extra work for them.
       posts.vSet.removeIf(p -> {
-        Long creationDate = (Long)p.getProperty("creationDate");
+        Long creationDate = (Long)vProps.get(p).get("creationDate");
         return creationDate > endDate;
       });
 
@@ -717,7 +725,7 @@ public class TorcDb2 extends Db {
       Set<Vertex> tagsBeforeWindow = new HashSet<>();
       Map<Vertex, Long> tagCounts = new HashMap<>();
       for (Vertex p : tags.vMap.keySet()) {
-        Long pCreationDate = (Long)p.getProperty("creationDate");
+        Long pCreationDate = (Long)vProps.get(p).get("creationDate");
         if (pCreationDate >= startDate && pCreationDate <= endDate) {
           for (Vertex t : tags.vMap.get(p)) {
             tagsWithinWindow.add(t);
@@ -736,7 +744,7 @@ public class TorcDb2 extends Db {
 
       List<Vertex> matchedTags = new ArrayList<>(tagsWithinWindow);
 
-      graph.fillProperties(matchedTags);
+      graph.getProperties(vProps, matchedTags);
 
       // Sort tags by count
       Comparator<Vertex> c = new Comparator<Vertex>() {
@@ -748,8 +756,8 @@ public class TorcDb2 extends Db {
                 // Tag count sort is descending
                 return -1*t1Count.compareTo(t2Count);
               } else {
-                String t1Name = (String)t1.getProperty("name");
-                String t2Name = (String)t2.getProperty("name");
+                String t1Name = (String)vProps.get(t1).get("name");
+                String t2Name = (String)vProps.get(t2).get("name");
                 return t1Name.compareTo(t2Name);
               }
             }
@@ -763,7 +771,7 @@ public class TorcDb2 extends Db {
         Vertex t = topTags.get(i);
 
         result.add(new LdbcQuery4Result(
-              (String)t.getProperty("name"),
+              (String)vProps.get(t).get("name"),
               tagCounts.get(t).intValue()));
       }
 
@@ -817,6 +825,8 @@ public class TorcDb2 extends Db {
       graph.getClient().nanoLogPrint("LdbcQuery5 Start");
 
       List<LdbcQuery5Result> result = new ArrayList<>(limit);
+
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
 
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
@@ -975,13 +985,13 @@ public class TorcDb2 extends Db {
       // Take top limit
       forums = forums.subList(0, Math.min(forums.size(), limit));
 
-      graph.fillProperties(forums);
+      graph.getProperties(vProps, forums);
 
       for (int i = 0; i < forums.size(); i++) {
         Vertex forum = forums.get(i);
 
         result.add(new LdbcQuery5Result(
-            (String)forum.getProperty("title"), 
+            (String)vProps.get(forum).get("title"), 
             forumFriendPostCounts.get(forum)));
       }
 
@@ -1037,6 +1047,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
@@ -1050,13 +1062,13 @@ public class TorcDb2 extends Db {
       TraversalResult posts = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post");
       TraversalResult tags = graph.traverse(posts, "hasTag", Direction.OUT, false, "Tag");
 
-      graph.fillProperties(tags);
+      graph.getProperties(vProps, tags);
 
       Map<Vertex, Long> coTagCounts = new HashMap<>();
       for (Vertex p : tags.vMap.keySet()) {
         boolean hasTag = false;
         for (Vertex t : tags.vMap.get(p)) {
-          if (((String)t.getProperty("name")).equals(tagName)) {
+          if (((String)vProps.get(t).get("name")).equals(tagName)) {
             hasTag = true;
             break;
           }
@@ -1064,7 +1076,7 @@ public class TorcDb2 extends Db {
 
         if (hasTag) {
           for (Vertex t : tags.vMap.get(p)) {
-            if (!((String)t.getProperty("name")).equals(tagName)) {
+            if (!((String)vProps.get(t).get("name")).equals(tagName)) {
               if (coTagCounts.containsKey(t)) {
                 coTagCounts.put(t, coTagCounts.get(t) + 1);
               } else {
@@ -1087,8 +1099,8 @@ public class TorcDb2 extends Db {
                 // Tag count sort is descending
                 return -1*t1Count.compareTo(t2Count);
               } else {
-                String t1Name = (String)t1.getProperty("name");
-                String t2Name = (String)t2.getProperty("name");
+                String t1Name = (String)vProps.get(t1).get("name");
+                String t2Name = (String)vProps.get(t2).get("name");
                 return t1Name.compareTo(t2Name);
               }
             }
@@ -1102,7 +1114,7 @@ public class TorcDb2 extends Db {
         Vertex t = topCoTags.get(i);
 
         result.add(new LdbcQuery6Result(
-              (String)t.getProperty("name"),
+              (String)vProps.get(t).get("name"),
               coTagCounts.get(t).intValue()));
       }
 
@@ -1167,6 +1179,8 @@ public class TorcDb2 extends Db {
       graph.getClient().nanoLogPrint("LdbcQuery7 Start");
 
       List<LdbcQuery7Result> result = new ArrayList<>(limit);
+
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
 
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
@@ -1302,31 +1316,31 @@ public class TorcDb2 extends Db {
       
       List<Vertex> topLikers = likersList.subList(0, Math.min(likersList.size(), limit));
 
-      graph.fillProperties(topLikers);
+      graph.getProperties(vProps, topLikers);
 
       List<Vertex> msgList = new ArrayList<>(topLikers.size());
 
       for (Vertex tLiker : topLikers) 
         msgList.add(personMostRecentLikeMsg.get(tLiker));
 
-      graph.fillProperties(msgList);
+      graph.getProperties(vProps, msgList);
 
       for (int i = 0; i < topLikers.size(); i++) {
         Vertex liker = topLikers.get(i);
         Long likeDate = personMostRecentLikeDate.get(liker);
         Vertex msg = personMostRecentLikeMsg.get(liker);
 
-        String content = (String)msg.getProperty("content");
+        String content = (String)vProps.get(msg).get("content");
         if (content.equals(""))
-          content = (String)msg.getProperty("imageFile");
+          content = (String)vProps.get(msg).get("imageFile");
 
         Long latencyMinutes = 
-          (likeDate - (Long)msg.getProperty("creationDate")) / (1000l * 60l);
+          (likeDate - (Long)vProps.get(msg).get("creationDate")) / (1000l * 60l);
 
         result.add(new LdbcQuery7Result(
             liker.id().getLowerLong(), 
-            (String)liker.getProperty("firstName"),
-            (String)liker.getProperty("lastName"),
+            (String)vProps.get(liker).get("firstName"),
+            (String)vProps.get(liker).get("lastName"),
             likeDate,
             msg.id().getLowerLong(),
             content,
@@ -1391,20 +1405,22 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
       TraversalResult posts = graph.traverse(start, "hasCreator", Direction.IN, false, "Post", "Comment");
 
       TraversalResult replies = graph.traverse(posts, "replyOf", Direction.IN, false, "Post", "Comment");
 
-      graph.fillProperties(replies.vSet, "creationDate");
+      graph.getProperties(vProps, replies.vSet, "creationDate");
 
       // Sort results descending by creation date of reply Comment, and then ascending by identifier
       // of reply Comment. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
-              Long v1creationDate = ((Long)v1.getProperty("creationDate"));
-              Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+              Long v1creationDate = ((Long)vProps.get(v1).get("creationDate"));
+              Long v2creationDate = ((Long)vProps.get(v2).get("creationDate"));
               if (v1creationDate.compareTo(v2creationDate) != 0)
                 return v1creationDate.compareTo(v2creationDate);
               else {
@@ -1417,14 +1433,14 @@ public class TorcDb2 extends Db {
 
       PriorityQueue<Vertex> pq = new PriorityQueue(limit, c);
       for (Vertex r : replies.vSet) {
-        Long creationDate = (Long)r.getProperty("creationDate");
+        Long creationDate = (Long)vProps.get(r).get("creationDate");
         
         if (pq.size() < limit) {
           pq.add(r);
           continue;
         }
 
-        if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+        if (creationDate > (Long)vProps.get(pq.peek()).get("creationDate")) {
           pq.add(r);
           pq.poll();
         }
@@ -1438,22 +1454,22 @@ public class TorcDb2 extends Db {
 
       TraversalResult authors = graph.traverse(replyList, "hasCreator", Direction.OUT, false, "Person");
 
-      graph.fillProperties(authors);
-      graph.fillProperties(replyList);
+      graph.getProperties(vProps, authors);
+      graph.getProperties(vProps, replyList);
 
       for (int i = replyList.size()-1; i >= 0; i--) {
         Vertex r = replyList.get(i);
         Vertex a = authors.vMap.get(r).get(0);
 
-        String content = (String)r.getProperty("content");
+        String content = (String)vProps.get(r).get("content");
         if (content.equals(""))
-          content = (String)r.getProperty("imageFile");
+          content = (String)vProps.get(r).get("imageFile");
 
         result.add(new LdbcQuery8Result(
               a.id().getLowerLong(),
-              (String)a.getProperty("firstName"),
-              (String)a.getProperty("lastName"),
-              (Long)r.getProperty("creationDate"),
+              (String)vProps.get(a).get("firstName"),
+              (String)vProps.get(a).get("lastName"),
+              (Long)vProps.get(r).get("creationDate"),
               r.id().getLowerLong(),
               content));
       }
@@ -1516,6 +1532,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
 
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
@@ -1528,14 +1546,14 @@ public class TorcDb2 extends Db {
 
       TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
       
-      graph.fillProperties(messages.vSet, "creationDate");
+      graph.getProperties(vProps, messages.vSet, "creationDate");
 
       // Sort results descending by creation date of Post/Comment, and then ascending by
       // Post/Comment identifier. Reversed for priority queue.
       Comparator<Vertex> c = new Comparator<Vertex>() {
             public int compare(Vertex v1, Vertex v2) {
-              Long v1creationDate = ((Long)v1.getProperty("creationDate"));
-              Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+              Long v1creationDate = ((Long)vProps.get(v1).get("creationDate"));
+              Long v2creationDate = ((Long)vProps.get(v2).get("creationDate"));
               if (v1creationDate.compareTo(v2creationDate) != 0)
                 return v1creationDate.compareTo(v2creationDate);
               else {
@@ -1548,7 +1566,7 @@ public class TorcDb2 extends Db {
 
       PriorityQueue<Vertex> pq = new PriorityQueue(limit, c);
       for (Vertex m : messages.vSet) {
-        Long creationDate = (Long)m.getProperty("creationDate");
+        Long creationDate = (Long)vProps.get(m).get("creationDate");
         
         if (creationDate >= maxDate)
           continue;
@@ -1558,7 +1576,7 @@ public class TorcDb2 extends Db {
           continue;
         }
 
-        if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+        if (creationDate > (Long)vProps.get(pq.peek()).get("creationDate")) {
           pq.add(m);
           pq.poll();
         }
@@ -1575,24 +1593,24 @@ public class TorcDb2 extends Db {
       // so go and read the authors.
       TraversalResult authors = graph.traverse(msgList, "hasCreator", Direction.OUT, false, "Person");
 
-      graph.fillProperties(authors);
-      graph.fillProperties(msgList);
+      graph.getProperties(vProps, authors);
+      graph.getProperties(vProps, msgList);
 
       for (int i = msgList.size()-1; i >= 0; i--) {
         Vertex m = msgList.get(i);
         Vertex f = authors.vMap.get(m).get(0);
 
-        String content = (String)m.getProperty("content");
+        String content = (String)vProps.get(m).get("content");
         if (content.equals(""))
-          content = (String)m.getProperty("imageFile");
+          content = (String)vProps.get(m).get("imageFile");
 
         result.add(new LdbcQuery9Result(
             f.id().getLowerLong(), //((UInt128)t.get().get("personId")).getLowerLong(),
-            ((String)f.getProperty("firstName")), //(String)t.get().get("firstName"), 
-            ((String)f.getProperty("lastName")), //(String)t.get().get("lastName"),
+            ((String)vProps.get(f).get("firstName")), //(String)t.get().get("firstName"), 
+            ((String)vProps.get(f).get("lastName")), //(String)t.get().get("lastName"),
             m.id().getLowerLong(), //((UInt128)t.get().get("messageId")).getLowerLong(), 
             content, //(String)t.get().get("content"),
-            ((Long)m.getProperty("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
+            ((Long)vProps.get(m).get("creationDate")))); //Long.valueOf((String)t.get().get("creationDate"))))
       }
 
       resultReporter.report(result.size(), result, op);
@@ -1662,6 +1680,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
       TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
@@ -1669,11 +1689,11 @@ public class TorcDb2 extends Db {
       l2_friends.vSet.removeAll(l1_friends.vSet);
       l2_friends.vSet.remove(start);
 
-      graph.fillProperties(l2_friends.vSet, "birthday"); 
+      graph.getProperties(vProps, l2_friends.vSet, "birthday"); 
 
       // Filter by birthday
       l2_friends.vSet.removeIf(f -> {
-        calendar.setTimeInMillis((Long)f.getProperty("birthday"));
+        calendar.setTimeInMillis((Long)vProps.get(f).get("birthday"));
         int bmonth = calendar.get(Calendar.MONTH); // zero based 
         int bday = calendar.get(Calendar.DAY_OF_MONTH); // starts with 1
         if ((bmonth == month && bday >= 21) || 
@@ -1752,22 +1772,22 @@ public class TorcDb2 extends Db {
       while (pq.size() > 0)
         fList.add(pq.poll());
 
-      graph.fillProperties(fList);
+      graph.getProperties(vProps, fList);
 
       TraversalResult locations = graph.traverse(fList, "isLocatedIn", Direction.OUT, false, "Place");
 
-      graph.fillProperties(locations);
+      graph.getProperties(vProps, locations);
 
       for (int i = fList.size()-1; i >= 0; i--) {
         Vertex f = fList.get(i);
 
         result.add(new LdbcQuery10Result(
               f.id().getLowerLong(),
-              (String)f.getProperty("firstName"),
-              (String)f.getProperty("lastName"),
+              (String)vProps.get(f).get("firstName"),
+              (String)vProps.get(f).get("lastName"),
               similarityScore.get(f).intValue(),
-              (String)f.getProperty("gender"),
-              (String)locations.vMap.get(f).get(0).getProperty("name")));
+              (String)vProps.get(f).get("gender"),
+              (String)vProps.get(locations.vMap.get(f).get(0)).get("name")));
       }
 
       resultReporter.report(result.size(), result, op);
@@ -1838,6 +1858,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery11Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult l1_friends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
       TraversalResult l2_friends = graph.traverse(l1_friends, "knows", Direction.OUT, false, "Person");
@@ -1858,13 +1880,13 @@ public class TorcDb2 extends Db {
 
       TraversalResult country = graph.traverse(company, "isLocatedIn", Direction.OUT, false, "Place");
 
-      graph.fillProperties(country.vSet, "name");
+      graph.getProperties(vProps, country.vSet, "name");
 
       company.vSet.removeIf(c -> {
-        return !((String)country.vMap.get(c).get(0).getProperty("name")).equals(countryName);
+        return !((String)vProps.get(country.vMap.get(c).get(0)).get("name")).equals(countryName);
       });
 
-      graph.fillProperties(company.vSet, "name");
+      graph.getProperties(vProps, company.vSet, "name");
 
       // Sort results ascending by the start date, then ascending by Person identifier, and lastly
       // by Organization name descending. Reversed for priority queue.
@@ -1894,7 +1916,7 @@ public class TorcDb2 extends Db {
             continue;
           
           int year = ((Integer)p.get("workFrom")).intValue();
-          String name = (String)c.getProperty("name");
+          String name = (String)vProps.get(c).get("name");
 
           if (pq.size() < limit) {
             pq.add(new ResultTuple(year, f, name));
@@ -1926,15 +1948,15 @@ public class TorcDb2 extends Db {
         fSet.add(rt.v);
       }
       
-      graph.fillProperties(fSet);
+      graph.getProperties(vProps, fSet);
 
       for (int i = rList.size()-1; i >= 0; i--) {
         ResultTuple rt = rList.get(i);
 
         result.add(new LdbcQuery11Result(
               rt.v.id().getLowerLong(),
-              (String)rt.v.getProperty("firstName"),
-              (String)rt.v.getProperty("lastName"),
+              (String)vProps.get(rt.v).get("firstName"),
+              (String)vProps.get(rt.v).get("lastName"),
               rt.name,
               rt.year));
       }
@@ -1997,6 +2019,8 @@ public class TorcDb2 extends Db {
 
       List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
       Vertex start = new Vertex(torcPersonId, TorcEntity.PERSON.label);
       TraversalResult startFriends = graph.traverse(start, "knows", Direction.OUT, false, "Person");
       TraversalResult friendComments = graph.traverse(startFriends, "hasCreator", Direction.IN, false, "Comment");
@@ -2010,13 +2034,13 @@ public class TorcDb2 extends Db {
       // the remaining tags.
       Set<Vertex> matchingTags = new HashSet<>(tagClasses.vMap.size());
       while (!tagClasses.vMap.isEmpty()) {
-        graph.fillProperties(tagClasses.vSet, "name");
+        graph.getProperties(vProps, tagClasses.vSet, "name");
 
         tagClasses.vMap.entrySet().removeIf( e -> {
             Vertex tag = (Vertex)e.getKey();
             Vertex tagClass = ((List<Vertex>)e.getValue()).get(0);
             
-            if (((String)tagClass.getProperty("name")).equals(tagClassName)) {
+            if (((String)vProps.get(tagClass).get("name")).equals(tagClassName)) {
               matchingTags.add(tag);
               return true;
             }
@@ -2081,8 +2105,8 @@ public class TorcDb2 extends Db {
         topFriends.add(pq.poll());
 
       // Fill in the properties for our results.
-      graph.fillProperties(topFriends);
-      graph.fillProperties(friendTags.vSet, "name");
+      graph.getProperties(vProps, topFriends);
+      graph.getProperties(vProps, friendTags.vSet, "name");
 
       for (int i = topFriends.size()-1; i >= 0; i--) {
         Vertex f = topFriends.get(i);
@@ -2090,12 +2114,12 @@ public class TorcDb2 extends Db {
 
         List<String> tagNames = new ArrayList<>(tags.size());
         for (Vertex v : tags)
-          tagNames.add(((String)v.getProperty("name")));
+          tagNames.add(((String)vProps.get(v).get("name")));
 
         result.add(new LdbcQuery12Result(
             f.id().getLowerLong(),
-            ((String)f.getProperty("firstName")),
-            ((String)f.getProperty("lastName")),
+            ((String)vProps.get(f).get("firstName")),
+            ((String)vProps.get(f).get("lastName")),
             tagNames,
             friendComments.vMap.get(f).size()));
       }
@@ -2329,6 +2353,8 @@ public class TorcDb2 extends Db {
       graph.getClient().nanoLogPrint("LdbcQuery14 Start");
 
       List<LdbcQuery14Result> result = new ArrayList<>();
+
+      Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
 
       Vertex start = new Vertex(torcPerson1Id, TorcEntity.PERSON.label);
       Vertex end = new Vertex(torcPerson2Id, TorcEntity.PERSON.label);
@@ -2662,21 +2688,23 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.fillProperties(person);
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, person);
 
         TraversalResult place = graph.traverse(person, "isLocatedIn", Direction.OUT, false, 
             "Place");
 
         LdbcShortQuery1PersonProfileResult result =
             new LdbcShortQuery1PersonProfileResult(
-                (String)person.getProperty("firstName"),
-                (String)person.getProperty("lastName"),
-                (Long)person.getProperty("birthday"),
-                (String)person.getProperty("locationIP"),
-                (String)person.getProperty("browserUsed"),
+                (String)vProps.get(person).get("firstName"),
+                (String)vProps.get(person).get("lastName"),
+                (Long)vProps.get(person).get("birthday"),
+                (String)vProps.get(person).get("locationIP"),
+                (String)vProps.get(person).get("browserUsed"),
                 place.vMap.get(person).get(0).id().getLowerLong(),
-                (String)person.getProperty("gender"),
-                (Long)person.getProperty("creationDate"));
+                (String)vProps.get(person).get("gender"),
+                (Long)vProps.get(person).get("creationDate"));
 
         if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
@@ -2720,14 +2748,16 @@ public class TorcDb2 extends Db {
         TraversalResult messages = graph.traverse(person, "hasCreator", Direction.IN, false, 
             "Post", "Comment");
 
-        graph.fillProperties(messages.vSet, "creationDate");
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, messages.vSet, "creationDate");
 
         // Sort the Posts and Comments descending by creationDate, and descending by message
         // identifier. Reversed for priority queue.
         Comparator<Vertex> c = new Comparator<Vertex>() {
               public int compare(Vertex v1, Vertex v2) {
-                Long v1creationDate = ((Long)v1.getProperty("creationDate"));
-                Long v2creationDate = ((Long)v2.getProperty("creationDate"));
+                Long v1creationDate = ((Long)vProps.get(v1).get("creationDate"));
+                Long v2creationDate = ((Long)vProps.get(v2).get("creationDate"));
                 if (v1creationDate.compareTo(v2creationDate) != 0)
                   return v1creationDate.compareTo(v2creationDate);
                 else {
@@ -2740,14 +2770,14 @@ public class TorcDb2 extends Db {
 
         PriorityQueue<Vertex> pq = new PriorityQueue(op.limit(), c);
         for (Vertex m : messages.vSet) {
-          Long creationDate = (Long)m.getProperty("creationDate");
+          Long creationDate = (Long)vProps.get(m).get("creationDate");
          
           if (pq.size() < op.limit()) {
             pq.add(m);
             continue;
           }
 
-          if (creationDate > (Long)pq.peek().getProperty("creationDate")) {
+          if (creationDate > (Long)vProps.get(pq.peek()).get("creationDate")) {
             pq.add(m);
             pq.poll();
           }
@@ -2788,14 +2818,14 @@ public class TorcDb2 extends Db {
         propFetch.addAll(postSet);
         propFetch.addAll(originalAuthors.vSet);
         propFetch.add(person);
-        graph.fillProperties(propFetch);
+        graph.getProperties(vProps, propFetch);
 
         for (int i = 0; i < msgList.size(); i++) {
           Vertex m = msgList.get(i);
 
-          String content = (String)m.getProperty("content");
+          String content = (String)vProps.get(m).get("content");
           if (content.equals(""))
-            content = (String)m.getProperty("imageFile");
+            content = (String)vProps.get(m).get("imageFile");
 
           long originalPostId = -1;
           long originalPostAuthorId = -1;
@@ -2804,8 +2834,8 @@ public class TorcDb2 extends Db {
           if (m.label().equals("Post")) {
             originalPostId = m.id().getLowerLong();
             originalPostAuthorId = person.id().getLowerLong();
-            originalPostAuthorFirstName = (String)person.getProperty("firstName");
-            originalPostAuthorLastName = (String)person.getProperty("lastName");
+            originalPostAuthorFirstName = (String)vProps.get(person).get("firstName");
+            originalPostAuthorLastName = (String)vProps.get(person).get("lastName");
           } else {
             Vertex base = m;
             for (int j = 0; j < trList.size(); j++) {
@@ -2815,8 +2845,8 @@ public class TorcDb2 extends Db {
                 Vertex author = originalAuthors.vMap.get(replyToV).get(0);
                 originalPostId = replyToV.id().getLowerLong();
                 originalPostAuthorId = author.id().getLowerLong();
-                originalPostAuthorFirstName = (String)author.getProperty("firstName");
-                originalPostAuthorLastName = (String)author.getProperty("lastName");
+                originalPostAuthorFirstName = (String)vProps.get(author).get("firstName");
+                originalPostAuthorLastName = (String)vProps.get(author).get("lastName");
                 break;
               }
 
@@ -2827,7 +2857,7 @@ public class TorcDb2 extends Db {
           result.add(new LdbcShortQuery2PersonPostsResult(
                   m.id().getLowerLong(), //messageId,
                   content, //messageContent,
-                  (Long)m.getProperty("creationDate"), //messageCreationDate,
+                  (Long)vProps.get(m).get("creationDate"), //messageCreationDate,
                   originalPostId,
                   originalPostAuthorId,
                   originalPostAuthorFirstName,
@@ -2904,14 +2934,16 @@ public class TorcDb2 extends Db {
           
           Collections.sort(friendList, c);
 
-          graph.fillProperties(friendList);
+          Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+          graph.getProperties(vProps, friendList);
 
           for (int i = 0; i < friendList.size(); i++) {
             Vertex f = friendList.get(i);
             result.add(new LdbcShortQuery3PersonFriendsResult(
                     f.id().getLowerLong(),
-                    (String)f.getProperty("firstName"),
-                    (String)f.getProperty("lastName"),
+                    (String)vProps.get(f).get("firstName"),
+                    (String)vProps.get(f).get("lastName"),
                     friendshipDate.get(f).longValue()));
           }
         }
@@ -2956,9 +2988,11 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.fillProperties(message);
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, message);
         
-        Map<Object, Object> props = message.getProperties();
+        Map<Object, Object> props = vProps.get(message);
          
         String content = (String)props.get("content");
         if (content.equals(""))
@@ -3015,13 +3049,15 @@ public class TorcDb2 extends Db {
 
         Vertex author = creator.vMap.get(message).get(0);
 
-        graph.fillProperties(author);
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, author);
 
         LdbcShortQuery5MessageCreatorResult result =
             new LdbcShortQuery5MessageCreatorResult(
                 author.id().getLowerLong(),
-                (String)author.getProperty("firstName"),
-                (String)author.getProperty("lastName"));
+                (String)vProps.get(author).get("firstName"),
+                (String)vProps.get(author).get("lastName"));
 
         if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
@@ -3080,15 +3116,17 @@ public class TorcDb2 extends Db {
           v = replyOf.vMap.get(v).get(0);
         }
 
-        graph.fillProperties(forum, moderator);
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, forum, moderator);
 
         LdbcShortQuery6MessageForumResult result = 
           new LdbcShortQuery6MessageForumResult(
                 forum.id().getLowerLong(),
-                (String)forum.getProperty("title"),
+                (String)vProps.get(forum).get("title"),
                 moderator.id().getLowerLong(),
-                (String)moderator.getProperty("firstName"),
-                (String)moderator.getProperty("lastName"));
+                (String)vProps.get(moderator).get("firstName"),
+                (String)vProps.get(moderator).get("lastName"));
 
         if (graph.commitAndSyncTx()) {
           resultReporter.report(1, result, op);
@@ -3138,25 +3176,27 @@ public class TorcDb2 extends Db {
         TraversalResult replyAuthors = graph.traverse(replies, "hasCreator", Direction.OUT, false, "Person");
         TraversalResult friends = graph.traverse(author, "knows", Direction.OUT, false, "Person");
 
-        graph.fillProperties(replies, replyAuthors);
+        Map<Vertex, Map<Object, Object>> vProps = new HashMap<>();
+
+        graph.getProperties(vProps, replies, replyAuthors);
 
         List<LdbcShortQuery7MessageRepliesResult> result = new ArrayList<>();
 
         if (replies.vMap.containsKey(message)) {
           for (Vertex reply : replies.vMap.get(message)) {
-            String content = (String)reply.getProperty("content");
+            String content = (String)vProps.get(reply).get("content");
             if (content.equals(""))
-              content = (String)reply.getProperty("imageFile");
+              content = (String)vProps.get(reply).get("imageFile");
 
             Vertex replyAuthor = replyAuthors.vMap.get(reply).get(0);
 
             result.add(new LdbcShortQuery7MessageRepliesResult(
                     reply.id().getLowerLong(),
                     content,
-                    (Long)reply.getProperty("creationDate"),
+                    (Long)vProps.get(reply).get("creationDate"),
                     replyAuthor.id().getLowerLong(),
-                    (String)replyAuthor.getProperty("firstName"),
-                    (String)replyAuthor.getProperty("lastName"),
+                    (String)vProps.get(replyAuthor).get("firstName"),
+                    (String)vProps.get(replyAuthor).get("lastName"),
                     friends.vSet.contains(replyAuthor)));
           }
 
@@ -3215,26 +3255,26 @@ public class TorcDb2 extends Db {
 //    graph.getClient().nanoLogPrint("LdbcUpdate1 Start");
 
       // Build key value properties map
-      Map<Object, Object> props = new HashMap<>();
-      props.put("firstName", op.personFirstName());
-      props.put("lastName", op.personLastName());
-      props.put("gender", op.gender());
-      props.put("birthday", new Long(op.birthday().getTime()));
-      props.put("creationDate", new Long(op.creationDate().getTime()));
-      props.put("locationIP", op.locationIp());
-      props.put("browserUsed", op.browserUsed());
-      props.put("language", op.languages());
-      props.put("email", op.emails());
+      Map<Object, Object> personProps = new HashMap<>();
+      personProps.put("firstName", op.personFirstName());
+      personProps.put("lastName", op.personLastName());
+      personProps.put("gender", op.gender());
+      personProps.put("birthday", new Long(op.birthday().getTime()));
+      personProps.put("creationDate", new Long(op.creationDate().getTime()));
+      personProps.put("locationIP", op.locationIp());
+      personProps.put("browserUsed", op.browserUsed());
+      personProps.put("language", op.languages());
+      personProps.put("email", op.emails());
 
       Vertex person = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.personId()), 
-          TorcEntity.PERSON.label, props);
+          TorcEntity.PERSON.label);
 
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.cityId()), 
-          TorcEntity.PLACE.label, null);
+          TorcEntity.PLACE.label);
 
       List<Vertex> tags = new ArrayList<>(op.tagIds().size());
       op.tagIds().forEach((tagid) -> tags.add(
-            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label, null)));
+            new Vertex(new UInt128(TorcEntity.TAG.idSpace, tagid), TorcEntity.TAG.label)));
 
       List<Vertex> universities = new ArrayList<>(op.studyAt().size());
       List<Map<Object, Object>> studyAtProps = new ArrayList<>(op.studyAt().size());
@@ -3260,7 +3300,7 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.addVertex(person);
+        graph.addVertex(person, personProps);
 
         graph.addEdge(person, "isLocatedIn", place, null);
 
@@ -3385,12 +3425,12 @@ public class TorcDb2 extends Db {
 //    graph.getClient().nanoLogPrint("LdbcUpdate4 Start");
 
       // Build key value properties map
-      Map<Object, Object> props = new HashMap<>();
-      props.put("title", op.forumTitle());
-      props.put("creationDate", new Long(op.creationDate().getTime()));
+      Map<Object, Object> forumProps = new HashMap<>();
+      forumProps.put("title", op.forumTitle());
+      forumProps.put("creationDate", new Long(op.creationDate().getTime()));
       
       Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
-          TorcEntity.FORUM.label, props);
+          TorcEntity.FORUM.label);
 
       List<Vertex> tags = new ArrayList<>(op.tagIds().size());
       op.tagIds().forEach((tagid) -> tags.add(
@@ -3403,7 +3443,7 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.addVertex(forum);
+        graph.addVertex(forum, forumProps);
 
         for (Vertex tag : tags)
           graph.addEdge(forum, "hasTag", tag, null);
@@ -3479,21 +3519,21 @@ public class TorcDb2 extends Db {
 //    graph.getClient().nanoLogPrint("LdbcUpdate6 Start");
 
       // Build key value properties map
-      Map<Object, Object> props = new HashMap<>();
-      props.put("imageFile", op.imageFile());
-      props.put("creationDate", new Long(op.creationDate().getTime()));
-      props.put("locationIP", op.locationIp());
-      props.put("browserUsed", op.browserUsed());
-      props.put("language", op.language());
-      props.put("content", op.content());
-      props.put("length", new Integer(op.length()));
+      Map<Object, Object> postProps = new HashMap<>();
+      postProps.put("imageFile", op.imageFile());
+      postProps.put("creationDate", new Long(op.creationDate().getTime()));
+      postProps.put("locationIP", op.locationIp());
+      postProps.put("browserUsed", op.browserUsed());
+      postProps.put("language", op.language());
+      postProps.put("content", op.content());
+      postProps.put("length", new Integer(op.length()));
 
       Vertex post = new Vertex(new UInt128(TorcEntity.POST.idSpace, op.postId()),
-          TorcEntity.POST.label, props);
+          TorcEntity.POST.label);
       Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()), 
           TorcEntity.PERSON.label);
       Vertex forum = new Vertex(new UInt128(TorcEntity.FORUM.idSpace, op.forumId()), 
-          TorcEntity.FORUM.label, props);
+          TorcEntity.FORUM.label);
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
           TorcEntity.PLACE.label);
 
@@ -3505,7 +3545,7 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.addVertex(post);
+        graph.addVertex(post, postProps);
         graph.addEdge(post, "hasCreator", author, null);
         graph.addEdge(forum, "containerOf", post, null);
         graph.addEdge(post, "isLocatedIn", place, null);
@@ -3541,15 +3581,15 @@ public class TorcDb2 extends Db {
 //    graph.getClient().nanoLogPrint("LdbcUpdate7 Start");
 
       // Build key value properties map
-      Map<Object, Object> props = new HashMap<>();
-      props.put("creationDate", new Long(op.creationDate().getTime()));
-      props.put("locationIP", op.locationIp());
-      props.put("browserUsed", op.browserUsed());
-      props.put("content", op.content());
-      props.put("length", new Integer(op.length()));
+      Map<Object, Object> commentProps = new HashMap<>();
+      commentProps.put("creationDate", new Long(op.creationDate().getTime()));
+      commentProps.put("locationIP", op.locationIp());
+      commentProps.put("browserUsed", op.browserUsed());
+      commentProps.put("content", op.content());
+      commentProps.put("length", new Integer(op.length()));
 
       Vertex comment = new Vertex(new UInt128(TorcEntity.COMMENT.idSpace, op.commentId()),
-          TorcEntity.COMMENT.label, props);
+          TorcEntity.COMMENT.label);
       Vertex author = new Vertex(new UInt128(TorcEntity.PERSON.idSpace, op.authorPersonId()),
           TorcEntity.PERSON.label);
       Vertex place = new Vertex(new UInt128(TorcEntity.PLACE.idSpace, op.countryId()), 
@@ -3571,7 +3611,7 @@ public class TorcDb2 extends Db {
       while (txAttempts < MAX_TX_ATTEMPTS) {
         graph.beginTx();
 
-        graph.addVertex(comment);
+        graph.addVertex(comment, commentProps);
         graph.addEdge(comment, "hasCreator", author, null);
         graph.addEdge(comment, "isLocatedIn", place, null);
         graph.addEdge(comment, "replyOf", message, null);

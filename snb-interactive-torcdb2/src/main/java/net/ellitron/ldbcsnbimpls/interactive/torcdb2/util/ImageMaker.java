@@ -382,7 +382,7 @@ public class ImageMaker {
                 }
               }
 
-              graph.loadVertex(new Vertex(vertexId, vertexLabel, propMap));
+              graph.loadVertex(new Vertex(vertexId, vertexLabel), propMap);
 
               localLinesProcessed++;
               stats.linesProcessed++;
