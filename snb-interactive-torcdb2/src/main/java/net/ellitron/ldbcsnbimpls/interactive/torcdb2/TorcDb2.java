@@ -204,7 +204,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery1 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery1 Start");
 
       List<LdbcQuery1Result> result = new ArrayList<>(limit);
 
@@ -402,7 +402,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId); 
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery2 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery2 Start");
 
       List<LdbcQuery2Result> result = new ArrayList<>(limit);
 
@@ -537,7 +537,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery3 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery3 Start");
 
       List<LdbcQuery3Result> result = new ArrayList<>(limit);
 
@@ -698,7 +698,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery4 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery4 Start");
 
       List<LdbcQuery4Result> result = new ArrayList<>(limit);
 
@@ -822,7 +822,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery5 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery5 Start");
 
       List<LdbcQuery5Result> result = new ArrayList<>(limit);
 
@@ -1043,7 +1043,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery6 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery6 Start");
 
       List<LdbcQuery6Result> result = new ArrayList<>(limit);
 
@@ -1176,7 +1176,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery7 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery7 Start");
 
       List<LdbcQuery7Result> result = new ArrayList<>(limit);
 
@@ -1401,7 +1401,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery8 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery8 Start");
 
       List<LdbcQuery8Result> result = new ArrayList<>(limit);
 
@@ -1528,7 +1528,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery9 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery9 Start");
 
       List<LdbcQuery9Result> result = new ArrayList<>(limit);
 
@@ -1676,7 +1676,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery10 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery10 Start");
 
       List<LdbcQuery10Result> result = new ArrayList<>(limit);
 
@@ -1842,7 +1842,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery11 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery11 Start");
 
       class ResultTuple {
         public int year;
@@ -2015,7 +2015,7 @@ public class TorcDb2 extends Db {
       final UInt128 torcPersonId = new UInt128(TorcEntity.PERSON.idSpace, personId);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery12 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery12 Start");
 
       List<LdbcQuery12Result> result = new ArrayList<>(limit);
 
@@ -2167,7 +2167,7 @@ public class TorcDb2 extends Db {
           new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery13 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery13 Start");
 
       Set<Vertex> start = new HashSet<>();
       start.add(new Vertex(torcPerson1Id, TorcEntity.PERSON.label));
@@ -2350,7 +2350,7 @@ public class TorcDb2 extends Db {
           new UInt128(TorcEntity.PERSON.idSpace, person2Id);
 
       Graph graph = cState.getGraph();
-      graph.getClient().nanoLogPrint("LdbcQuery14 Start");
+//    graph.getClient().nanoLogPrint("LdbcQuery14 Start");
 
       List<LdbcQuery14Result> result = new ArrayList<>();
 
