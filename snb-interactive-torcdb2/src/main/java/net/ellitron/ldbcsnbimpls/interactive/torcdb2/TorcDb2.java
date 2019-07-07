@@ -565,7 +565,7 @@ public class TorcDb2 extends Db {
 
       TraversalResult messages = graph.traverse(friends, "hasCreator", Direction.IN, false, "Post", "Comment");
       
-      graph.getProperties(vProps, messages.vSet, "creationDate");
+      graph.getProperties(vProps, (Collection<Vertex>)messages.vSet, "creationDate");
 
       // Filter out all messages not in the given time window.
       messages.vSet.removeIf(m -> {
