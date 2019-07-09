@@ -9,9 +9,14 @@ database.
 
 ## Current Workload Implementations ##
 ### Interactive ###
+* [TorcDB2](https://github.com/jdellithorpe/TorcDB2) 
+  * Implementation Status:
+    * Complex Read Queries: 14/14 (passing validation)
+    * Short Read Queries: 7/7 (passing validation)
+    * Update Queries: 8/8 (passing validation)
 * [TorcDB](https://github.com/PlatformLab/TorcDB) 
   * Implementation Status:
-    * Complex Read Queries: 1/14 (passing validation)
+    * Complex Read Queries: 14/14 (passing validation)
     * Short Read Queries: 7/7 (passing validation)
     * Update Queries: 8/8 (passing validation)
 * [TitanDB](https://github.com/thinkaurelius/titan)
