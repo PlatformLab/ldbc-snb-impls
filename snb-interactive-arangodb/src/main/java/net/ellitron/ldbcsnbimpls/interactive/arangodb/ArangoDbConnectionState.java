@@ -54,7 +54,7 @@ public class ArangoDbConnectionState extends DbConnectionState {
     if (props.containsKey("port")) {
       port = props.get("port");
     } else {
-      port = "7474";
+      port = "8529";
     }
 
     String graphName;

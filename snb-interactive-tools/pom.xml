@@ -47,6 +47,12 @@
       <type>jar</type>
     </dependency>
     <dependency>
+      <groupId>net.ellitron.ldbcsnbimpls</groupId>
+      <artifactId>snb-interactive-arangodb</artifactId>
+      <version>0.1.0</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
       <version>1.1.2</version>
