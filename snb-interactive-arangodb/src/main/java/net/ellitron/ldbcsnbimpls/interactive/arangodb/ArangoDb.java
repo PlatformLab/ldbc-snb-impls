@@ -17,6 +17,10 @@
 package net.ellitron.ldbcsnbimpls.interactive.arangodb;
 
 import com.arangodb.ArangoDatabase;
+import com.arangodb.ArangoCursor;
+import com.arangodb.entity.BaseDocument;
+import com.arangodb.model.AqlQueryOptions;
+import com.arangodb.util.MapBuilder;
 
 import com.ldbc.driver.control.LoggingService;
 import com.ldbc.driver.Db;
@@ -97,7 +101,7 @@ import java.util.Map;
  * 
  * host - IP address of an ArangoDB server (default: 127.0.0.1).
  * port - Port of the ArangoDB server (default: 8529).
- * graph - Name of the graph to use (default: default).
+ * graphName - Name of the graph to use (default: default).
  * 
  * References:
  * [1]: Prat, Arnau (UPC) and Boncz, Peter (VUA) and Larriba, Josep Lluís (UPC)
@@ -666,10 +670,48 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase(); 
-      String statement = "";
+      String statement = 
+					"WITH Place"
+					+ " FOR p IN Person"
+          + " FILTER p._key == @personId"
+          + "   FOR c IN 1..1 OUTBOUND p isLocatedIn"
+          + " RETURN {"
+          + "   firstName: p.firstName,"
+          + "   lastName: p.lastName,"
+          + "   birthday: p.birthday,"
+          + "   locationIP: p.locationIP,"
+          + "   browserUsed: p.browserUsed,"
+          + "   cityId: c._key,"
+          + "   gender: p.gender,"
+          + "   creationDate: p.creationDate"
+          + "  }";
 
-      // Execute the query and get the results.
-      resultReporter.report(0, null, operation);
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("personId", String.valueOf(operation.personId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
+
+      if (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
+
+        resultReporter.report(0, 
+            new LdbcShortQuery1PersonProfileResult(
+                (String)doc.getAttribute("firstName"),
+                (String)doc.getAttribute("lastName"),
+                (Long)doc.getAttribute("birthday"),
+                (String)doc.getAttribute("locationIP"),
+                (String)doc.getAttribute("browserUsed"),
+                Long.decode((String)doc.getAttribute("cityId")),
+                (String)doc.getAttribute("gender"),
+                (Long)doc.getAttribute("creationDate")),
+              operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 

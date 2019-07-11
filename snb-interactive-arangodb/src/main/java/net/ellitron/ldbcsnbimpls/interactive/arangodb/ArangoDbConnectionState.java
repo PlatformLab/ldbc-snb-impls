@@ -58,8 +58,8 @@ public class ArangoDbConnectionState extends DbConnectionState {
     }
 
     String graphName;
-    if (props.containsKey("graph")) {
-      graphName = props.get("graph");
+    if (props.containsKey("graphName")) {
+      graphName = props.get("graphName");
     } else {
       graphName = "default";
     }
