@@ -736,14 +736,14 @@ public class ArangoDb extends Db {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
       String statement =
-					"WITH Comment, Post"
+					"WITH Message"
 					+ " FOR person IN Person"
           + " FILTER person._key == @personId"
           + "   FOR message IN 1..1 INBOUND person hasCreator"
           + "     SORT message.creationDate DESC, TO_NUMBER(message._key) DESC"
           + "     LIMIT @limit"
           + "     FOR originalPost IN 0..1024 OUTBOUND message replyOf"
-          + "       FILTER IS_SAME_COLLECTION('Post', originalPost._id)"
+          + "       FILTER originalPost.type == \"Post\""
           + "         FOR originalPostAuthor IN 1..1 OUTBOUND originalPost hasCreator"
           + " RETURN {"
           + "   messageId: message._key,"
@@ -860,11 +860,41 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = "WITH Message"
+                         + " FOR message IN Message"
+                         + " FILTER message._key == @messageId"
+                         + " RETURN {"
+                         + "   messageContent: message.content,"
+                         + "   messageImageFile: message.imageFile,"
+                         + "   messageCreationDate: message.creationDate"
+                         + "  }";
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("messageId", String.valueOf(operation.messageId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      String statement = "";
+      if (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
 
-      // Execute the query and get the results.
-      resultReporter.report(0, null, operation);
+        String content = (String)doc.getAttribute("messageContent");
+        if (content == null) {
+          content = (String)doc.getAttribute("messageImageFile");
+        }
+
+        resultReporter.report(
+            0, 
+            new LdbcShortQuery4MessageContentResult(
+                content,
+                (Long)doc.getAttribute("messageCreationDate")), 
+            operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
