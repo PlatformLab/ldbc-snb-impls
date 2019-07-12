@@ -740,7 +740,7 @@ public class ArangoDb extends Db {
 					+ " FOR person IN Person"
           + " FILTER person._key == @personId"
           + "   FOR message IN 1..1 INBOUND person hasCreator"
-          + "     SORT message.creationDate DESC, message._key DESC"
+          + "     SORT message.creationDate DESC, TO_NUMBER(message._key) DESC"
           + "     LIMIT @limit"
           + "     FOR originalPost IN 0..1024 OUTBOUND message replyOf"
           + "       FILTER IS_SAME_COLLECTION('Post', originalPost._id)"
