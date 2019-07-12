@@ -735,11 +735,56 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement =
+					"WITH Comment, Post"
+					+ " FOR person IN Person"
+          + " FILTER person._key == @personId"
+          + "   FOR message IN 1..1 INBOUND person hasCreator"
+          + "     SORT message.creationDate DESC, message._key DESC"
+          + "     LIMIT @limit"
+          + "     FOR originalPost IN 0..1024 OUTBOUND message replyOf"
+          + "       FILTER IS_SAME_COLLECTION('Post', originalPost._id)"
+          + "         FOR originalPostAuthor IN 1..1 OUTBOUND originalPost hasCreator"
+          + " RETURN {"
+          + "   messageId: message._key,"
+          + "   messageContent: message.content,"
+          + "   messageImageFile: message.imageFile,"
+          + "   messageCreationDate: message.creationDate,"
+          + "   originalPostId: originalPost._key,"
+          + "   originalPostAuthorId: originalPostAuthor._key,"
+          + "   originalPostAuthorFirstName: originalPostAuthor.firstName,"
+          + "   originalPostAuthorLastName: originalPostAuthor.lastName"
+          + "  }";
 
-      String statement = "";
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("personId", String.valueOf(operation.personId()))
+              .put("limit", new Integer(operation.limit()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      // Execute the query and get the results.
       List<LdbcShortQuery2PersonPostsResult> resultList = new ArrayList<>();
+
+      while (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
+
+        String content = (String)doc.getAttribute("messageContent");
+        if (content == null) {
+          content = (String)doc.getAttribute("messageImageFile");
+        }
+
+        resultList.add(new LdbcShortQuery2PersonPostsResult(
+            Long.valueOf((String)doc.getAttribute("messageId")),
+            content,
+            (Long)doc.getAttribute("messageCreationDate"),
+            Long.valueOf((String)doc.getAttribute("originalPostId")),
+            Long.valueOf((String)doc.getAttribute("originalPostAuthorId")),
+            (String)doc.getAttribute("originalPostAuthorFirstName"),
+            (String)doc.getAttribute("originalPostAuthorLastName")));
+      }
 
       resultReporter.report(0, resultList, operation);
     }
