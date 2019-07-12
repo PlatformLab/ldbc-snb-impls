@@ -807,11 +807,38 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = "WITH Person"
+                         + " FOR person IN Person"
+                         + " FILTER person._key == @personId"
+                         + "   FOR friend, knows_edge IN 1..1 OUTBOUND person knows"
+                         + "     SORT knows_edge.creationDate DESC, TO_NUMBER(friend._key) ASC"
+                         + " RETURN {"
+                         + "   friendId: friend._key,"
+                         + "   firstName: friend.firstName,"
+                         + "   lastName: friend.lastName,"
+                         + "   friendshipCreationDate: knows_edge.creationDate"
+                         + " }";
 
-      String statement = "";
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("personId", String.valueOf(operation.personId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      // Execute the query and get the results.
       List<LdbcShortQuery3PersonFriendsResult> resultList = new ArrayList<>();
+
+      while (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
+
+        resultList.add(new LdbcShortQuery3PersonFriendsResult(
+            Long.valueOf((String)doc.getAttribute("friendId")),
+            (String)doc.getAttribute("firstName"),
+            (String)doc.getAttribute("lastName"),
+            (Long)doc.getAttribute("friendshipCreationDate")));
+      }
 
       resultReporter.report(0, resultList, operation);
     }
