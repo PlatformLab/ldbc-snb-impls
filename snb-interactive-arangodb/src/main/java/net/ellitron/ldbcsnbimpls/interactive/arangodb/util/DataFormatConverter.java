@@ -372,6 +372,8 @@ public class DataFormatConverter {
           else {
             if (node.equals(Node.PERSON))
               outFile.append("|email|speaks");
+            else if (node.equals(Node.COMMENT) || node.equals(Node.POST))
+              outFile.append("|type");
             outFile.append("\n");
           }
         }
@@ -432,6 +434,10 @@ public class DataFormatConverter {
                   String speaks = serializePropertyValueList(personSpeaks.get(id));
                   outFile.append(speaks);
                 }
+              } else if (node.equals(Node.COMMENT)) {
+                outFile.append("|Comment");
+              } else if (node.equals(Node.POST)) {
+                outFile.append("|Post");
               }
               outFile.append("\n");
             }
