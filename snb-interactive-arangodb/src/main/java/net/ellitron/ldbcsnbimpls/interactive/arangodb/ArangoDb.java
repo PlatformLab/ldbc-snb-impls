@@ -935,8 +935,6 @@ public class ArangoDb extends Db {
       if (cursor.hasNext()) {
         BaseDocument doc = cursor.next();
 
-        System.out.println(doc);
-        
         resultReporter.report(
             0, 
             new LdbcShortQuery5MessageCreatorResult(
@@ -968,11 +966,45 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = "WITH Message, Forum, Person"
+                         + "  FOR message IN Message"
+                         + "    FILTER message._key == @messageId"
+                         + "    FOR originalPost IN 0..1024 OUTBOUND message replyOf"
+                         + "      FILTER originalPost.type == \"Post\""
+                         + "      FOR forum IN 1..1 INBOUND originalPost containerOf"
+                         + "        FOR moderator IN 1..1 OUTBOUND forum hasModerator"
+                         + "  RETURN {"
+                         + "    forumId: forum._key,"
+                         + "    forumTitle: forum.title,"
+                         + "    moderatorId: moderator._key,"
+                         + "    moderatorFirstName: moderator.firstName,"
+                         + "    moderatorLastName: moderator.lastName"
+                         + "  }";
 
-      String statement = "";
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("messageId", String.valueOf(operation.messageId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      // Execute the query and get the results.
-      resultReporter.report(0, null, operation);
+      if (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
+
+        resultReporter.report(
+            0, 
+            new LdbcShortQuery6MessageForumResult(
+                Long.valueOf((String)doc.getAttribute("forumId")),
+                (String)doc.getAttribute("forumTitle"),
+                Long.valueOf((String)doc.getAttribute("moderatorId")),
+                (String)doc.getAttribute("moderatorFirstName"),
+                (String)doc.getAttribute("moderatorLastName")),
+            operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
