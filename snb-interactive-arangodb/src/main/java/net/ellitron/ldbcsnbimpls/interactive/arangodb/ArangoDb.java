@@ -913,11 +913,40 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = "WITH Message, Person"
+                         + " FOR message IN Message"
+                         + " FILTER message._key == @messageId"
+                         + "   FOR author IN 1..1 OUTBOUND message hasCreator"
+                         + " RETURN {"
+                         + "   authorId: author._key,"
+                         + "   firstName: author.firstName,"
+                         + "   lastName: author.lastName"
+                         + "  }";
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("messageId", String.valueOf(operation.messageId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      String statement = "";
+      if (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
 
-      // Execute the query and get the results.
-      resultReporter.report(0, null, operation);
+        System.out.println(doc);
+        
+        resultReporter.report(
+            0, 
+            new LdbcShortQuery5MessageCreatorResult(
+                Long.valueOf((String)doc.getAttribute("authorId")),
+                (String)doc.getAttribute("firstName"),
+                (String)doc.getAttribute("lastName")), 
+            operation);
+      } else {
+        resultReporter.report(0, null, operation);
+      }
     }
   }
 
