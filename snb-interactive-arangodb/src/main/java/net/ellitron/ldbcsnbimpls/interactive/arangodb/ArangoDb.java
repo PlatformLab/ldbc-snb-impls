@@ -1027,11 +1027,54 @@ public class ArangoDb extends Db {
         ResultReporter resultReporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = "WITH Message, Person"
+                         + " LET authorFriends = ("
+                         + "   FOR message IN Message"
+                         + "     FILTER message._key == @messageId"
+                         + "     FOR author IN 1..1 OUTBOUND message hasCreator"
+                         + "       FOR authorFriend IN 1..1 OUTBOUND author knows"
+                         + "   RETURN authorFriend"
+                         + " )"
+                         + " "
+                         + " FOR message IN Message"
+                         + "   FILTER message._key == @messageId"
+                         + "   FOR reply IN 1..1 INBOUND message replyOf"
+                         + "     FOR replyAuthor IN 1..1 OUTBOUND reply hasCreator"
+                         + " SORT reply.creationDate DESC, TO_NUMBER(replyAuthor._key) ASC"
+                         + " RETURN {"
+                         + "   replyId: reply._key,"
+                         + "   replyContent: reply.content,"
+                         + "   replyCreationDate: reply.creationDate,"
+                         + "   replyAuthorId: replyAuthor._key,"
+                         + "   replyAuthorFirstName: replyAuthor.firstName,"
+                         + "   replyAuthorLastName: replyAuthor.lastName,"
+                         + "   replyAuthorIsFriend: replyAuthor._key IN authorFriends[*]._key"
+                         + " }";
 
-      String statement = "";
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+					new MapBuilder()
+              .put("messageId", String.valueOf(operation.messageId()))
+              .get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
-      // Execute the query and get the results.
       List<LdbcShortQuery7MessageRepliesResult> resultList = new ArrayList<>();
+
+      while (cursor.hasNext()) {
+        BaseDocument doc = cursor.next();
+
+        System.out.println(doc);
+        resultList.add(new LdbcShortQuery7MessageRepliesResult(
+            Long.valueOf((String)doc.getAttribute("replyId")),
+            (String)doc.getAttribute("replyContent"),
+            (Long)doc.getAttribute("replyCreationDate"),
+            Long.valueOf((String)doc.getAttribute("replyAuthorId")),
+            (String)doc.getAttribute("replyAuthorFirstName"),
+            (String)doc.getAttribute("replyAuthorLastName"),
+            (Boolean)doc.getAttribute("replyAuthorIsFriend")));
+      }
 
       resultReporter.report(0, resultList, operation);
     }
