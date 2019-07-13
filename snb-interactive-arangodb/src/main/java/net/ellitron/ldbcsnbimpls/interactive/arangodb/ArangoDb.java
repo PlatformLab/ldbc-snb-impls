@@ -1220,6 +1220,18 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = String.format(
+          "INSERT {_from: \"Person/%d\", _to: \"Message/%d\", creationDate: %d} INTO likes",
+          operation.personId(),
+          operation.postId(),
+          operation.creationDate().getTime());
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+          null,
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1240,6 +1252,18 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = String.format(
+          "INSERT {_from: \"Person/%d\", _to: \"Message/%d\", creationDate: %d} INTO likes",
+          operation.personId(),
+          operation.commentId(),
+          operation.creationDate().getTime());
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+          null,
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1260,6 +1284,37 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      StringBuilder stmtBldr = new StringBuilder();
+      stmtBldr.append(String.format(
+          "INSERT {_key: \"%d\", title: \"%s\", creationDate: %d} INTO Forum\n",
+          operation.forumId(),
+          operation.forumTitle(),
+          operation.creationDate().getTime()));
+      
+      stmtBldr.append("LET hasTagEdges = [");
+      if (operation.tagIds().size() > 0) {
+        for (int i = 0; i < operation.tagIds().size(); i++) {
+          Long tagId = operation.tagIds().get(i);
+          stmtBldr.append(String.format(
+              "{_from: \"Forum/%d\", _to: \"Tag/%d\"}", operation.forumId(), tagId));
+          if (i != operation.tagIds().size() - 1)
+            stmtBldr.append(", ");
+        }
+      }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR hasTagEdge IN hasTagEdges INSERT hasTagEdge INTO hasTag\n");
+      
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Forum/%d\", _to: \"Person/%d\"} INTO hasModerator\n",
+          operation.forumId(),
+          operation.moderatorPersonId()));
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          stmtBldr.toString(),
+          null,
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1280,6 +1335,18 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      String statement = String.format(
+          "INSERT {_from: \"Forum/%d\", _to: \"Person/%d\", joinDate: %d} INTO hasMember",
+          operation.forumId(),
+          operation.personId(),
+          operation.joinDate().getTime());
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+          null,
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
@@ -1301,6 +1368,72 @@ public class ArangoDb extends Db {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
 
+      StringBuilder stmtBldr = new StringBuilder();
+      stmtBldr.append("INSERT {"
+                      + " _key: @messageId,"
+                      + " creationDate: @creationDate,"
+                      + " browserUsed: @browserUsed,"
+                      + " locationIP: @locationIP,"
+                      + " length: @length,"
+                      + " language: @language,");
+      if (operation.imageFile().length() > 0) {
+        stmtBldr.append(" imageFile: @imageFile } INTO Message\n");
+      } else {
+        stmtBldr.append(" content: @content } INTO Message\n");
+      }
+
+      MapBuilder paramBldr =  new MapBuilder()
+          .put("messageId", String.valueOf(operation.postId()))
+          .put("creationDate", operation.creationDate().getTime())
+          .put("browserUsed", operation.browserUsed())
+          .put("locationIP", operation.locationIp())
+          .put("length", operation.length())
+          .put("language", operation.language());
+      if (operation.imageFile().length() > 0) {
+        paramBldr.put("imageFile", operation.imageFile());
+      } else {
+        paramBldr.put("content", operation.content());
+      }
+
+      // hasTag edges.
+      stmtBldr.append("LET hasTagEdges = [");
+      if (operation.tagIds().size() > 0) {
+        for (int i = 0; i < operation.tagIds().size(); i++) {
+          Long tagId = operation.tagIds().get(i);
+          stmtBldr.append(String.format(
+              "{_from: \"Message/%d\", _to: \"Tag/%d\"}", operation.postId(), tagId));
+          if (i != operation.tagIds().size() - 1)
+            stmtBldr.append(", ");
+        }
+      }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR hasTagEdge IN hasTagEdges INSERT hasTagEdge INTO hasTag\n");
+
+      // Author
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Message/%d\", _to: \"Person/%d\"} INTO hasCreator\n",
+          operation.postId(),
+          operation.authorPersonId()));
+
+      // Forum
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Forum/%d\", _to: \"Message/%d\"} INTO containerOf\n",
+          operation.forumId(),
+          operation.postId()));
+
+      // Country
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Message/%d\", _to: \"Place/%d\"} INTO isLocatedIn\n",
+          operation.postId(),
+          operation.countryId()));
+
+      ArangoCursor<BaseDocument> cursor = db.query(
+          stmtBldr.toString(),
+          paramBldr.get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
+
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
@@ -1321,6 +1454,68 @@ public class ArangoDb extends Db {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
 
+      StringBuilder stmtBldr = new StringBuilder();
+      stmtBldr.append("INSERT {"
+                      + " _key: @messageId,"
+                      + " creationDate: @creationDate,"
+                      + " browserUsed: @browserUsed,"
+                      + " locationIP: @locationIP,"
+                      + " length: @length,"
+                      + " content: @content } INTO Message\n");
+
+      MapBuilder paramBldr =  new MapBuilder()
+          .put("messageId", String.valueOf(operation.commentId()))
+          .put("creationDate", operation.creationDate().getTime())
+          .put("browserUsed", operation.browserUsed())
+          .put("locationIP", operation.locationIp())
+          .put("length", operation.length())
+          .put("content", operation.content());
+
+      // hasTag edges.
+      stmtBldr.append("LET hasTagEdges = [");
+      if (operation.tagIds().size() > 0) {
+        for (int i = 0; i < operation.tagIds().size(); i++) {
+          Long tagId = operation.tagIds().get(i);
+          stmtBldr.append(String.format(
+              "{_from: \"Message/%d\", _to: \"Tag/%d\"}", operation.commentId(), tagId));
+          if (i != operation.tagIds().size() - 1)
+            stmtBldr.append(", ");
+        }
+      }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR hasTagEdge IN hasTagEdges INSERT hasTagEdge INTO hasTag\n");
+
+      // Author
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Message/%d\", _to: \"Person/%d\"} INTO hasCreator\n",
+          operation.commentId(),
+          operation.authorPersonId()));
+
+      // Replying to another message
+      Long replyOfId;
+      if (operation.replyToCommentId() != -1)
+        replyOfId = operation.replyToCommentId();
+      else
+        replyOfId = operation.replyToPostId();
+
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Message/%d\", _to: \"Message/%d\"} INTO replyOf\n",
+          operation.commentId(),
+          replyOfId));
+
+      // Country
+      stmtBldr.append(String.format(
+          "INSERT {_from: \"Message/%d\", _to: \"Place/%d\"} INTO isLocatedIn\n",
+          operation.commentId(),
+          operation.countryId()));
+
+      ArangoCursor<BaseDocument> cursor = db.query(
+          stmtBldr.toString(),
+          paramBldr.get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
+
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
   }
@@ -1340,6 +1535,19 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+      
+      String statement = String.format(
+          "INSERT {_from: \"Person/%d\", _to: \"Person/%d\", creationDate: %d} INTO knows",
+          operation.person1Id(),
+          operation.person2Id(),
+          operation.creationDate().getTime());
+      
+      ArangoCursor<BaseDocument> cursor = db.query(
+          statement,
+          null,
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
