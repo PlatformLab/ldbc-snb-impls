@@ -1112,123 +1112,97 @@ public class ArangoDb extends Db {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
 
-      // Since this update involves a variable number of edges (hasInterest, studyAt, workAt), we're
-      // going to build up the query statement INSERT by INSERT and execute it as one query.
-      // However, currently ArangoDB does not allow an AQL query to access a modified collection, so
-      // we're going to INSERT the person into the Person collection first in a separate query, and
-      // add all the edges in a second query.
-      String statement = " INSERT {"
-                         + " _key: @personId,"
-                         + " firstName: @firstName,"
-                         + " lastName: @lastName,"
-                         + " gender: @gender,"
-                         + " birthday: @birthday,"
-                         + " birthday_day: @birthday_day,"
-                         + " birthday_month: @birthday_month,"
-                         + " creationDate: @creationDate,"
-                         + " locationIP: @locationIP,"
-                         + " browserUsed: @browserUsed,"
-                         + " email: @email,"
-                         + " speaks: @speaks"
-                         + " } INTO Person";
+      StringBuilder stmtBldr = new StringBuilder();
+      stmtBldr.append("INSERT {"
+                      + " _key: @personId,"
+                      + " firstName: @firstName,"
+                      + " lastName: @lastName,"
+                      + " gender: @gender,"
+                      + " birthday: @birthday,"
+                      + " birthday_day: @birthday_day,"
+                      + " birthday_month: @birthday_month,"
+                      + " creationDate: @creationDate,"
+                      + " locationIP: @locationIP,"
+                      + " browserUsed: @browserUsed,"
+                      + " email: @email,"
+                      + " speaks: @speaks"
+                      + " } INTO Person\n");
 
       // Use Calendar to figure out birthday_day and birthday_month from birthday    
       Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
       cal.setTimeInMillis(operation.birthday().getTime());
 
-      db.query(statement,
-               new MapBuilder()
-                   .put("personId", String.valueOf(operation.personId()))
-                   .put("firstName", operation.personFirstName())
-                   .put("lastName", operation.personLastName())
-                   .put("gender", operation.gender())
-                   .put("birthday", new Long(operation.birthday().getTime()))
-                   .put("birthday_day", new Integer(cal.get(Calendar.DAY_OF_MONTH)))
-                   .put("birthday_month", new Integer(cal.get(Calendar.MONTH) + 1))
-                   .put("creationDate", new Long(operation.creationDate().getTime()))
-                   .put("locationIP", operation.locationIp())
-                   .put("browserUsed", operation.browserUsed())
-                   .put("email", operation.emails().toString())
-                   .put("speaks", operation.languages().toString())
-                   .get(),
-               new AqlQueryOptions(),
-               BaseDocument.class);
+      MapBuilder paramBldr =  new MapBuilder()
+          .put("personId", String.valueOf(operation.personId()))
+          .put("firstName", operation.personFirstName())
+          .put("lastName", operation.personLastName())
+          .put("gender", operation.gender())
+          .put("birthday", new Long(operation.birthday().getTime()))
+          .put("birthday_day", new Integer(cal.get(Calendar.DAY_OF_MONTH)))
+          .put("birthday_month", new Integer(cal.get(Calendar.MONTH) + 1))
+          .put("creationDate", new Long(operation.creationDate().getTime()))
+          .put("locationIP", operation.locationIp())
+          .put("browserUsed", operation.browserUsed())
+          .put("email", operation.emails().toString())
+          .put("speaks", operation.languages().toString());
 
-      // Now we build up the edge insertion query.
-      
-      // INSERT isLocatedIn edge
-      statement = " INSERT {"
-                  + " _from: @personId,"
-                  + " _to: @placeId"
-                  + " } INTO isLocatedIn";
-      db.query(statement,
-               new MapBuilder()
-                   .put("personId", "Person/" + String.valueOf(operation.personId()))
-                   .put("placeId", "Place/" + String.valueOf(operation.cityId()))
-                   .get(),
-               new AqlQueryOptions(),
-               BaseDocument.class);
-			
-      // Add hasInterest relationships.
+      // hasInterest edges.
+      stmtBldr.append("LET hasInterestEdges = [");
       if (operation.tagIds().size() > 0) {
         for (int i = 0; i < operation.tagIds().size(); i++) {
           Long tagId = operation.tagIds().get(i);
-          statement = " INSERT {"
-                      + " _from: @personId,"
-                      + " _to: @tagId"
-                      + " } INTO hasInterest";
-
-          db.query(statement,
-                   new MapBuilder()
-                       .put("personId", "Person/" + String.valueOf(operation.personId()))
-                       .put("tagId", "Tag/" + String.valueOf(tagId))
-                       .get(),
-                   new AqlQueryOptions(),
-                   BaseDocument.class);
+          stmtBldr.append(String.format(
+              "{_from: \"Person/%d\", _to: \"Tag/%d\"}", operation.personId(), tagId));
+          if (i != operation.tagIds().size() - 1)
+            stmtBldr.append(", ");
         }
       }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR hasInterestEdge IN hasInterestEdges INSERT hasInterestEdge INTO hasInterest\n");
 
-      // Add studyAt relationships.
+      // studyAt edges.
+      stmtBldr.append("LET studyAtEdges = [");
       if (operation.studyAt().size() > 0) {
         for (int i = 0; i < operation.studyAt().size(); i++) {
           Organization org = operation.studyAt().get(i);
-          statement = " INSERT {"
-                      + " _from: @personId,"
-                      + " _to: @orgId,"
-                      + " classYear: @classYear"
-                      + " } INTO studyAt";
-
-          db.query(statement,
-                   new MapBuilder()
-                       .put("personId", "Person/" + String.valueOf(operation.personId()))
-                       .put("orgId", "Organisation/" + String.valueOf(org.organizationId()))
-                       .put("classYear", org.year())
-                       .get(),
-                   new AqlQueryOptions(),
-                   BaseDocument.class);
+          stmtBldr.append(String.format(
+              "{_from: \"Person/%d\", _to: \"Organisation/%d\", classYear: %d}", 
+              operation.personId(), 
+              org.organizationId(),
+              org.year()));
+          if (i != operation.studyAt().size() - 1)
+            stmtBldr.append(", ");
         }
       }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR studyAtEdge IN studyAtEdges INSERT studyAtEdge INTO studyAt\n");
 
-      // Add workAt relationships.
+      // workAt edges.
+      stmtBldr.append("LET workAtEdges = [");
       if (operation.workAt().size() > 0) {
         for (int i = 0; i < operation.workAt().size(); i++) {
           Organization org = operation.workAt().get(i);
-          statement = " INSERT {"
-                      + " _from: @personId,"
-                      + " _to: @orgId,"
-                      + " workFrom: @workFrom"
-                      + " } INTO workAt";
-
-          db.query(statement,
-                   new MapBuilder()
-                       .put("personId", "Person/" + String.valueOf(operation.personId()))
-                       .put("orgId", "Organisation/" + String.valueOf(org.organizationId()))
-                       .put("workFrom", org.year())
-                       .get(),
-                   new AqlQueryOptions(),
-                   BaseDocument.class);
+          stmtBldr.append(String.format(
+              "{_from: \"Person/%d\", _to: \"Organisation/%d\", workFrom: %d}", 
+              operation.personId(), 
+              org.organizationId(),
+              org.year()));
+          if (i != operation.workAt().size() - 1)
+            stmtBldr.append(", ");
         }
       }
+      stmtBldr.append("]\n");
+      stmtBldr.append("FOR workAtEdge IN workAtEdges INSERT workAtEdge INTO workAt\n");
+
+      System.out.println(stmtBldr.toString());
+      System.out.println(paramBldr.get().toString());
+
+      ArangoCursor<BaseDocument> cursor = db.query(
+          stmtBldr.toString(),
+          paramBldr.get(),
+					new AqlQueryOptions(),
+					BaseDocument.class
+				);
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
