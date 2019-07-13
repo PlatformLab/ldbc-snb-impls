@@ -90,6 +90,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * An implementation of the LDBC SNB interactive workload[1] for ArangoDB. Queries
@@ -1110,6 +1111,124 @@ public class ArangoDb extends Db {
         ResultReporter reporter) throws DbException {
 
       ArangoDatabase db = ((ArangoDbConnectionState) dbConnectionState).getDatabase();
+
+      // Since this update involves a variable number of edges (hasInterest, studyAt, workAt), we're
+      // going to build up the query statement INSERT by INSERT and execute it as one query.
+      // However, currently ArangoDB does not allow an AQL query to access a modified collection, so
+      // we're going to INSERT the person into the Person collection first in a separate query, and
+      // add all the edges in a second query.
+      String statement = " INSERT {"
+                         + " _key: @personId,"
+                         + " firstName: @firstName,"
+                         + " lastName: @lastName,"
+                         + " gender: @gender,"
+                         + " birthday: @birthday,"
+                         + " birthday_day: @birthday_day,"
+                         + " birthday_month: @birthday_month,"
+                         + " creationDate: @creationDate,"
+                         + " locationIP: @locationIP,"
+                         + " browserUsed: @browserUsed,"
+                         + " email: @email,"
+                         + " speaks: @speaks"
+                         + " } INTO Person";
+
+      // Use Calendar to figure out birthday_day and birthday_month from birthday    
+      Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+      cal.setTimeInMillis(operation.birthday().getTime());
+
+      db.query(statement,
+               new MapBuilder()
+                   .put("personId", String.valueOf(operation.personId()))
+                   .put("firstName", operation.personFirstName())
+                   .put("lastName", operation.personLastName())
+                   .put("gender", operation.gender())
+                   .put("birthday", new Long(operation.birthday().getTime()))
+                   .put("birthday_day", new Integer(cal.get(Calendar.DAY_OF_MONTH)))
+                   .put("birthday_month", new Integer(cal.get(Calendar.MONTH) + 1))
+                   .put("creationDate", new Long(operation.creationDate().getTime()))
+                   .put("locationIP", operation.locationIp())
+                   .put("browserUsed", operation.browserUsed())
+                   .put("email", operation.emails().toString())
+                   .put("speaks", operation.languages().toString())
+                   .get(),
+               new AqlQueryOptions(),
+               BaseDocument.class);
+
+      // Now we build up the edge insertion query.
+      
+      // INSERT isLocatedIn edge
+      statement = " INSERT {"
+                  + " _from: @personId,"
+                  + " _to: @placeId"
+                  + " } INTO isLocatedIn";
+      db.query(statement,
+               new MapBuilder()
+                   .put("personId", "Person/" + String.valueOf(operation.personId()))
+                   .put("placeId", "Place/" + String.valueOf(operation.cityId()))
+                   .get(),
+               new AqlQueryOptions(),
+               BaseDocument.class);
+			
+      // Add hasInterest relationships.
+      if (operation.tagIds().size() > 0) {
+        for (int i = 0; i < operation.tagIds().size(); i++) {
+          Long tagId = operation.tagIds().get(i);
+          statement = " INSERT {"
+                      + " _from: @personId,"
+                      + " _to: @tagId"
+                      + " } INTO hasInterest";
+
+          db.query(statement,
+                   new MapBuilder()
+                       .put("personId", "Person/" + String.valueOf(operation.personId()))
+                       .put("tagId", "Tag/" + String.valueOf(tagId))
+                       .get(),
+                   new AqlQueryOptions(),
+                   BaseDocument.class);
+        }
+      }
+
+      // Add studyAt relationships.
+      if (operation.studyAt().size() > 0) {
+        for (int i = 0; i < operation.studyAt().size(); i++) {
+          Organization org = operation.studyAt().get(i);
+          statement = " INSERT {"
+                      + " _from: @personId,"
+                      + " _to: @orgId,"
+                      + " classYear: @classYear"
+                      + " } INTO studyAt";
+
+          db.query(statement,
+                   new MapBuilder()
+                       .put("personId", "Person/" + String.valueOf(operation.personId()))
+                       .put("orgId", "Organisation/" + String.valueOf(org.organizationId()))
+                       .put("classYear", org.year())
+                       .get(),
+                   new AqlQueryOptions(),
+                   BaseDocument.class);
+        }
+      }
+
+      // Add workAt relationships.
+      if (operation.workAt().size() > 0) {
+        for (int i = 0; i < operation.workAt().size(); i++) {
+          Organization org = operation.workAt().get(i);
+          statement = " INSERT {"
+                      + " _from: @personId,"
+                      + " _to: @orgId,"
+                      + " workFrom: @workFrom"
+                      + " } INTO workAt";
+
+          db.query(statement,
+                   new MapBuilder()
+                       .put("personId", "Person/" + String.valueOf(operation.personId()))
+                       .put("orgId", "Organisation/" + String.valueOf(org.organizationId()))
+                       .put("workFrom", org.year())
+                       .get(),
+                   new AqlQueryOptions(),
+                   BaseDocument.class);
+        }
+      }
 
       reporter.report(0, LdbcNoResult.INSTANCE, operation);
     }
