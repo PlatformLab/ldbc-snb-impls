@@ -1194,9 +1194,6 @@ public class ArangoDb extends Db {
       stmtBldr.append("]\n");
       stmtBldr.append("FOR workAtEdge IN workAtEdges INSERT workAtEdge INTO workAt\n");
 
-      System.out.println(stmtBldr.toString());
-      System.out.println(paramBldr.get().toString());
-
       ArangoCursor<BaseDocument> cursor = db.query(
           stmtBldr.toString(),
           paramBldr.get(),
