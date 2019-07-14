@@ -1,14 +1,14 @@
 ArangoDB LDBC SNB Interactive Workload Implementation
 =====================================================
 
-== Implementation Status ==
+## Implementation Status ##
 * [ArangoDB](https://arangodb.com/)
   * Implementation Status:
     * Complex Read Queries: 0/14
     * Short Read Queries: 7/7
     * Update Queries: 8/8
 
-== Instructions ==
+## Instructions ##
 
 LDBC SNB SF0001 dataset for ArangoDB is available for download
 [here](https://www.dropbox.com/s/nplg3du0npzav7e/ldbc_snb_sf0001-arangodb-2019-07-13.tar.gz?dl=0).
