@@ -30,7 +30,7 @@ database.
     * Short Read Queries: 7/7 (passing validation)
     * Update Queries: 8/8 (passing validation)
 * [ArangoDB](https://arangodb.com/)
-  * Implementation Status: Unimplemented
+  * Implementation Status:
     * Complex Read Queries: 0/14
-    * Short Read Queries: 0/7
-    * Update Queries: 0/8
+    * Short Read Queries: 7/7
+    * Update Queries: 8/8
