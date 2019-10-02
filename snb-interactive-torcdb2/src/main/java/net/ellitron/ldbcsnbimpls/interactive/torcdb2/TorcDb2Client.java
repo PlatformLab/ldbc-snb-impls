@@ -186,7 +186,7 @@ public class TorcDb2Client extends Db {
       ObjectOutputStream out = oStreams.get(n);
       ObjectInputStream in = iStreams.get(n);
 
-      System.out.println(String.format("Thread %d is sending query %s to server %d", Thread.currentThread().getId(), operation.toString(), n));
+      System.out.println(String.format("[%d] Thread %d is sending query %s to server %d", System.currentTimeMillis(), Thread.currentThread().getId(), operation.toString(), n));
 
       // Package operation into serializable form and send to server.
       if (operation instanceof LdbcQuery1) {
@@ -559,7 +559,7 @@ public class TorcDb2Client extends Db {
 
       connState.loadBalancer.deload(operation, n);
       
-      System.out.println(String.format("Thread %d is received query %s result from server %d", Thread.currentThread().getId(), operation.toString(), n));
+      System.out.println(String.format("[%d] Thread %d is received query %s result from server %d", System.currentTimeMillis(), Thread.currentThread().getId(), operation.toString(), n));
 
     } catch (Exception e) {
         throw new RuntimeException(e);
