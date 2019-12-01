@@ -380,8 +380,8 @@ public class Neo4jDb extends Db {
       Driver driver = ((Neo4jDbConnectionState) dbConnectionState).getDriver();
 
       String statement =
-          "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message)"
-          + " WHERE message.creationDate <= {2} AND (message:Post OR message:Comment)"
+          "   MATCH (:Person {id:{1}})-[:KNOWS]-(friend:Person)<-[:HAS_CREATOR]-(message:Message)"
+          + " WHERE message.creationDate <= {2}"
           + " RETURN"
           + "   friend.id AS personId,"
           + "   friend.firstName AS personFirstName,"
